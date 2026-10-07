@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redecon Consórcios</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<style>
+:root{
+  --bg:#f3f4f6;
+  --surface:#ffffff;
+  --surface-2:#f8f8f9;
+  --surface-3:#f1f2f4;
+  --text:#17171c;
+  --muted:#686b73;
+  --muted-2:#91949b;
+  --border:#e0e2e6;
+  --border-strong:#cfd2d8;
+  --dark:#111216;
+  --dark-2:#1b1c22;
+  --accent:#ef3b16;
+  --accent-dark:#c82e0e;
+  --accent-soft:#fff0eb;
+  --green:#167451;
+  --green-soft:#edf8f3;
+  --blue:#245fc7;
+  --blue-soft:#eef4ff;
+  --amber:#986300;
+  --amber-soft:#fff7e6;
+  --purple:#6950b4;
+  --purple-soft:#f4f0ff;
+  --shadow:0 12px 32px rgba(15,18,28,.07);
+  --shadow-sm:0 5px 18px rgba(15,18,28,.05);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Inter,system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+button,input{font:inherit}
+button{color:inherit}
+a{color:inherit}
+svg{display:block}
+
+.app{min-height:100vh}
+.topbar{
+  height:68px;background:var(--dark);color:#fff;display:flex;align-items:center;
+  justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:30;
+  border-bottom:1px solid #27282f
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{
+  width:34px;height:28px;position:relative;flex:0 0 auto;
+}
+.mark:before,.mark:after{
+  content:"";position:absolute;left:1px;right:1px;height:9px;border:4px solid var(--accent);
+  border-bottom:0;border-radius:20px 20px 0 0;
+}
+.mark:before{top:2px}
+.mark:after{top:13px}
+.brand-title{font-size:16px;font-weight:800;letter-spacing:-.01em}
+.brand-sub{font-size:11.5px;color:#aeb0b8;letter-spacing:.02em}
+.brand-logo{height:34px;width:auto;display:block;flex:0 0 auto}
+.brand-sep{width:1px;height:24px;background:#3a3b44;flex:0 0 auto}
+.top-actions{display:flex;align-items:center;gap:8px}
+.badge-top{
+  border:1px solid #34353e;background:#1b1c22;border-radius:999px;
+  padding:7px 10px;font-size:11px;color:#d8d9dd
+}
+.layout{display:grid;grid-template-columns:236px minmax(0,1fr)}
+.sidebar{
+  background:#fff;border-right:1px solid var(--border);min-height:calc(100vh - 68px);
+  padding:20px 13px;position:sticky;top:68px;height:calc(100vh - 68px);overflow:auto
+}
+.nav-label{padding:0 11px 8px;color:#9a9da4;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.nav{display:flex;flex-direction:column;gap:3px;margin-bottom:20px}
+.nav-btn{
+  border:0;width:100%;background:transparent;text-align:left;display:flex;align-items:center;gap:10px;
+  padding:10px 11px;border-radius:10px;font-size:13px;font-weight:650;color:#45474e;cursor:pointer
+}
+.nav-btn:hover{background:#f5f6f7}
+.nav-btn.active{background:var(--accent-soft);color:#b62c0d}
+.nav-icon{width:20px;height:20px;display:grid;place-items:center;flex:0 0 auto}
+.nav-icon svg{width:18px;height:18px}
+.nav-spacer{flex:1}
+.nav-count{font-size:10px;color:#9b9da4;background:#f2f3f4;padding:3px 6px;border-radius:999px}
+.sidebar-note{
+  margin:10px 3px 0;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fafafa;
+  font-size:11px;color:var(--muted);line-height:1.5
+}
+.sidebar-note strong{display:block;color:#33353b;font-size:11.5px;margin-bottom:4px}
+.main{min-width:0;padding:28px 30px 54px}
+.container{max-width:1300px;margin:0 auto}
+.hero{
+  display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:20px
+}
+.eyebrow{font-size:11px;color:#90939a;text-transform:uppercase;letter-spacing:.09em;font-weight:800;margin-bottom:7px}
+.hero h1{margin:0;font-size:29px;line-height:1.15;letter-spacing:-.03em;font-weight:850}
+.hero p{margin:7px 0 0;color:var(--muted);font-size:13.5px;line-height:1.5}
+.draft{
+  border:1px dashed #c8cbd1;background:#fff;border-radius:11px;padding:9px 11px;color:#64666d;
+  font-size:11px;white-space:nowrap
+}
+.search-wrap{position:relative;margin-bottom:20px}
+.search{
+  display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--border);border-radius:15px;
+  padding:5px 8px 5px 15px;box-shadow:var(--shadow-sm)
+}
+.search svg{width:19px;height:19px;color:#7d8087;flex:0 0 auto}
+.search input{border:0;outline:0;background:transparent;width:100%;padding:11px 0;font-size:14px;color:var(--text)}
+.search input::placeholder{color:#a0a2a8}
+.search-kbd{font-size:10px;border:1px solid var(--border);background:#f8f8f9;border-radius:6px;padding:4px 6px;color:#8a8c92}
+.search-results{
+  position:absolute;left:0;right:0;top:58px;background:#fff;border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 18px 46px rgba(0,0,0,.14);z-index:25;overflow:hidden;display:none
+}
+.search-results.show{display:block}
+.result-header{padding:10px 13px;background:#fafafa;border-bottom:1px solid var(--border);font-size:10.5px;color:#8a8d94}
+.result-item{
+  border:0;background:#fff;width:100%;padding:11px 13px;text-align:left;display:flex;align-items:center;gap:11px;
+  cursor:pointer;border-bottom:1px solid #f0f1f2
+}
+.result-item:last-child{border-bottom:0}
+.result-item:hover{background:#fafafa}
+.result-icon{width:34px;height:34px;border-radius:9px;background:#f4f5f6;display:grid;place-items:center;flex:0 0 auto}
+.result-icon svg{width:17px;height:17px}
+.result-text{min-width:0}
+.result-title{font-size:12.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-meta{font-size:10.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.section-title{
+  display:flex;align-items:end;justify-content:space-between;gap:14px;margin:26px 0 12px
+}
+.section-title h2{font-size:15px;margin:0;font-weight:850}
+.section-title p{font-size:11.5px;color:var(--muted);margin:3px 0 0}
+.section-title .small{font-size:10.5px;color:#93959b}
+.module-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.module{
+  border:1px solid var(--border);background:#fff;border-radius:15px;padding:17px;text-align:left;cursor:pointer;
+  transition:.16s;min-width:0;position:relative;overflow:hidden
+}
+.module:hover{border-color:#c9cbd1;box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.module.primary{grid-column:span 2;border-color:#ffd1c4;background:linear-gradient(150deg,#fff 0%,#fff8f5 100%)}
+.module-icon{
+  width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:#f3f4f5;margin-bottom:13px
+}
+.module.primary .module-icon{background:var(--accent-soft);color:#b92c0d}
+.module-icon svg{width:22px;height:22px}
+.module h3{font-size:14px;margin:0 0 6px;font-weight:850}
+.module p{font-size:11.4px;line-height:1.45;color:var(--muted);margin:0}
+.module .arrow{position:absolute;right:14px;top:15px;color:#a6a8ae}
+.module .arrow svg{width:16px;height:16px}
+.module-foot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:12px}
+.pill{font-size:9px;font-weight:750;padding:4px 6px;border-radius:6px;background:#f4f5f6;color:#6c6f76}
+.pill.live{background:var(--green-soft);color:var(--green)}
+.pill.beta{background:var(--amber-soft);color:var(--amber)}
+.quick-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.quick{
+  border:1px solid var(--border);background:#fff;border-radius:13px;padding:13px;cursor:pointer;text-align:left;min-width:0;
+  transition:.15s
+}
+.quick:hover{border-color:#c6c9cf;background:#fcfcfd}
+.quick .qicon{width:34px;height:34px;border-radius:9px;background:#f4f5f6;display:grid;place-items:center;margin-bottom:9px}
+.quick .qicon svg{width:17px;height:17px}
+.quick strong{font-size:11.5px;display:block;line-height:1.25}
+.quick span{font-size:9.8px;color:var(--muted);display:block;margin-top:3px;line-height:1.35}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:18px;margin-top:20px;align-items:start}
+.panel{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.panel-head{padding:15px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.panel-head h3{font-size:13.5px;margin:0;font-weight:850}
+.panel-head span{font-size:10.5px;color:var(--muted)}
+.panel-body{padding:16px 17px}
+.topic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.topic{
+  border:1px solid var(--border);border-radius:12px;padding:12px 13px;background:#fff;cursor:pointer;text-align:left;min-width:0;
+  transition:.14s
+}
+.topic:hover{border-color:#c8cbd0;background:#fdfdfd}
+.topic-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.topic-dot{width:9px;height:9px;border-radius:50%;background:#a6a9af;flex:0 0 auto}
+.topic-dot.red{background:var(--accent)}
+.topic-dot.blue{background:#3f73ca}
+.topic-dot.green{background:#2a8c67}
+.topic-dot.purple{background:#7658bf}
+.topic strong{font-size:11.7px}
+.topic p{font-size:10.5px;color:var(--muted);line-height:1.45;margin:0}
+.activity{display:flex;flex-direction:column;gap:8px}
+.activity-item{border:1px solid var(--border);border-radius:11px;padding:11px 12px}
+.activity-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.activity-top strong{font-size:11.5px}
+.source-tag{font-size:8.5px;padding:3px 5px;border-radius:5px;background:#f4f5f6;color:#797c83;font-weight:800}
+.source-tag.hs{background:var(--green-soft);color:var(--green)}
+.source-tag.red{background:var(--blue-soft);color:var(--blue)}
+.activity-item p{margin:0;color:var(--muted);font-size:10.4px;line-height:1.45}
+.view{display:none}
+.view.active{display:block}
+.module-view{margin-top:2px}
+.module-banner{
+  border:1px solid var(--border);background:#fff;border-radius:16px;padding:18px 19px;display:flex;align-items:flex-start;gap:14px;margin-bottom:15px
+}
+.module-banner .bigicon{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;color:#b72b0d;flex:0 0 auto}
+.module-banner .bigicon svg{width:24px;height:24px}
+.module-banner h2{margin:0 0 5px;font-size:19px}
+.module-banner p{margin:0;color:var(--muted);font-size:11.8px;line-height:1.5}
+.module-actions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.btn{
+  border:1px solid var(--border);background:#fff;border-radius:9px;padding:8px 10px;font-size:10.5px;font-weight:800;cursor:pointer
+}
+.btn:hover{background:#f8f8f9}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark)}
+.cards-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.info-card{border:1px solid var(--border);background:#fff;border-radius:13px;padding:13px}
+.info-card h4{font-size:11.7px;margin:0 0 6px}
+.info-card p{font-size:10.5px;color:var(--muted);line-height:1.5;margin:0}
+.info-card .mini{font-size:9.3px;color:#8e9097;margin-top:8px}
+.flow{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:9px}
+.flow-step{font-size:9.5px;font-weight:750;padding:6px 8px;border:1px solid var(--border);border-radius:999px;background:#fafafa}
+.flow-arrow{font-size:10px;color:#aaacb2}
+.accordion{display:flex;flex-direction:column;gap:8px}
+.acc{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}
+.acc-btn{
+  width:100%;border:0;background:#fff;padding:12px 13px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  cursor:pointer;text-align:left
+}
+.acc-btn strong{font-size:11.7px}
+.acc-btn span{font-size:10px;color:var(--muted)}
+.acc-body{display:none;border-top:1px solid var(--border);padding:12px 13px;background:#fcfcfd}
+.acc.open .acc-body{display:block}
+.acc-body p,.acc-body li{font-size:10.6px;color:#565960;line-height:1.55}
+.acc-body p{margin:0}
+.acc-body ul{margin:0;padding-left:17px}
+.message-row{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border);padding:11px;border-radius:11px;margin-bottom:8px}
+.message-row:last-child{margin-bottom:0}
+.message-content{min-width:0;flex:1}
+.message-content strong{font-size:11.3px}
+.message-content p{font-size:10.4px;color:var(--muted);line-height:1.5;margin:4px 0 0}
+.copy-btn{border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 7px;font-size:9.5px;font-weight:750;cursor:pointer;white-space:nowrap}
+.copy-btn:hover{background:#f7f7f8}
+.link-list{display:flex;flex-direction:column;gap:7px}
+.link-item{border:1px solid var(--border);border-radius:10px;padding:10px 11px;display:flex;align-items:center;gap:10px}
+.link-item .l-icon{width:30px;height:30px;border-radius:8px;background:#f4f5f6;display:grid;place-items:center}
+.link-item .l-icon svg{width:15px;height:15px}
+.link-item strong{font-size:10.8px;display:block}
+.link-item span{font-size:9.5px;color:var(--muted);display:block;margin-top:2px}
+.link-item .right{margin-left:auto;color:#a0a2a8}
+.detail-overlay{
+  position:fixed;inset:0;background:rgba(11,12,16,.38);z-index:50;opacity:0;visibility:hidden;transition:.16s
+}
+.detail-overlay.open{opacity:1;visibility:visible}
+.drawer{
+  position:fixed;right:0;top:0;height:100vh;width:min(590px,96vw);background:#fff;z-index:60;
+  transform:translateX(102%);transition:.2s;box-shadow:-16px 0 48px rgba(0,0,0,.16);overflow:auto
+}
+.drawer.open{transform:translateX(0)}
+.drawer-head{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);padding:17px 19px;display:flex;align-items:flex-start;gap:12px;z-index:2}
+.drawer-title{min-width:0;flex:1}
+.drawer-title .kind{font-size:9.5px;color:#8e9198;text-transform:uppercase;font-weight:800;letter-spacing:.08em}
+.drawer-title h2{font-size:18px;margin:4px 0 4px}
+.drawer-title p{font-size:10.8px;color:var(--muted);margin:0;line-height:1.45}
+.close-btn{border:0;background:#f2f3f4;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:17px}
+.drawer-body{padding:17px 19px 28px}
+.detail-section{margin-bottom:18px}
+.detail-section h3{font-size:10px;color:#8b8e95;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px}
+.detail-section p,.detail-section li{font-size:11px;color:#494c53;line-height:1.55}
+.detail-section p{margin:0}
+.detail-section ul{padding-left:18px;margin:0}
+.detail-callout{padding:11px 12px;border:1px solid #f0d8ce;background:#fff8f5;border-radius:11px;font-size:10.5px;color:#704234;line-height:1.5}
+.detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meta-box{border:1px solid var(--border);border-radius:10px;padding:9px 10px}
+.meta-box span{display:block;font-size:8.8px;text-transform:uppercase;color:#96989f;font-weight:800;margin-bottom:3px}
+.meta-box strong{font-size:10.8px}
+.toast{
+  position:fixed;bottom:17px;left:50%;transform:translate(-50%,15px);opacity:0;pointer-events:none;
+  background:#17181d;color:#fff;border-radius:10px;padding:9px 13px;font-size:10.5px;z-index:90;transition:.16s
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.mobile-nav{display:none}
+@media(max-width:1180px){
+  .module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .module.primary{grid-column:span 1}
+  .quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:960px){
+  .layout{grid-template-columns:1fr}.sidebar{display:none}
+  .main{padding:22px 18px 50px}
+  .workspace{grid-template-columns:1fr}
+  .mobile-nav{display:flex;gap:7px;overflow:auto;margin-bottom:16px;padding-bottom:3px}
+  .mobile-nav button,.mobile-nav a{white-space:nowrap;border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 10px;font-size:10.5px;font-weight:750;text-decoration:none;color:inherit}
+}
+@media(max-width:700px){
+  .topbar{padding:0 14px}.badge-top:last-child{display:none}
+  .brand-sub,.brand-sep{display:none}
+  .brand-logo{height:28px}
+  .hero{align-items:flex-start;flex-direction:column}.draft{white-space:normal}
+  .hero h1{font-size:25px}
+  .module-grid{grid-template-columns:1fr 1fr}
+  .quick-grid{grid-template-columns:1fr 1fr}
+  .topic-grid,.cards-3{grid-template-columns:1fr}
+  .module-actions{margin-left:0;width:100%;justify-content:flex-start}
+  .module-banner{flex-wrap:wrap}
+  .detail-meta{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .module-grid,.quick-grid{grid-template-columns:1fr}
+  .main{padding:18px 12px 42px}
+  .search-kbd{display:none}
+}
+
+.auth-pending > *:not(#auth-overlay){visibility:hidden!important}
+.nav a.nav-btn{text-decoration:none}
+.module-grid a.module{text-decoration:none;color:inherit}
+.mobile-nav a{text-decoration:none;color:inherit}
+#userbox .topbar-user{white-space:nowrap}
+@media(max-width:700px){#userbox .topbar-user span{display:none}}
+
+.ficha-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:7px;cursor:pointer;font:inherit;color:inherit}
+.ficha-item:hover{border-color:#c8cbd0;background:#fdfdfd}
+.ficha-item strong{display:block;font-size:12.5px}
+.ficha-item span{font-size:11px;color:var(--muted)}
+.ficha-item .source-tag{flex:0 0 auto}
+.source-tag.validar{background:var(--amber-soft);color:var(--amber)}
+.source-tag.est{background:#eef0f3;color:#5c6068}
+.detail-section p,.detail-section li{font-size:13px}
+.detail-section li{margin-bottom:4px}
+.message-content p{font-size:12px;line-height:1.55}
+.ficha-links{display:flex;gap:8px;flex-wrap:wrap}
+.msg-grupo{margin-bottom:18px}
+.msg-grupo h4{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#8b8e95;margin:0 0 8px}
+.msg-grupo h4 span{font-weight:600;color:#b0b3b9}
+.base-nota{font-size:11px;color:var(--muted);margin-top:14px}
+.vazio{font-size:12px;color:var(--muted)}
+.link-group{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#8b8e95;margin:14px 2px 6px}
+.link-group:first-child{margin-top:0}
+.base-aviso{margin:0 0 18px;padding:18px 20px;border-radius:14px;border:1px solid var(--border-strong);background:#fff;box-shadow:var(--shadow-sm)}
+.base-aviso strong{display:block;font-size:15px;margin-bottom:4px}
+.base-aviso p{margin:0 0 12px;color:var(--muted);font-size:13.5px;line-height:1.5}
+.base-aviso.erro{border-color:#f0b4a6;background:var(--accent-soft)}
+.base-aviso .linha{display:flex;gap:8px;flex-wrap:wrap}
+.base-aviso input{flex:1 1 260px;min-width:0;padding:10px 12px;border:1px solid var(--border-strong);border-radius:9px;font-family:Consolas,monospace;font-size:13px}
+.base-aviso small{display:block;margin-top:8px;color:var(--accent-dark);font-size:12.5px;min-height:16px}
+</style>
+</head>
+<body class="auth-pending">
+<div class="app">
+<header class="topbar">
+  <div class="brand">
+    <img class="brand-logo" src="img/logo-redecon-branca.png" alt="Redecon Consórcios">
+    <div class="brand-sep" aria-hidden="true"></div>
+    <div class="brand-sub">Base operacional · processos · simulações</div>
+  </div>
+  <div class="top-actions"><div id="userbox"></div></div>
+</header>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="nav-label">Ferramentas</div>
+  <nav class="nav">
+    <button class="nav-btn active" data-view="home"><span class="nav-icon">⌂</span>Início</button>
+    <a class="nav-btn" href="redecon_processos.html"><span class="nav-icon">▣</span>Processos<span class="nav-spacer"></span><span class="nav-count">abrir</span></a>
+    <a class="nav-btn" href="painel-checklist-redecon.html"><span class="nav-icon">✓</span>Checklist<span class="nav-spacer"></span><span class="nav-count">abrir</span></a>
+    <a class="nav-btn" href="simulacao.html"><span class="nav-icon">∑</span>Simulações</a>
+    <a class="nav-btn" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener"><span class="nav-icon">◇</span>Uso do Crédito</a>
+    <button class="nav-btn" data-view="operacional"><span class="nav-icon">☷</span>Central Operacional</button>
+  </nav>
+
+  <div class="nav-label">Apoio</div>
+  <nav class="nav">
+    <button class="nav-btn" data-view="mensagens"><span class="nav-icon">✉</span>Mensagens prontas</button>
+    <button class="nav-btn" data-view="links"><span class="nav-icon">↗</span>Sistemas e links</button>
+  </nav>
+
+  <div class="sidebar-note">
+    <strong>Redecon Consórcios</strong>
+    Sistema interno do escritório: um único endereço, um único login e a base operacional sempre à mão.
+  </div>
+</aside>
+
+<main class="main">
+<div class="container">
+<div id="baseAviso" class="base-aviso" hidden></div>
+
+<div class="mobile-nav">
+  <button data-view="home">Início</button><a href="redecon_processos.html">Processos</a><a href="painel-checklist-redecon.html">Checklist</a>
+  <a href="simulacao.html">Simulações</a><a href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener">Uso do crédito</a><button data-view="operacional">Operacional</button><button data-view="mensagens">Mensagens</button><button data-view="links">Links</button>
+</div>
+
+<section id="view-home" class="view active">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Redecon Consórcios</div>
+      <h1>O que você precisa fazer agora?</h1>
+      <p>Processos, checklist, simulações, utilização do crédito e rotinas administrativas no mesmo caminho.</p>
+    </div>
+    <div class="draft">BASE OPERACIONAL • uso interno</div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search">
+      <span id="searchIcon"></span>
+      <input id="globalSearch" type="search" autocomplete="off" placeholder="Pesquisar: quitação, lance, boleto, transferência, DPS, construção...">
+      <span class="search-kbd">pesquisa global</span>
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <div class="section-title">
+    <div><h2>Ferramentas principais</h2><p>Uma única porta de entrada para tudo que o escritório usa.</p></div>
+    <div class="small">clique para abrir</div>
+  </div>
+
+  <div class="module-grid">
+    <button class="module primary" data-view="operacional">
+      <span class="arrow">→</span>
+      <div class="module-icon" data-icon="book"></div>
+      <h3>Central Operacional</h3>
+      <p>Procedimentos, regras, mensagens, cobrança, contemplação, transferências, seguros e dúvidas do dia a dia.</p>
+      <div class="module-foot"><span class="pill live">BASE ATIVA</span><span class="pill">pesquisa global</span></div>
+    </button>
+
+    <a class="module" href="redecon_processos.html">
+      <span class="arrow">→</span>
+      <div class="module-icon" data-icon="folder"></div>
+      <h3>Processos</h3>
+      <p>Acompanhamento de processos de imóveis e veículos, da abertura ao pagamento.</p>
+      <div class="module-foot"><span class="pill live">INTEGRADO</span></div>
+    </a>
+
+    <a class="module" href="painel-checklist-redecon.html">
+      <span class="arrow">→</span>
+      <div class="module-icon" data-icon="clipboard"></div>
+      <h3>Checklist</h3>
+      <p>Pré-análise, negativas, perguntas, documentos e emissão dos checklists.</p>
+      <div class="module-foot"><span class="pill live">INTEGRADO</span></div>
+    </a>
+
+    <a class="module" href="simulacao.html">
+      <span class="arrow">→</span>
+      <div class="module-icon" data-icon="calculator"></div>
+      <h3>Simulações</h3>
+      <p>Simulação automática conforme o grupo, modalidades de lance, crédito e parcelas.</p>
+      <div class="module-foot"><span class="pill live">INTEGRADO</span></div>
+    </a>
+
+    <a class="module" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener">
+      <span class="arrow">→</span>
+      <div class="module-icon" data-icon="wallet"></div>
+      <h3>Uso do Crédito</h3>
+      <p>Site público que enviamos aos clientes: imóveis, veículos, construção, quitação e reembolso.</p>
+      <div class="module-foot"><span class="pill">SITE PÚBLICO ↗</span></div>
+    </a>
+  </div>
+
+  <div class="section-title">
+    <div><h2>Atalhos do dia a dia</h2><p>Operações que não deveriam exigir procurar e-mail, pasta ou manual.</p></div>
+  </div>
+  <div class="quick-grid">
+    <button class="quick" data-detail="boleto"><div class="qicon" data-icon="receipt"></div><strong>Emitir boleto</strong><span>NewCon • dois caminhos</span></button>
+    <button class="quick" data-detail="antecipacao"><div class="qicon" data-icon="fast"></div><strong>Antecipar parcelas</strong><span>Contemplada ou não contemplada</span></button>
+    <button class="quick" data-detail="transferencia"><div class="qicon" data-icon="repeat"></div><strong>Transferência</strong><span>PF, PJ e bem entregue</span></button>
+    <button class="quick" data-detail="quitacao"><div class="qicon" data-icon="checkCircle"></div><strong>Quitação da cota</strong><span>Boleto, reajuste e liberação</span></button>
+    <button class="quick" data-detail="dps"><div class="qicon" data-icon="shield"></div><strong>DPS / Seguro</strong><span>Regras e preenchimento</span></button>
+    <button class="quick" data-detail="assinaturas"><div class="qicon" data-icon="pen"></div><strong>Assinaturas</strong><span>D4Sign com selfie, GOV e ICP</span></button>
+  </div>
+
+  <div class="workspace">
+    <section class="panel">
+      <div class="panel-head"><h3>Conhecimento operacional</h3><span>conteúdo consolidado até agora</span></div>
+      <div class="panel-body">
+        <div class="topic-grid">
+          <button class="topic" data-view="operacional" data-focus="venda"><div class="topic-top"><span class="topic-dot red"></span><strong>Venda e pós-venda</strong></div><p>Cadastro PF/PJ, aceite, primeira parcela, boas-vindas, app e pós-venda.</p></button>
+          <button class="topic" data-view="operacional" data-focus="cobranca"><div class="topic-top"><span class="topic-dot blue"></span><strong>Cobrança e boletos</strong></div><p>Emissão, Pix, atraso, aditivo, rateio, antecipação e quitação.</p></button>
+          <button class="topic" data-view="operacional" data-focus="contemplacao"><div class="topic-top"><span class="topic-dot green"></span><strong>Contemplação e lances</strong></div><p>Sorteio, Loteria Federal, fidelidades, lance livre, limitado e embutido.</p></button>
+          <button class="topic" data-view="operacional" data-focus="imovel"><div class="topic-top"><span class="topic-dot purple"></span><strong>Imóveis e veículos</strong></div><p>Aquisição, construção, reembolso, quitação, substituição e transferência.</p></button>
+          <button class="topic" data-view="operacional" data-focus="transferencia"><div class="topic-top"><span class="topic-dot blue"></span><strong>Transferências</strong></div><p>Atualização cadastral, novo titular, NewFlow, assinaturas e parecer.</p></button>
+          <button class="topic" data-view="operacional" data-focus="cancelamento"><div class="topic-top"><span class="topic-dot red"></span><strong>Cancelamento e devoluções</strong></div><p>Cancelamento, desistentes, devolução, fundo de reserva e encerramento.</p></button>
+          <button class="topic" data-view="operacional" data-focus="reajuste"><div class="topic-top"><span class="topic-dot green"></span><strong>Reajustes</strong></div><p>Crédito, parcela e diferenças entre cota utilizada e não utilizada.</p></button>
+          <button class="topic" data-view="operacional" data-focus="seguro"><div class="topic-top"><span class="topic-dot purple"></span><strong>Seguro e DPS</strong></div><p>Percentuais, validade, assinatura, perguntas e regras por segmento.</p></button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel-head"><h3>Base de confiança</h3><span>como a informação será tratada</span></div>
+      <div class="panel-body">
+        <div class="activity">
+          <div class="activity-item"><div class="activity-top"><strong>Documento / circular HS</strong><span class="source-tag hs">OFICIAL</span></div><p>Maior prioridade quando houver regra objetiva e data identificável.</p></div>
+          <div class="activity-item"><div class="activity-top"><strong>Procedimento Redecon</strong><span class="source-tag red">INTERNO</span></div><p>Passo a passo usado pelo escritório no dia a dia.</p></div>
+          <div class="activity-item"><div class="activity-top"><strong>Mensagem pronta</strong><span class="source-tag">COMUNICAÇÃO</span></div><p>Texto operacional com botão para copiar, separado da regra técnica.</p></div>
+          <div class="activity-item"><div class="activity-top"><strong>Ponto ainda não confirmado</strong><span class="source-tag">VALIDAR</span></div><p>Fica sinalizado sem ser apresentado como regra oficial.</p></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section id="view-operacional" class="view module-view">
+  <div class="hero"><div><div class="eyebrow">Base de conhecimento</div><h1>Central Operacional</h1><p>O “como fazer” do escritório, organizado por assunto e pesquisável.</p></div><button class="btn" data-view="home">← Voltar ao início</button></div>
+
+  <div class="search-wrap">
+    <div class="search"><span data-icon="search"></span><input id="opsSearch" type="search" placeholder="Pesquisar dentro do operacional..."></div>
+  </div>
+
+  <div class="accordion" id="opsAccordion"></div>
+  <p class="base-nota">Cada ficha mostra a fonte e o tipo da regra: <b>Oficial HS</b>, <b>Interno Redecon</b>, <b>Estimativa</b> ou <b>Validar</b> (ainda não confirmado com a HS).</p>
+</section>
+
+<section id="view-mensagens" class="view module-view">
+  <div class="hero"><div><div class="eyebrow">Biblioteca de comunicação</div><h1>Mensagens Prontas</h1><p>Textos de WhatsApp separados das regras técnicas, com pesquisa e cópia rápida.</p></div><button class="btn" data-view="home">← Voltar ao início</button></div>
+  <div class="search-wrap"><div class="search"><span data-icon="search"></span><input id="msgSearch" type="search" placeholder="Pesquisar mensagem: triagem, gravame, pix, DPS..."></div></div>
+  <div class="panel"><div class="panel-body" id="messageList"></div></div>
+</section>
+
+<section id="view-links" class="view module-view">
+  <div class="hero"><div><div class="eyebrow">Acesso rápido</div><h1>Sistemas e Links</h1><p>Atalhos para os portais usados pelo escritório, sem precisar procurar favoritos ou mensagens antigas.</p></div><button class="btn" data-view="home">← Voltar ao início</button></div>
+  <div class="panel"><div class="panel-head"><h3>Principais acessos</h3><span>portais e ferramentas</span></div><div class="panel-body">
+    <div class="link-list">
+      <div class="link-group">Sistemas da HS</div>
+      <div class="link-item"><div class="l-icon" data-icon="folder"></div><div><strong>NewCon (Extranet HS)</strong><span>Sistema principal: dados do cliente, extrato, boleto</span></div><a class="right" target="_blank" rel="noopener" href="https://extranet.hsconsorcios.com.br/Newcon.Web/frmCorCCCnsLogin.aspx">↗</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="receipt"></div><div><strong>Responsivo HS</strong><span>Venda da cota</span></div><a class="right" target="_blank" rel="noopener" href="https://responsivo.hsconsorcios.com.br/">↗</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="checkCircle"></div><div><strong>Portal de Corretores HS</strong><span>Processos de contemplação e confirmação de assinatura</span></div><a class="right" target="_blank" rel="noopener" href="https://corretores.hsconsorcios.com.br/">↗</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="pen"></div><div><strong>GDI HS</strong><span>Documentos, simulação de créditos e termos D4Sign</span></div><a class="right" target="_blank" rel="noopener" href="https://gdi.hsconsorcios.com.br/">↗</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="repeat"></div><div><strong>Portal SQ / NewFlow</strong><span>Transferências de cota</span></div><a class="right" target="_blank" rel="noopener" href="https://sq.hsconsorcios.com.br/">↗</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="globe"></div><div><strong>Portal do Cliente HS</strong><span>Autoatendimento do cliente</span></div><a class="right" target="_blank" rel="noopener" href="https://autoatendimento.hsconsorcios.com.br/">↗</a></div>
+      <div class="link-group">Redecon</div>
+      <div class="link-item"><div class="l-icon" data-icon="folder"></div><div><strong>Processos</strong><span>Acompanhamento de processos</span></div><a class="right" href="redecon_processos.html">→</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="clipboard"></div><div><strong>Checklist</strong><span>Pré-análise e checklist</span></div><a class="right" href="painel-checklist-redecon.html">→</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="calculator"></div><div><strong>Simulador de contemplação</strong><span>Simulação por grupo</span></div><a class="right" href="simulacao.html">→</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="wallet"></div><div><strong>Como Usar Seu Crédito</strong><span>Site público enviado aos clientes</span></div><a class="right" target="_blank" rel="noopener" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/">↗</a></div>
+      <div class="link-group">Assinatura</div>
+      <div class="link-item"><div class="l-icon" data-icon="shield"></div><div><strong>Assinador GOV.BR</strong><span>Assinatura de PDF com conta gov.br</span></div><a class="right" target="_blank" rel="noopener" href="https://assinador.iti.br/assinatura/">↗</a></div>
+    </div>
+  </div></div>
+</section>
+
+</div>
+</main>
+</div>
+</div>
+
+<div id="overlay" class="detail-overlay"></div>
+<aside id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div class="drawer-title"><div id="drawerKind" class="kind">Procedimento</div><h2 id="drawerTitle"></h2><p id="drawerSubtitle"></p></div>
+    <button id="drawerClose" class="close-btn" type="button" aria-label="Fechar">×</button>
+  </div>
+  <div id="drawerBody" class="drawer-body"></div>
+</aside>
+<div id="toast" class="toast">Copiado</div>
+
+<script>
+window._iniciarCentral = function(B){
+  const icons={
+    search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>',
+    folder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7.5h7l2 2h9v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7.5V6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v1.5"/></svg>',
+    clipboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M8 10h8M8 14h8M8 18h5"/></svg>',
+    calculator:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="2.5" width="16" height="19" rx="2"/><path d="M7 6h10v4H7zM8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>',
+    wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6.5h14a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h11"/><path d="M20 11h-5a2 2 0 0 0 0 4h5M16 13h.01"/></svg>',
+    book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4.5h7a3 3 0 0 1 3 3V20a3 3 0 0 0-3-3H4z"/><path d="M20 4.5h-3a3 3 0 0 0-3 3V20a3 3 0 0 1 3-3h3z"/></svg>',
+    receipt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+    fast:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h10M4 12h7M4 17h4"/><path d="m14 15 3 3 4-6"/></svg>',
+    repeat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>',
+    checkCircle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>',
+    shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 19 6v5c0 4.7-2.9 8-7 10-4.1-2-7-5.3-7-10V6z"/><path d="m9 12 2 2 4-5"/></svg>',
+    pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10z"/><path d="m13.5 6.5 3.5 3.5M4 20h6"/></svg>',
+    globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>'
+  };
+  document.querySelectorAll('[data-icon]').forEach(el=>{const k=el.dataset.icon;if(icons[k]) el.innerHTML=icons[k]});
+  document.getElementById('searchIcon').innerHTML=icons.search;
+
+  const views=[...document.querySelectorAll('.view')];
+  function showView(name){
+    views.forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+    window.scrollTo({top:0,behavior:'smooth'});
+    closeSearch();
+  }
+  document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view)));
+
+  document.querySelectorAll('.acc-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const acc=btn.closest('.acc'); acc.classList.toggle('open'); btn.querySelector('b').textContent=acc.classList.contains('open')?'−':'+';
+  }));
+
+  const USO_URL='https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/';
+  /* ===== BASE OPERACIONAL (carregada cifrada, só após o login — ver base-segura.js) ===== */
+  B = B || {categorias:[], fichas:[], mensagens:[]};
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const STATUS = {oficial:['OFICIAL HS','hs'], interno:['INTERNO REDECON','red'], estimativa:['ESTIMATIVA','est'], validar:['VALIDAR','validar']};
+  const ALIAS = {quitacao:'quitacao-cota'};
+  const catNome = id => (B.categorias.find(c => c.id === id) || {}).nome || id;
+  const fichaById = id => B.fichas.find(f => f.id === (ALIAS[id] || id));
+  const msgById = id => B.mensagens.find(m => m.id === id);
+  function statusTag(st){ const s = STATUS[st] || [st, '']; return '<span class="source-tag ' + s[1] + '">' + esc(s[0]) + '</span>'; }
+  function linkHTML(l){
+    const ext = /^https?:/.test(l[1]);
+    return '<a class="btn primary" style="text-decoration:none" href="' + esc(l[1]) + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>' + esc(l[0]) + (ext ? ' ↗' : ' →') + '</a>';
+  }
+  function msgRow(m){
+    return '<div class="message-row"><div class="message-content"><strong>' + esc(m.titulo) + '</strong><p>' + esc(m.texto).replace(/\n/g, '<br>') + '</p></div><button class="copy-btn" data-copy-id="' + esc(m.id) + '">Copiar</button></div>';
+  }
+
+  const drawer = document.getElementById('drawer'), overlay = document.getElementById('overlay');
+  function abrirDrawer(kind, title, subtitle, body){
+    document.getElementById('drawerKind').textContent = kind;
+    document.getElementById('drawerTitle').textContent = title;
+    document.getElementById('drawerSubtitle').textContent = subtitle;
+    document.getElementById('drawerBody').innerHTML = body;
+    document.getElementById('drawerBody').scrollTop = 0;
+    drawer.classList.add('open'); overlay.classList.add('open'); drawer.setAttribute('aria-hidden', 'false');
+  }
+  function openDetail(id){
+    const f = fichaById(id); if(!f) return;
+    let h = '<div class="detail-section">' + statusTag(f.status) + '</div>';
+    f.secoes.forEach(s => {
+      h += '<div class="detail-section"><h3>' + esc(s.t) + '</h3><ul>' + s.itens.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>';
+    });
+    if(f.status === 'validar') h += '<div class="detail-section"><div class="detail-callout">Ponto ainda não confirmado com a HS. Confirmar antes de passar ao cliente como regra.</div></div>';
+    if(f.links.length) h += '<div class="detail-section"><h3>Abrir</h3><div class="ficha-links">' + f.links.map(linkHTML).join('') + '</div></div>';
+    const ms = f.msgs.map(msgById).filter(Boolean);
+    if(ms.length) h += '<div class="detail-section"><h3>Mensagens prontas</h3>' + ms.map(msgRow).join('') + '</div>';
+    h += '<div class="detail-meta"><div class="meta-box"><span>Fonte</span><strong>' + esc(f.fonte) + '</strong></div><div class="meta-box"><span>Revisado em</span><strong>' + esc(B.atualizado) + '</strong></div></div>';
+    abrirDrawer(catNome(f.cat), f.titulo, f.resumo, h);
+  }
+  function openMsg(id){
+    const m = msgById(id); if(!m) return;
+    abrirDrawer('Mensagem pronta · ' + catNome(m.cat), m.titulo, 'Revise os campos entre [colchetes] antes de enviar.', msgRow(m));
+  }
+  function closeDrawer(){ drawer.classList.remove('open'); overlay.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); }
+  document.querySelectorAll('[data-detail]').forEach(el => el.addEventListener('click', () => openDetail(el.dataset.detail)));
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  overlay.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeDrawer(); closeSearch(); } });
+
+  /* ----- Central Operacional: categorias e fichas ----- */
+  const opsAcc = document.getElementById('opsAccordion');
+  opsAcc.innerHTML = B.categorias.map(c => {
+    const fs = B.fichas.filter(f => f.cat === c.id);
+    if(!fs.length) return '';
+    return '<div class="acc" data-cat="' + c.id + '"><button class="acc-btn"><div><strong>' + esc(c.nome) + '</strong><span>' + esc(c.desc) + ' · ' + fs.length + ' ficha' + (fs.length > 1 ? 's' : '') + '</span></div><b>+</b></button>'
+      + '<div class="acc-body">' + fs.map(f => '<button class="ficha-item" data-ficha="' + f.id + '"><div><strong>' + esc(f.titulo) + '</strong><span>' + esc(f.resumo) + '</span></div>' + statusTag(f.status) + '</button>').join('') + '</div></div>';
+  }).join('');
+  function toggleAcc(acc, abrir){
+    acc.classList.toggle('open', abrir);
+    const b = acc.querySelector('.acc-btn b'); if(b) b.textContent = acc.classList.contains('open') ? '−' : '+';
+  }
+  opsAcc.querySelectorAll('.acc-btn').forEach(btn => btn.addEventListener('click', () => { const acc = btn.closest('.acc'); toggleAcc(acc, !acc.classList.contains('open')); }));
+  opsAcc.querySelectorAll('[data-ficha]').forEach(b => b.addEventListener('click', () => openDetail(b.dataset.ficha)));
+
+  function textoFicha(f){ return norm([f.titulo, f.resumo, f.tags, catNome(f.cat), f.secoes.map(s => s.t + ' ' + s.itens.join(' ')).join(' ')].join(' ')); }
+  function textoMsg(m){ return norm([m.titulo, catNome(m.cat), m.texto].join(' ')); }
+  function bate(hay, q){ return norm(q).split(/\s+/).filter(Boolean).every(w => hay.includes(w)); }
+
+  const opsSearch = document.getElementById('opsSearch');
+  opsSearch.addEventListener('input', () => {
+    const q = opsSearch.value.trim();
+    opsAcc.querySelectorAll('.acc').forEach(acc => {
+      let vis = 0;
+      acc.querySelectorAll('[data-ficha]').forEach(b => {
+        const ok = !q || bate(textoFicha(fichaById(b.dataset.ficha)), q);
+        b.style.display = ok ? '' : 'none'; if(ok) vis++;
+      });
+      acc.style.display = vis ? '' : 'none';
+      toggleAcc(acc, !!q && vis > 0);
+    });
+  });
+
+  /* ----- Mensagens prontas ----- */
+  const messageList = document.getElementById('messageList');
+  function renderMensagens(q){
+    let h = '';
+    B.categorias.forEach(c => {
+      const ms = B.mensagens.filter(m => m.cat === c.id && (!q || bate(textoMsg(m), q)));
+      if(ms.length) h += '<div class="msg-grupo"><h4>' + esc(c.nome) + ' <span>' + ms.length + '</span></h4>' + ms.map(msgRow).join('') + '</div>';
+    });
+    messageList.innerHTML = h || '<p class="vazio">Nenhuma mensagem encontrada.</p>';
+  }
+  renderMensagens('');
+  const msgSearch = document.getElementById('msgSearch');
+  if(msgSearch) msgSearch.addEventListener('input', () => renderMensagens(msgSearch.value.trim()));
+
+  function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1500); }
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-copy-id]'); if(!btn) return;
+    const m = msgById(btn.dataset.copyId); if(!m) return;
+    try{ await navigator.clipboard.writeText(m.texto); toast('Mensagem copiada'); }
+    catch(err){ toast('Selecione e copie a mensagem'); }
+  });
+
+  /* ----- Pesquisa global ----- */
+  const modulos = [
+    {title:'Processos', meta:'Ferramenta · acompanhamento de imóvel e veículo', hay:'processos acompanhamento etapas andamento', action:() => location.href = 'redecon_processos.html'},
+    {title:'Checklist', meta:'Ferramenta · pré-análise, negativas, perguntas, documentos', hay:'checklist pre-analise negativas perguntas documentos emissao pdf', action:() => location.href = 'painel-checklist-redecon.html'},
+    {title:'NewCon (Extranet HS)', meta:'Sistema HS · dados do cliente, extrato, boleto', hay:'newcon extranet sistema principal extrato boleto cliente', action:() => window.open('https://extranet.hsconsorcios.com.br/Newcon.Web/frmCorCCCnsLogin.aspx', '_blank', 'noopener')},
+    {title:'Responsivo HS', meta:'Sistema HS · venda da cota', hay:'responsivo venda vender cota proposta', action:() => window.open('https://responsivo.hsconsorcios.com.br/', '_blank', 'noopener')},
+    {title:'Portal de Corretores HS', meta:'Sistema HS · processos de contemplação e assinatura', hay:'portal corretores contemplacao processo assinatura encaminhar', action:() => window.open('https://corretores.hsconsorcios.com.br/', '_blank', 'noopener')},
+    {title:'GDI HS', meta:'Sistema HS · documentos, simulação de créditos, termos D4Sign', hay:'gdi termos d4sign reativacao aditivo rateio documentos simulacao', action:() => window.open('https://gdi.hsconsorcios.com.br/', '_blank', 'noopener')},
+    {title:'Simulador de contemplação', meta:'Ferramenta · sorteio, limitado, fidelidades, lance livre', hay:'simulador simulacao contemplacao lance grupo cota parcela', action:() => location.href = 'simulacao.html'},
+    {title:'Como Usar Seu Crédito (site dos clientes)', meta:'Site público · abre em nova aba', hay:'como usar credito uso do credito site cliente', action:() => window.open(USO_URL, '_blank', 'noopener')}
+  ];
+  const searchData = modulos.map(m => Object.assign({tipo:'mod'}, m, {hay:norm(m.title + ' ' + m.hay)}))
+    .concat(B.fichas.map(f => ({tipo:'ficha', title:f.titulo, meta:catNome(f.cat) + ' · ' + f.resumo, hay:textoFicha(f), tnorm:norm(f.titulo), tg:norm(f.tags), action:() => openDetail(f.id)})))
+    .concat(B.mensagens.map(m => ({tipo:'msg', title:m.titulo, meta:'Mensagem pronta · ' + catNome(m.cat), hay:textoMsg(m), tnorm:norm(m.titulo), action:() => openMsg(m.id)})));
+  const input = document.getElementById('globalSearch'), results = document.getElementById('searchResults');
+  function closeSearch(){ results.classList.remove('show'); }
+  function renderSearch(q){
+    q = q.trim();
+    if(!q){ closeSearch(); results.innerHTML = ''; return; }
+    const palavras = norm(q).split(/\s+/).filter(Boolean);
+    const arr = searchData.filter(x => palavras.every(w => x.hay.includes(w)))
+      .map(x => ({x, s:(x.tipo === 'mod' ? 3 : 0) + palavras.filter(w => (x.tnorm || x.hay).includes(w)).length * 3 + palavras.filter(w => (x.tg || '').includes(w)).length + (x.tipo === 'ficha' ? 1 : 0)}))
+      .sort((a, b) => b.s - a.s).slice(0, 12).map(o => o.x);
+    const ic = {mod:icons.folder, ficha:icons.book, msg:icons.receipt};
+    results.innerHTML = '<div class="result-header">' + (arr.length ? arr.length + ' resultado(s)' : 'Nenhum resultado') + '</div>'
+      + arr.map((x, i) => '<button class="result-item" data-result="' + i + '"><div class="result-icon">' + (ic[x.tipo] || icons.search) + '</div><div class="result-text"><div class="result-title">' + esc(x.title) + '</div><div class="result-meta">' + esc(x.meta) + '</div></div></button>').join('');
+    results.classList.add('show');
+    results.querySelectorAll('[data-result]').forEach((b, i) => b.addEventListener('click', () => { arr[i].action(); input.value = ''; closeSearch(); }));
+  }
+  input.addEventListener('input', () => renderSearch(input.value));
+  input.addEventListener('keydown', e => { if(e.key === 'Enter'){ const b = results.querySelector('[data-result]'); if(b) b.click(); } });
+  document.addEventListener('click', e => { if(!e.target.closest('.search-wrap')) closeSearch(); });
+
+  /* ----- Atalhos de tema na home ----- */
+  document.querySelectorAll('[data-focus]').forEach(el => el.addEventListener('click', () => {
+    const cat = el.dataset.focus;
+    setTimeout(() => {
+      const acc = opsAcc.querySelector('.acc[data-cat="' + cat + '"]');
+      if(acc){ toggleAcc(acc, true); acc.scrollIntoView({behavior:'smooth', block:'start'}); }
+    }, 200);
+  }));
+};
+</script>
+
+<script type="module">
+  import { requireAuth, userBadgeHTML } from './auth.js';
+  import { lerChave, salvarChave, carregarBase } from './base-segura.js';
+  const aviso = document.getElementById('baseAviso');
+  const escH = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function pedirChave(msg){
+    aviso.className = 'base-aviso' + (msg ? ' erro' : '');
+    aviso.innerHTML = '<strong>Configuração de segurança da base</strong>'
+      + '<p>' + (msg ? escH(msg) + ' ' : '') + 'A base operacional fica cifrada no site. Cole aqui a chave da base (enviada pelo Claude) para liberar o conteúdo. É feito uma única vez: a chave fica guardada no Firebase, protegida pelo login.</p>'
+      + '<div class="linha"><input id="chaveInput" type="password" autocomplete="off" spellcheck="false" placeholder="Chave da base"><button class="btn primary" id="chaveSalvar">Salvar chave</button></div><small id="chaveErro"></small>';
+    aviso.hidden = false;
+    document.getElementById('chaveSalvar').addEventListener('click', async () => {
+      const k = document.getElementById('chaveInput').value.trim();
+      const erro = document.getElementById('chaveErro');
+      erro.textContent = '';
+      try{
+        await carregarBase(k);            // confere a chave antes de gravar
+      }catch(e){ erro.textContent = 'Chave inválida. Confira se copiou inteira.'; return; }
+      try{ await salvarChave(k); location.reload(); }
+      catch(e){ erro.textContent = 'Não foi possível salvar no Firebase: ' + (e.code || e.message); }
+    });
+  }
+
+  requireAuth().then(async user => {
+    const box = document.getElementById('userbox');
+    if(box) box.innerHTML = userBadgeHTML(user);
+    let base = null;
+    try{
+      const k = await lerChave();
+      if(!k) pedirChave('');
+      else{
+        try{ base = await carregarBase(k); }
+        catch(e){ pedirChave('A chave guardada não abre a versão atual da base.'); }
+      }
+    }catch(e){
+      aviso.className = 'base-aviso erro';
+      aviso.innerHTML = '<strong>Não foi possível carregar a base operacional</strong><p>Verifique a internet e recarregue a página. (' + escH(e.code || e.message || e) + ')</p>';
+      aviso.hidden = false;
+    }
+    window._iniciarCentral(base);
+    document.body.classList.remove('auth-pending');
+  });
+</script>
+</body>
+</html>

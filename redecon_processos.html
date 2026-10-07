@@ -1,0 +1,2567 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redecon — Gestão de Processos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script type="module">
+  import { fbApp } from './auth.js';
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+  const db = getFirestore(fbApp);
+
+  window._fbSalvar = async function(dados) {
+    try {
+      await setDoc(doc(db, "dados", "processos"), { lista: JSON.stringify(dados) });
+    } catch(e) { console.error("Erro ao salvar:", e); }
+  };
+
+  window._fbCarregar = async function() {
+    try {
+      const snap = await getDoc(doc(db, "dados", "processos"));
+      if (snap.exists()) return JSON.parse(snap.data().lista);
+    } catch(e) { console.error("Erro ao carregar:", e); }
+    return null;
+  };
+
+  window._fbSalvarTemplates = async function(tipo, subtipos, modelo) {
+    try {
+      const payload = {};
+      subtipos.forEach(s => { payload[tipo+'::'+s] = JSON.stringify(modelo); });
+      await setDoc(doc(db, "dados", "templates"), payload, { merge: true });
+    } catch(e) { console.error("Erro ao salvar modelo:", e); }
+  };
+
+  window._fbCarregarTemplates = async function() {
+    try {
+      const snap = await getDoc(doc(db, "dados", "templates"));
+      if (snap.exists()) {
+        const raw = snap.data();
+        const out = {};
+        Object.keys(raw).forEach(k => { try { out[k] = JSON.parse(raw[k]); } catch(e) {} });
+        return out;
+      }
+    } catch(e) { console.error("Erro ao carregar modelos:", e); }
+    return null;
+  };
+
+  window._fbPronto = true;
+  if (window._fbProntoCallback) window._fbProntoCallback();
+</script>
+<style>
+:root {
+  --bg:#F4F4F5; --surface:#fff; --surface2:#FAFAFA;
+  --border:#E4E4E7; --border-strong:#D4D4D8;
+  --text:#18181B; --text2:#71717A; --text3:#A1A1AA;
+  --blue:#3F3F46; --blue-light:#F4F4F5; --blue-border:#D4D4D8;
+  --green:#3B6D11; --green-light:#EAF3DE; --green-border:#C0DD97;
+  --red:#A32D2D; --red-light:#FCEBEB; --red-border:#F7C1C1;
+  --amber:#854F0B; --amber-light:#FAEEDA; --amber-border:#FAC775;
+  --radius:10px; --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --sidebar-bg:#44444A;
+  --chart-teal:#0F6E56; --chart-coral:#D85A30; --chart-purple:#6C5FB0; --chart-blue:#2E6FA8;
+  --current:#2E6FA8; --current-light:#EAF2F9; --current-border:#B9D3E8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:196px;flex-shrink:0;background:var(--sidebar-bg);padding:20px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 8px 22px;color:#fff;font-size:14px;font-weight:600}
+.sidebar-sec{color:#B4B4B8;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:6px}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:#D4D4D8;font-size:13px;text-decoration:none;cursor:pointer;transition:background .15s;font-family:inherit;background:none;border:none;width:100%;text-align:left}
+.sidebar-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.sidebar-link.active{background:rgba(255,255,255,.14);color:#fff;font-weight:500}
+.sidebar-user{margin-top:auto;padding:10px 8px 0;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:#B4B4B8;display:flex;flex-direction:column;gap:6px}
+.sidebar-user button{background:none;border:1px solid rgba(255,255,255,.2);color:#D4D4D8;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;align-self:flex-start}
+.main-area{flex:1;min-width:0}
+.brand-dot{width:8px;height:8px;border-radius:50%;background:#D85A30}
+.container{max-width:1680px;margin:0 auto;padding:2rem 2rem}
+.view{display:none}.view.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:12px;flex-wrap:wrap}
+.page-title{font-size:20px;font-weight:600}
+.page-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.125rem 1.25rem;box-shadow:var(--shadow)}
+.stat-card.clickable{cursor:pointer;transition:transform .15s,box-shadow .15s}
+.stat-card.clickable:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.stat-label{font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-value{font-size:34px;font-weight:700;line-height:1}
+.tabs{display:flex;gap:2px;margin-bottom:1.25rem;background:transparent;border:none;border-bottom:1px solid var(--border);padding:0;flex-wrap:wrap;justify-content:flex-start;box-shadow:none;border-radius:0}
+.tab{padding:10px 4px;margin-right:20px;font-size:13px;font-weight:500;border-radius:0;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.tab:hover{color:var(--text);border-bottom-color:var(--border-strong)}
+.tab.active{background:transparent;color:var(--blue);border-bottom:2px solid var(--blue);font-weight:600}
+#stats .tab{font-size:15.5px;padding:12px 4px;margin-right:28px}
+.proc-list-card{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:1.25rem}
+.processo-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--border-strong);border-radius:12px;padding:1.125rem;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;box-sizing:border-box;height:112px;display:flex;flex-direction:column;justify-content:center;flex:0 0 auto;min-width:250px;max-width:440px}
+.processo-card:hover{box-shadow:var(--shadow-md);border-top-color:var(--blue);transform:translateY(-3px)}
+.processo-card:active{transform:translateY(-1px)}
+.processo-card.tipo-imovel{border-top-color:var(--blue-border)}
+.processo-card.tipo-veiculo{border-top-color:var(--amber-border)}
+.processo-card.state-done{border-top-color:var(--green)}
+.processo-card.state-cancel{border-top-color:var(--red)}
+.pc-row{display:flex;align-items:flex-start;gap:12px;width:100%}
+.pc-icon{width:36px;height:36px;border-radius:9px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:transform .15s}
+.processo-card:hover .pc-icon{transform:scale(1.08)}
+.processo-card.tipo-veiculo .pc-icon{background:var(--amber-light)}
+.pc-main{flex:1;min-width:0}
+.pc-nome{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pc-meta{font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-ring{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
+.pc-ring::before{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--surface)}
+.pc-ring span{position:relative;font-size:10.5px;font-weight:700;color:var(--text)}
+.badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.badge-imovel{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-border)}
+.badge-veiculo{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border)}
+.badge-concluido{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.badge-cancelado{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+.dots{display:flex;gap:3px;flex-wrap:nowrap;overflow:hidden;max-width:100%}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-done{background:var(--green)}.dot-current{background:var(--blue)}.dot-alert{background:var(--red)}.dot-pending{background:var(--border-strong)}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.detail-top{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.detail-title{font-size:17px;font-weight:600}
+.detail-sub{font-size:13px;color:var(--text2);margin-top:4px}
+.detail-body{padding:1.25rem 1.5rem}
+.section-head{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px;margin-top:1.5rem}
+.section-head:first-child{margin-top:0}
+.etapas-timeline{position:relative;padding-left:22px}
+.etapas-timeline::before{content:'';position:absolute;left:5px;top:10px;bottom:10px;width:2px;background:var(--border)}
+.etapa-block{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.125rem;margin-bottom:14px;margin-left:6px;transition:border-color .15s,opacity .15s}
+.etapa-block::before{content:'';position:absolute;left:-27px;top:19px;width:11px;height:11px;border-radius:50%;background:var(--border-strong);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border-strong)}
+.etapa-block.done::before{background:var(--green);box-shadow:0 0 0 1px var(--green)}
+.etapa-block.current::before{background:var(--current);box-shadow:0 0 0 1px var(--current)}
+.etapa-block.alert::before{background:var(--red);box-shadow:0 0 0 1px var(--red)}
+.etapa-block.pending{opacity:.65;border-style:dashed}
+.etapa-block.pending:hover{opacity:1}
+.etapa-block.current{border:1px solid var(--current-border);background:var(--current-light);box-shadow:0 0 0 1px var(--current-border)}
+.etapa-block.current .etapa-nome{font-weight:700}
+.etapa-block.alert{border-color:var(--red-border);background:var(--red-light)}
+.etapa-block.done{opacity:.85}
+.etapa-block.etapa-collapsed{padding:.75rem 1.125rem;cursor:pointer}
+.etapa-block.etapa-collapsed:hover{border-color:var(--border-strong);background:var(--surface2);opacity:1}
+.etapa-collapsed-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.etapa-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.etapa-nome{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.pill-done{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.pill-current{background:var(--current-light);color:var(--current);border:1px solid var(--current-border)}
+.pill-alert{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+.pill-pending{background:var(--bg);color:var(--text3);border:1px solid var(--border)}
+.campos-grid{display:grid;gap:10px;margin-bottom:10px}
+.campos-1{grid-template-columns:1fr}.campos-2{grid-template-columns:1fr 1fr}
+.campo-group{display:flex;flex-direction:column;gap:4px}
+.campo-group label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.campo-group input[type=text]{font-size:13px;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);width:100%;font-family:inherit;transition:border-color .15s}
+.campo-group input[type=text]:focus{outline:none;border-color:var(--blue)}
+.campo-group input[type=text]:disabled{opacity:.5;background:var(--bg);cursor:not-allowed}
+.dias-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);background:var(--bg);border:1px solid var(--border);padding:3px 10px;border-radius:20px;margin-bottom:10px}
+.dias-tag.alert{background:var(--red-light);color:var(--red);border-color:var(--red-border)}
+.resp-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.resp-row label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.resp-row select{font-size:12px;padding:5px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;cursor:pointer}
+.comment-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.comment{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px}
+.comment-meta{font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:500}
+.comment-text{font-size:13px}
+.comment-acoes{display:flex;gap:8px;margin-top:5px}
+.link-btn{background:none;border:none;cursor:pointer;font-size:11px;font-weight:500;color:var(--blue);padding:0;display:inline-flex;align-items:center;gap:3px;font-family:inherit}
+.link-btn-red{color:var(--red)}
+.etapa-acoes{display:flex;gap:8px;flex-wrap:wrap}
+.add-comment-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:11.5px;font-weight:500;color:var(--text2);padding:4px 10px;display:inline-flex;align-items:center;gap:5px;font-family:inherit;transition:all .15s}
+.add-comment-btn:hover{background:var(--bg);color:var(--text)}
+.msg-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:11.5px;font-weight:500;color:var(--text2);padding:4px 10px;display:inline-flex;align-items:center;gap:5px;font-family:inherit;transition:all .15s}
+.msg-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.msg-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;align-items:center;justify-content:center}
+.msg-popup.open{display:flex}
+.msg-box{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:1.5rem;width:520px;max-width:96vw;max-height:85vh;overflow-y:auto;border:1px solid var(--border)}
+.msg-box-title{font-size:14px;font-weight:600;margin-bottom:.75rem}
+.msg-textarea{width:100%;font-size:13px;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;line-height:1.6;resize:vertical;min-height:180px}
+.msg-actions{display:flex;justify-content:space-between;align-items:center;margin-top:.875rem;gap:8px}
+.copied-tag{font-size:12px;color:var(--green);font-weight:500;opacity:0;transition:opacity .3s}
+.copied-tag.show{opacity:1}
+.msg-abas{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.msg-aba{font-size:12px;font-weight:500;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;transition:all .15s}
+.msg-aba.ativa{background:var(--blue);color:#fff;border-color:var(--blue)}
+.copied-tag.show{opacity:1}
+.bottom-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:13px;font-weight:500;border-radius:var(--radius-sm);border:1px solid;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:#a92300}
+.btn-secondary{background:var(--surface);color:var(--text);border-color:var(--border)}
+.btn-secondary:hover{background:var(--bg)}
+.btn-danger{background:var(--red-light);color:var(--red);border-color:var(--red-border)}
+.btn-success{background:var(--green-light);color:var(--green);border-color:var(--green-border)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.credito-wrap{background:var(--amber-light);border:1px solid var(--amber-border);border-radius:var(--radius);padding:1rem 1.125rem;margin-top:10px}
+.liberacao-item{background:#fff;border:1px solid var(--amber-border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px}
+.liberacao-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.liberacao-num{font-size:12px;font-weight:600;color:var(--amber)}
+.credito-wrap label{font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px}
+.credito-wrap input{font-size:16px;font-weight:600;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--amber-border);background:#fff;color:var(--text);width:100%;font-family:inherit}
+.credito-wrap input:focus{outline:none;border-color:var(--amber)}
+.back-row{margin-bottom:1.25rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:40;background:var(--bg);padding:.75rem 0;border-bottom:1px solid var(--border)}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:1.5rem;width:480px;max-width:96vw;max-height:90vh;overflow-y:auto;border:1px solid var(--border)}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:1.25rem}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;font-size:13px;padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue)}
+.field textarea{resize:vertical}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem}
+.rel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.rel-top{background:var(--surface);color:var(--text);padding:1.375rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.rel-top-title{font-size:18px;font-weight:600;margin-bottom:3px;color:var(--text)}
+.rel-top-sub{font-size:12.5px;color:var(--text2)}
+.rel-status-pill{font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.rel-status-pill.ok{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.rel-status-pill.andamento{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border)}
+.rel-status-pill.cancel{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+.rel-body{padding:1.5rem}
+.rel-resumo{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem}
+.rel-row{font-size:13px;padding:4px 0;display:flex;flex-direction:column;gap:2px}
+.rel-row-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.rel-row-val{font-weight:500}
+
+.rel-etapa{padding:10px 0;border-bottom:1px solid var(--border)}
+.rel-etapa:last-child{border-bottom:none}
+.rel-etapa-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.rel-etapa-nome{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.rel-etapa-nome::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--border-strong);flex-shrink:0}
+.rel-etapa.done .rel-etapa-nome::before{background:var(--green)}
+.rel-etapa-info{font-size:12px;color:var(--text2);text-align:right}
+.rel-comment{font-size:12px;border-top:1px solid var(--border);margin-top:6px;padding-top:6px}
+.rel-comment-meta{font-size:11px;color:var(--text3);margin-bottom:2px;font-weight:500}
+.rel-comment.intercorrencia{background:var(--amber-light);border-radius:var(--radius-sm);padding:6px 10px;border-left:3px solid var(--amber);margin-top:4px}
+
+.rel-stepper{position:relative;padding:6px 6px 2px;margin-bottom:1.5rem}
+.rel-stepper-track{position:absolute;top:19px;left:20px;right:20px;height:2px;background:var(--border)}
+.rel-stepper-progress{position:absolute;top:19px;left:20px;height:2px;background:var(--blue)}
+.rel-stepper-row{display:flex;justify-content:space-between;position:relative}
+.rel-stepper-item{display:flex;flex-direction:column;align-items:center;width:76px}
+.rel-stepper-dot{width:18px;height:18px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--border-strong);background:var(--surface);z-index:1}
+.rel-stepper-item.done .rel-stepper-dot{background:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+.rel-stepper-label{font-size:11px;font-weight:600;color:var(--text);margin-top:8px;text-align:center;line-height:1.25}
+.rel-stepper-date{font-size:10.5px;color:var(--text3);margin-top:1px}
+
+.rel-metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.25rem}
+.rel-metric{background:var(--surface);padding:14px 16px}
+.rel-metric-label{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:4px}
+.rel-metric-val{font-size:19px;font-weight:700;color:var(--text)}
+.rel-metric-val small{font-size:12px;font-weight:500;color:var(--text2)}
+.rel-metric-sub{font-size:11px;margin-top:3px}
+.rel-metric-sub.ok{color:var(--green)}
+.rel-metric-sub.alert{color:var(--amber)}
+.rel-metric-sub.info{color:var(--text3)}
+.intercorrencia-tag{font-size:10px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.total-box{background:var(--blue-light);border:1px solid var(--blue-border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}.total-box.andamento{background:var(--amber-light);border-color:var(--amber-border)}.total-box.andamento .total-box-label,.total-box.andamento .total-box-val{color:var(--amber)}
+.total-box-label{font-size:13px;color:var(--blue);font-weight:500}
+.total-box-val{font-size:20px;font-weight:700;color:var(--blue)}
+.total-box:not(.andamento) .total-box-label{color:var(--blue)!important}
+.total-box:not(.andamento) .total-box-val{color:var(--blue)!important}
+.empty{text-align:center;padding:3rem 1rem;color:var(--text3);background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;width:100%}
+.two-col>div{min-width:0;width:100%}
+.col-header{font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px;text-align:left}
+.group-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:0 0 8px 2px}
+.group-label:not(:first-child){margin-top:1rem}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.alerta-neg{background:var(--amber-light);border:1px solid var(--amber-border);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--amber);margin-top:6px;display:flex;align-items:flex-start;gap:6px}
+.alerta-pos{background:var(--green-light);border:1px solid var(--green-border);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--green);margin-top:6px;display:flex;align-items:flex-start;gap:6px}
+.alerta-icon{font-size:14px;flex-shrink:0}
+.btn-alerta-neg{background:none;border:1px solid var(--amber-border);border-radius:var(--radius-sm);cursor:pointer;font-size:11px;font-weight:500;color:var(--amber);padding:3px 8px;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
+.btn-alerta-pos{background:none;border:1px solid var(--green-border);border-radius:var(--radius-sm);cursor:pointer;font-size:11px;font-weight:500;color:var(--green);padding:3px 8px;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
+.btn-alerta-rem{background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);padding:0;font-family:inherit;margin-left:auto;flex-shrink:0}
+.estat-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:1.25rem;overflow:hidden}
+.estat-section-head{background:var(--surface);color:var(--text);padding:.875rem 1.25rem;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.estat-body{padding:1.25rem}
+.estat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.estat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center}
+.estat-card-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.estat-card-sub{font-size:10px;color:var(--text3);margin-bottom:8px}
+.estat-card-val{font-size:22px;font-weight:700;color:var(--text)}
+.estat-card-val.blue{color:var(--blue)}
+.estat-card-val.green{color:var(--green)}
+.estat-card-val.amber{color:var(--amber)}
+.estat-note{font-size:12px;color:var(--text3);margin-top:10px;text-align:center}
+.credito-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:600px){.credito-grid{grid-template-columns:1fr}}
+.empty i{font-size:32px;display:block;margin-bottom:8px;opacity:.4}
+@media(max-width:600px){
+  .campos-2,.field-row,.rel-resumo{grid-template-columns:1fr}
+  .container{padding:1rem}
+  .sidebar{width:56px;padding:16px 6px}
+  .sidebar-brand,.sidebar-sec,.sidebar-user{display:none}
+  .sidebar-link{justify-content:center;padding:10px 0}
+}
+/* ===== Quadro Kanban (tela Processos) ===== */
+.kb-summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 1.1rem;font-size:14px;color:var(--text2)}
+.kb-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 15px;border-radius:999px;background:var(--surface);border:1px solid var(--border);font-weight:500;color:var(--text2)}
+.kb-chip b{color:var(--text);font-weight:700}
+.kb-chip.late{border-color:var(--red-border);background:var(--red-light);color:var(--red)}
+.kb-chip.late b{color:var(--red)}
+.kb-chip.warn{border-color:var(--amber-border);background:var(--amber-light);color:var(--amber)}
+.kb-chip.warn b{color:var(--amber)}
+.kb-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0}
+.kb-hint{margin-left:auto;font-size:12.5px;color:var(--text3)}
+.kb-board{display:grid;grid-template-columns:repeat(5,minmax(176px,1fr));gap:14px;align-items:start;overflow-x:auto;padding-bottom:14px}
+.kb-col{background:#ECECEE;border-radius:12px;padding:10px;min-height:170px;display:flex;flex-direction:column;gap:8px}
+.kb-col-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 0}
+.kb-col-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em}
+.kb-col-count{font-size:11px;font-weight:700;color:var(--text2);background:var(--surface);border-radius:999px;padding:1px 9px}
+.kb-col-sub{font-size:10.5px;color:var(--text3);padding:0 4px 4px}
+.kb-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border-strong);border-radius:10px;padding:10px 12px;cursor:pointer;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s}
+.kb-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.kb-card.warn{border-left-color:#D9930D}
+.kb-card.late{border-left-color:var(--red)}
+.kb-nome{font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb-meta{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb-etapa{font-size:12px;color:var(--text);margin-top:8px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
+.kb-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;margin-top:8px;font-size:11px}
+.kb-bola{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--text2);white-space:nowrap}
+.kb-dias{font-weight:600;color:var(--text3);white-space:nowrap}
+.kb-dias.warn{color:#B27504}
+.kb-dias.late{color:var(--red)}
+.kb-bar{height:3px;border-radius:2px;background:var(--bg);margin-top:8px;overflow:hidden}
+.kb-bar>i{display:block;height:100%;background:var(--blue);border-radius:2px}
+.kb-empty{font-size:12px;color:var(--text3);text-align:center;padding:18px 0}
+.kb-card.done{border-left-color:var(--green)}
+.kb-card.cancel{border-left-color:var(--red)}
+.kb-chip-btn{font-family:inherit;font-size:14px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.kb-chip-btn:hover{border-color:var(--border-strong)}
+.kb-chip-btn.active{background:var(--text);border-color:var(--text);color:#fff}
+.kb-chip-btn.active b{color:#fff}
+.kb-mes{background:#ECECEE;border-radius:12px;padding:10px 12px 12px;margin-bottom:14px}
+.kb-mes .kb-col-head{padding:2px 2px 0}
+.kb-mes .kb-col-sub{padding:0 2px 10px;font-size:11.5px}
+.kb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:8px}
+.kb-cred{font-size:15px;font-weight:700;color:var(--text);margin-top:8px;font-variant-numeric:tabular-nums}
+.kb-sem{font-size:11.5px;color:var(--text3);margin-top:8px}
+.kb-prazos{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-top:7px;padding-top:7px;border-top:1px solid var(--border)}
+.kb-prazos b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
+.kb-prazos .late,.kb-prazos .late b{color:var(--red)}
+.kb-motivo{font-size:12px;color:var(--text2);font-style:italic;margin-top:6px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* ===== Estatísticas (visual) ===== */
+.est-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.est-pills-rot{font-size:12px;color:var(--text2);font-weight:600;margin-right:2px}
+.est-pill{border:1px solid var(--border);background:var(--surface);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;padding:5px 13px;border-radius:999px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.est-pill:hover{border-color:var(--border-strong);color:var(--text)}
+.est-pill.active{background:var(--text);border-color:var(--text);color:#fff}
+.est-tile-sub{font-size:11.5px;color:var(--text2);margin-top:8px;line-height:1.35}
+.est-duo{display:flex;gap:20px;align-items:flex-end}
+.est-duo div{display:flex;flex-direction:column}
+.est-duo b{font-size:28px;font-weight:700;line-height:1}
+.est-duo span{font-size:11px;color:var(--text2);margin-top:5px}
+.est-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.est-leg-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.est-leg{font-size:12px;color:var(--text2);display:inline-flex;align-items:center;gap:6px}
+.est-leg b{color:var(--text);font-weight:700}
+.est-2col{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media(max-width:1360px){.est-2col{grid-template-columns:1fr}}
+.est-chart{min-width:0}
+.est-chart-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.est-chart-title{font-size:13px;font-weight:600;color:var(--text)}
+.est-plot{position:relative;margin-left:42px}
+.est-gl{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--border)}
+.est-gl.base{border-top-color:var(--border-strong)}
+.est-gl span{position:absolute;right:100%;margin-right:8px;top:0;transform:translateY(-50%);font-size:10.5px;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.est-cols{position:absolute;left:0;right:0;top:0;bottom:0;display:flex}
+.est-col{flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;outline:none;border-radius:6px;transition:background .12s}
+.est-col:hover,.est-col:focus-visible{background:rgba(24,24,27,.04)}
+.est-cap{font-size:10.5px;font-weight:600;color:var(--text2);margin-bottom:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.est-stack{display:flex;flex-direction:column-reverse;gap:2px;width:24px;max-width:70%}
+.est-stack>div{min-height:0}
+.est-stack>div:last-child{border-radius:4px 4px 0 0}
+.est-xl{display:flex;margin-left:42px;margin-top:6px}
+.est-xl div{flex:1 1 0;min-width:0;text-align:center;font-size:10.5px;color:var(--text3);line-height:1.25}
+.est-xl small{display:block;font-size:10px;color:var(--text2);font-weight:600}
+.est-det{margin-top:12px;font-size:12px}
+.est-det summary{cursor:pointer;color:var(--text2);font-weight:600;width:max-content}
+.est-tab{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+.est-tab th,.est-tab td{padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.est-tab th:first-child,.est-tab td:first-child{text-align:left}
+.est-tab th{color:var(--text2);font-weight:600}
+.est-tempo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.est-tempo-titulo{font-size:14px;font-weight:700}
+.est-tempo-sub{font-size:12px;color:var(--text2)}
+.est-tempo-total{text-align:right;white-space:nowrap}
+.est-tempo-total small{font-size:11px;color:var(--text2)}
+.est-tempo-total b{font-size:26px;font-weight:700;line-height:1;margin-left:2px}
+.est-tempo-total span{font-size:12px;color:var(--text2)}
+.est-barra{display:flex;gap:2px;height:20px}
+.est-seg{min-width:3px;outline:none;transition:filter .12s}
+.est-seg:hover,.est-seg:focus-visible{filter:brightness(1.12)}
+.est-barra>.est-seg:first-child{border-radius:4px 0 0 4px}
+.est-barra>.est-seg:last-child{border-radius:0 4px 4px 0}
+.est-barra>.est-seg:only-child{border-radius:4px}
+.est-trechos{margin-top:14px}
+.est-trecho{display:grid;grid-template-columns:12px minmax(0,1fr) auto 62px;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.est-trecho:last-child{border-bottom:none}
+.est-trecho-nome{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.est-trecho-dias{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.est-trecho-n{font-size:11px;color:var(--text3);text-align:right;font-variant-numeric:tabular-nums}
+.est-meds{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--border)}
+.est-med-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;font-weight:600;margin-bottom:7px}
+.est-med-val{font-size:15px;font-weight:700;white-space:nowrap}
+.est-med-val small{font-size:11px;font-weight:500;color:var(--text2)}
+.est-med-track{height:8px;border-radius:4px;overflow:hidden}
+.est-med-track i{display:block;height:100%;border-radius:4px}
+.est-med-sub{font-size:11.5px;color:var(--text2);margin-top:6px}
+.est-sep{height:1px;background:var(--border);margin:24px 0}
+#est-tip{position:fixed;display:none;z-index:9999;background:#18181B;color:#fff;border-radius:8px;padding:8px 11px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.28);pointer-events:none;max-width:280px}
+.est-tip-t{font-weight:700;margin-bottom:4px}
+.est-tip-r{display:flex;justify-content:space-between;align-items:center;gap:16px;line-height:1.55}
+.est-tip-k{display:inline-flex;align-items:center;gap:6px;color:#D4D4D8}
+.est-tip-r b{font-variant-numeric:tabular-nums}
+.prazo-table{width:100%;border-collapse:collapse;font-size:13px}
+.prazo-table th{background:var(--surface2);color:var(--text2);padding:8px 12px;text-align:center;font-weight:600;font-size:12px;border:1px solid var(--border)}
+.prazo-table th span{font-size:10px;font-weight:400;opacity:.85;display:block;margin-top:2px}
+.prazo-table td{padding:10px 12px;text-align:center;border:1px solid var(--border);font-weight:600;font-size:14px}
+.prazo-table .total-col{background:var(--blue-light);color:var(--blue);font-size:16px}
+.prazo-table thead .total-col{background:var(--blue);color:#fff}
+.prazo-table thead .total-col span{color:#fff}
+@media print{
+  .sidebar,.back-row,.bottom-acoes,.etapa-acoes,.comment-acoes,.btn{display:none!important}
+  .main-area{margin:0}
+  body{background:#fff}
+  .rel-card{box-shadow:none;border:none}
+}
+</style>
+</head>
+<body>
+<script type="module">
+  import { requireAuth } from './auth.js';
+  requireAuth().then(user=>{
+    window._authUser = user;
+    const box = document.getElementById('sidebar-userbox');
+    if(box) box.innerHTML = '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+user.email+'</span><button onclick="window._redeconLogout()">Sair</button>';
+    if(window._bootAposAuth) window._bootAposAuth();
+  });
+</script>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="brand-dot"></div>Redecon</div>
+    <div class="sidebar-sec">Menu</div>
+    <button class="sidebar-link active" onclick="voltarLista()"><i class="ti ti-list-check" style="font-size:16px"></i>Processos</button>
+    <button class="sidebar-link" onclick="abrirEstatisticas()"><i class="ti ti-chart-bar" style="font-size:16px"></i>Estatísticas</button>
+    <a class="sidebar-link" href="painel-checklist-redecon.html"><i class="ti ti-clipboard-list" style="font-size:16px"></i>Checklist</a>
+    <a class="sidebar-link" href="index.html"><i class="ti ti-home" style="font-size:16px"></i>Central</a>
+    <div class="sidebar-user" id="sidebar-userbox"></div>
+  </aside>
+  <main class="main-area">
+<div class="container">
+  <div id="view-lista" class="view active">
+    <div class="page-header">
+      <div><div class="page-title">Processos</div><div class="page-sub">Acompanhamento de créditos contemplados</div></div>
+      <button class="btn btn-primary" onclick="abrirModalNovo()"><i class="ti ti-plus"></i> Novo processo</button>
+    </div>
+    <div id="stats"></div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:1.25rem">
+      <div id="ano-selector" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+    </div>
+    <div id="lista"></div>
+  </div>
+  <div id="view-detalhe" class="view">
+    <div class="back-row" id="detalhe-backrow">
+      <button class="btn btn-secondary" onclick="voltarLista()"><i class="ti ti-arrow-left"></i> Voltar</button>
+    </div>
+    <div id="detalhe-conteudo"></div>
+  </div>
+  <div id="view-estatisticas" class="view">
+    <div class="back-row">
+      <button class="btn btn-secondary" onclick="voltarLista()"><i class="ti ti-arrow-left"></i> Voltar</button>
+    </div>
+    <div id="estatisticas-conteudo"></div>
+  </div>
+
+  <div id="view-relatorio" class="view">
+    <div class="back-row">
+      <button class="btn btn-secondary" onclick="voltarLista()"><i class="ti ti-arrow-left"></i> Voltar</button>
+      <button class="btn btn-secondary" id="btn-copiar-resumo" onclick="copiarResumoRelatorio()"><i class="ti ti-copy"></i> Copiar resumo</button>
+      <button class="btn btn-secondary" onclick="abrirEtapas()"><i class="ti ti-edit"></i> Editar processo</button>
+      <button class="btn btn-primary" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir / PDF</button>
+    </div>
+    <div id="relatorio-conteudo"></div>
+  </div>
+</div>
+  </main>
+</div>
+
+<div id="modal-novo" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">Novo processo</div>
+    <div class="field-row">
+      <div class="field"><label>Consorciado</label><input type="text" id="f-nome" placeholder="Nome completo"></div>
+      <div class="field"><label>Grupo / Cota</label><input type="text" id="f-grupo" placeholder="ex: 1076/871"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label>
+        <select id="f-tipo" onchange="atualizarSubtipos()">
+          <option value="Imóvel">Imóvel</option>
+          <option value="Veículo">Veículo</option>
+        </select>
+      </div>
+      <div class="field"><label>Subtipo</label><select id="f-subtipo" onchange="verificarTransferencia()"></select></div>
+    </div>
+    <div class="field"><label>Data de abertura</label><input type="text" id="f-abertura" placeholder="DD/MM/AAAA"></div>
+    <div class="field" id="field-transferencia" style="display:none">
+      <label>Transferência de → para</label>
+      <input type="text" id="f-transferencia" placeholder="ex: Nome atual → Nome do novo titular">
+    </div>
+    <div class="field"><label>Observação inicial (opcional)</label><textarea id="f-obs" rows="2" placeholder="Contexto, origem da contemplação..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModalNovo()">Cancelar</button>
+      <button class="btn btn-primary" onclick="criarProcesso()">Criar processo</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-comentario" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="mc-titulo">Comentário</div>
+    <div class="field"><label>Responsável</label>
+      <select id="mc-resp">
+        <option>Redecon</option><option>Cliente</option><option>Administradora</option>
+        <option>Cartório</option><option>Banco/Financeira</option><option>Prefeitura</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="field"><label>Data</label><input type="text" id="mc-data" placeholder="DD/MM/AAAA"></div>
+    <div class="field"><label>Horário</label><input type="text" id="mc-hora" placeholder="HH:MM" maxlength="5"></div>
+    <div class="field"><label>Comentário</label><textarea id="mc-texto" rows="3" placeholder="O que ocorreu? Houve atraso? Por quê?"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModalComentario()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarComentario()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="msg-popup" class="msg-popup">
+  <div class="msg-box">
+    <div class="msg-box-title" id="msg-popup-title">Mensagem pronta</div>
+    <div class="msg-abas" id="msg-popup-abas" style="display:none"></div>
+    <textarea class="msg-textarea" id="msg-popup-text" rows="8"></textarea>
+    <div class="msg-actions">
+      <span class="copied-tag" id="msg-copied">Copiado!</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="fecharMsgPopup()">Fechar</button>
+        <button class="btn btn-secondary btn-sm" onclick="salvarMsgEtapa()"><i class="ti ti-device-floppy"></i> Salvar nesta etapa</button>
+        <button class="btn btn-primary btn-sm" onclick="copiarMsg()"><i class="ti ti-copy"></i> Copiar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="modal-alerta" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="alerta-titulo">Registrar alerta</div>
+    <div class="field"><label>Tipo de alerta</label>
+      <select id="alerta-tipo">
+        <option value="neg">⚠️ Negativo — demorou mais que o esperado</option>
+        <option value="pos">✅ Positivo — foi mais rápido que o esperado</option>
+      </select>
+    </div>
+    <div class="field"><label>Motivo / observação</label>
+      <textarea id="alerta-texto" rows="3" placeholder="Ex: Cliente demorou para assinar por viagem. Era esperado 2 dias, levou 8."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModalAlerta()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAlerta()">Salvar alerta</button>
+    </div>
+  </div>
+</div>
+<div id="modal-salvar-template" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="mst-titulo">⭐ Salvar esta etapa como padrão</div>
+    <div class="field" style="font-size:12.5px;color:var(--text3);margin-bottom:12px" id="mst-explicacao">
+      Escolha para quais tipos de utilização essa etapa (nome + mensagem) deve virar o padrão. Só afeta processos criados a partir de agora — os que já existem não mudam. As demais etapas do modelo continuam como estão.
+    </div>
+    <div class="field"><label>Etapa</label>
+      <div id="mst-preview" style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:var(--radius);padding:10px 12px"></div>
+    </div>
+    <div class="field"><label>Aplicar a</label>
+      <div id="mst-lista" style="display:flex;flex-direction:column;gap:10px;max-height:280px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModalSalvarTemplate()">Cancelar</button>
+      <button class="btn btn-primary" id="mst-btn-confirmar" onclick="confirmarSalvarTemplate()">Salvar modelo</button>
+
+    </div>
+  </div>
+</div>
+<div id="modal-etapa" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">Nova etapa personalizada</div>
+    <div class="field"><label>Nome da etapa</label><input type="text" id="me-nome" placeholder="ex: Certificados digitais, ITBI, Laudêmio..."></div>
+    <div class="field"><label>Inserir após a etapa</label><select id="me-posicao"></select></div>
+    <div class="field"><label>Responsável inicial</label>
+      <select id="me-resp">
+        <option>Redecon</option><option>Cliente</option><option>Administradora</option>
+        <option>Cartório</option><option>Banco/Financeira</option><option>Prefeitura</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModalEtapa()">Cancelar</button>
+      <button class="btn btn-primary" onclick="criarEtapaCustom()">Adicionar etapa</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-cancelar" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">🚫 Cancelar processo</div>
+    <div class="field"><label>Data do cancelamento</label>
+      <input type="text" id="cancelar-data" placeholder="DD/MM/AAAA">
+    </div>
+    <div class="field"><label>Motivo do cancelamento</label>
+      <textarea id="cancelar-motivo" rows="4" placeholder="Ex: Cliente possui processos no nome e irá refazer em nome da empresa..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModalCancelar()">Voltar</button>
+      <button class="btn btn-danger" onclick="confirmarCancelamento()">Confirmar cancelamento</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUBTIPOS={
+  'Imóvel':['Aquisição','Construção','Reforma','Ampliação','Reembolso','Quitação de financiamento','Quitação de financiamento + compra','Substituição de garantia','Transferência com bem entregue'],
+  'Veículo':['Compra','Substituição de garantia','Transferência com bem entregue']
+};
+const ETAPAS_IMOVEL=[
+  {nome:'Checklist de documentos',tipo:'intervalo',msg:''},
+  {nome:'Envio p/ análise',tipo:'unico',msg:'Olá, [Nome]!\n\nOs documentos do seu processo foram encaminhados para análise da administradora. ✅\n\nEstamos acompanhando cada etapa de perto. Assim que tivermos novidades, te avisamos!'},
+  {nome:'Triagem',tipo:'unico',msg:'Olá, [Nome]!\n\nBoa notícia: o seu processo avançou para a etapa de triagem.\n\nNessa fase, os documentos são conferidos antes das análises específicas. O processo está caminhando bem — qualquer novidade, te avisamos!'},
+  {nome:'Leitura da matrícula / Análise de crédito / Emissão das certidões',tipo:'unico',msg:'Olá, [Nome]! Tudo bem?\n\nO processo avançou mais uma etapa. Agora está em análise simultânea de crédito, emissão das certidões, análise da matrícula e seguro de vida.\n\nApós a conclusão da análise da matrícula, será liberado o termo para desconto da taxa de vistoria e a engenharia agendará a avaliação no imóvel.\n\nO processo está seguindo bem. Qualquer novidade, te avisamos!'},
+  {nome:'Pgto/Desconto taxa vistoria',tipo:'unico',msg:'Boa tarde, [Nome]!\n\nA análise da matrícula foi concluída. 📋\n\nEncaminhamos o boleto para pagamento da taxa de vistoria. Assim que realizar o pagamento, pedimos que nos envie o comprovante para darmos continuidade ao processo.'},
+  {nome:'Vistoria do imóvel / Análise Jurídica / Análise dos pareceres',tipo:'intervalo',msg:''},
+  {nome:'Comitê de aprovação',tipo:'unico',msg:'Bom dia, [Nome]! Tudo bem?\n\nBoa notícia: o processo foi encaminhado ao comitê de aprovação! 🙌🏻\n\nEstamos bem perto da reta final. Agora é aguardar o retorno para seguirmos com as próximas etapas. Assim que tivermos novidades, te avisamos!'},
+  {nome:'Aprovação de cadastro',tipo:'unico',msg:'Boa tarde, [Nome]! Tudo bem?\n\nO processo foi aprovado! 🎉\n\nA partir de agora, a HS fará a conferência da relação final de documentos. Caso não haja pendências, o processo seguirá para atualização das certidões e confecção do contrato.\n\nSe houver algum ponto a resolver, a HS nos avisa e repassamos para você. Estamos de olho em cada detalhe. Qualquer novidade, te avisamos!'},
+  {nome:'Conferência Documentação Final / Envio p/ WHZ (Certificados Digitais)',tipo:'intervalo',msg:'Bom dia, [Nome]!\n\nA assinatura do contrato será feita de forma digital, o que garante mais segurança e agilidade para todos. 📄\n\n⚠️ Importante: não são aceitos certificados nos formatos Gov.br ou e-Notariado. É necessário um certificado ICP-Brasil.\n\nCaso ainda não tenha, a WHZ oferece as seguintes opções com bom custo:\n\n• A3 em nuvem (celular) — 4 meses: R$ 85,00\n• A3 em nuvem (celular) — 12 meses: R$ 145,00\n• A1 em arquivo (computador) — 12 meses: R$ 145,00\n\nPagamento via PIX — chave CNPJ: 43.476.346/0001-73 (WHZ Corp.)\n\nApós o pagamento, nos envie o comprovante. Caso já possua o certificado, é só nos informar!'},
+  {nome:'Atualização final das certidões',tipo:'intervalo',msg:'Boa tarde, [Nome]! Tudo bem?\n\nInformamos que todos os documentos exigidos para a confecção do contrato já estão atualizados.\n\nEm breve a minuta será enviada para sua conferência e aprovação.\n\nSobre a guia do ITBI: o e-mail da HS menciona que ela já pode ser emitida, mas ainda não é necessário providenciar. Te avisamos quando for o momento certo para isso.'},
+  {nome:'Confecção dos contratos',tipo:'intervalo',msg:'Boa tarde, [Nome]!\n\nA minuta do contrato foi enviada para o seu e-mail. Temos um prazo de 24 horas para aprovação.\n\nPedimos que leia com atenção — nós também faremos a análise das informações principais, como datas, nomes e documentos.\n\nQualquer dúvida durante a leitura, pode nos chamar. Aguardamos sua aprovação!'},
+  {nome:'Coleta de assinaturas',tipo:'intervalo',msg:'Boa tarde, [Nome]!\n\nOs links para assinatura do contrato foram gerados. Segue abaixo:\n\n[Nome do signatário] 🔗 [link]\n\n⚠️ As assinaturas precisam ser realizadas em até 48 horas para evitar a expiração dos links e possíveis atrasos no processo.\n\nQualquer dificuldade na assinatura, é só nos chamar!'},
+  {nome:'Emissão da guia ITBI',tipo:'unico',msg:'Bom dia, [Nome]! Tudo bem?\n\nA coleta das assinaturas foi concluída. ✅\n\nAgora é necessário emitir e pagar a guia do ITBI. Tanto a guia quanto o comprovante de pagamento precisarão ser apresentados no Registro de Imóveis para darmos continuidade.\n\nSe preferir, podemos solicitar a guia junto à prefeitura por protocolo digital — é só nos avisar! *(válido para imóveis em Pato Branco/PR)*'},
+  {nome:'Pgto guia ITBI',tipo:'unico',msg:''},
+  {nome:'Registro de Imóveis',tipo:'intervalo',msg:'Bom dia, [Nome]!\n\nO processo foi encaminhado ao Registro de Imóveis. ✅\n\nNúmero do protocolo: [xxxxxx]\n\nAssim que tivermos retorno, te avisamos!'},
+  {nome:'Emolumentos',tipo:'unico',msg:'Bom dia, [Nome]! Tudo bem?\n\nO Registro de Imóveis liberou a taxa de Emolumentos para concluir a averbação na matrícula.\n\nO pagamento pode ser feito via PIX (QR Code), o que garante processamento automático e mais agilidade.\n\nAssim que realizar o pagamento, pedimos que nos envie o comprovante para anexarmos ao processo.'},
+  {nome:'Programação de pagamento',tipo:'unico',msg:'Boa tarde, [Nome]! Tudo certo?\n\nO pagamento de R$ [valor], referente à aquisição do imóvel, está programado para amanhã, com previsão de crédito na conta do vendedor entre 12h e 15h.\n\nPor favor, nos avise assim que confirmar o recebimento ou caso note qualquer divergência. 📩'}
+];
+const ETAPAS_VEICULO=[
+  {nome:'Checklist de documentos',tipo:'intervalo',msg:''},
+  {nome:'Processo em análise',tipo:'unico',msg:'Olá, [Nome]! \nOs documentos foram encaminhados para análise da administradora. ✅\nEstamos acompanhando o processo de perto.\nAssim que tivermos novidades, te avisamos!'},
+  {nome:'Triagem',tipo:'unico',msg:'Olá, [Nome]!\nO processo avançou para a etapa de triagem, onde a documentação será verificada antes de seguir para as análises específicas.\nQualquer novidade, te avisamos!'},
+  {nome:'Análise de crédito + seguro de vida',tipo:'unico',msg:'Olá, [Nome]! Tudo bem?\nBoa notícia: o processo avançou e está em análise de crédito e seguro de vida. 🚗\nAssim que houver atualização, te avisamos!'},
+  {nome:'Envio link vistoria digital',tipo:'unico',msg:'Olá, [Nome]!\nAgora precisamos realizar a vistoria digital do veículo. 📸\nO link foi enviado para o celular do vendedor via SMS e WhatsApp.\nPeça para ele acessar e tirar as fotos conforme solicitado.\nNos avise quando a vistoria estiver concluída. ✅'},
+  {nome:'Vistoria digital realizada',tipo:'unico',msg:''},
+  {nome:'Comitê de aprovação',tipo:'unico',msg:'Bom dia, [Nome]! Tudo bem? \nO processo foi encaminhado ao comitê de aprovação. 🙌🏻\nAgora é aguardar o retorno para confirmar a aprovação e seguirmos com as próximas etapas. \nQualquer novidade, te avisamos!'},
+  {nome:'Aprovação',tipo:'unico',msg:'Bom dia, [Nome]!\nO processo foi aprovado! 🎉\nO contrato está sendo confeccionado. Em breve encaminharemos todas as informações para a conclusão do processo.'},
+  {nome:'Assinatura + Docs',tipo:'intervalo',msg:'Olá, [Nome]! Tudo bem?\nPara concluirmos o processo, precisamos de algumas providências:\n\n📌 ETAPA 1 — ASSINATURA DIGITAL\n[Nome do consorciado] receberá via D4Sign (WhatsApp):\n2 links: Contrato de Alienação e Termo de Opção\n[Nome do vendedor] receberá via D4Sign (WhatsApp):\n1 link: Termo de Opção\nTodos devem acessar e assinar os links recebidos. 📷\nEnvie fotos legíveis dos documentos (CNH preferencialmente), centralizadas e sem objetos ao fundo.\n\n📌 ETAPA 2 — TAXAS\nO boleto do gravame e da vistoria foi enviado por e-mail.\nSegue o código PIX para facilitar o pagamento. ⚠️\nO pagamento é obrigatório para dar continuidade ao processo.\n\n📌 ETAPA 3 — DOCUMENTO DO VEÍCULO\nEnviar:\nATPV com ambas as assinaturas reconhecidas por autenticidade (ou ATPV com assinatura digital em PDF)\nProcuração desmaterializada (quando houver)\n\n📌 ETAPA 4 — PAGAMENTO\nO pagamento ao vendedor ocorre em até 48 horas úteis após a inclusão do gravame e o comunicado de venda ou transferência no DETRAN. ⚠️\nVeículos com multas, RECALL ou restrições: somente após transferência concluída.\nAguarde nossa autorização por e-mail para concluir a vistoria e transferência.'},
+  {nome:'Envio docs p/ inclusão gravame',tipo:'unico',msg:'Olá, [Nome]!\nOs documentos foram enviados para a administradora para inclusão do gravame no veículo. ✅\nAguardamos a confirmação da inclusão.'},
+  {nome:'Inclusão gravame',tipo:'unico',msg:'Olá, [Nome]! O gravame foi incluído no veículo. ✅\nO veículo está liberado para vistoria e para os procedimentos de transferência ou emplacamento.\nQuanto ao pagamento: o comunicado de venda já foi realizado. Agora é aguardar a programação — assim que for liberado, te avisamos!'},
+  {nome:'Pgto crédito',tipo:'unico',msg:'Boa tarde, [Nome]! Tudo certo?\nO pagamento de R$ [valor], referente à compra do [veículo], está programado para [data], com previsão de crédito na conta do vendedor entre 15h e 17h.\nPor favor, nos confirme assim que o valor for creditado ou caso note qualquer divergência.\nA Redecon segue à disposição para o que precisar. 🙌🏻'},
+  {nome:'Reembolso de taxas',tipo:'reembolso',msg:'Boa tarde, [Nome]!\nO pagamento de R$ [valor], referente ao reembolso de [especificar: gravame / taxa de transferência], está programado para [data], com previsão de crédito na sua conta entre 15h e 17h. \nQualquer dúvida, é só chamar! 😊'}
+];
+
+let processos=[],pSel=null,modalComEtapaIdx=null,modalComIdx=null,editandoComentario=false,_anoFiltro='todos',_listaFiltroAtual='todos',_etapasAbertas=new Set();
+
+const ETAPAS_QUITACAO_COMPRA=[
+  ...ETAPAS_IMOVEL.filter(e=>e.nome!=='Pgto crédito'),
+  {nome:'Pgto quitação do financiamento',tipo:'unico',msg:'Boa tarde, [Nome]! Tudo certo?\n\nO pagamento de R$ [valor], referente à quitação do financiamento, está programado para amanhã, com previsão de crédito entre 12h e 15h.\n\nPor favor, nos avise assim que confirmar o recebimento ou caso note qualquer divergência. 📩'},
+  {nome:'Termo de Quitação',tipo:'intervalo',msg:''},
+  {nome:'Atualização de documentos para 2º contrato',tipo:'intervalo',msg:''},
+  {nome:'Minuta 2º contrato',tipo:'unico',msg:''},
+  {nome:'Confecção 2º contrato - Compra e venda',tipo:'intervalo',msg:''},
+  {nome:'2º contrato liberado para assinatura',tipo:'intervalo',msg:''},
+  {nome:'Emissão do ITBI',tipo:'intervalo',msg:''},
+  {nome:'Registro 2º contrato - Compra e venda',tipo:'intervalo',msg:''},
+  {nome:'Pagamento compra e venda',tipo:'unico',msg:'Boa tarde, [Nome]! Tudo certo?\n\nO pagamento de R$ [valor], referente à compra do imóvel, está programado para amanhã, com previsão de crédito na conta do vendedor entre 12h e 15h.\n\nPor favor, nos avise assim que confirmar o recebimento ou caso note qualquer divergência. 📩'}
+];
+
+const ETAPAS_SUBST_GARANTIA_VEICULO=[
+  {nome:'Checklist de documentos',tipo:'intervalo',msg:''},
+  {nome:'Processo em análise',tipo:'unico',msg:'Olá, [Nome]!\nOs documentos foram encaminhados para a administradora para análise da substituição de garantia. ✅\nEstamos acompanhando o processo de perto.\nAssim que tivermos novidades, te avisamos!'},
+  {nome:'Envio link vistoria',tipo:'unico',msg:'Olá, [Nome]!\nA administradora enviou o link para a vistoria digital do novo veículo. 📸\nO link foi encaminhado ao proprietário via SMS e WhatsApp.\nPeça para ele acessar e tirar as fotos conforme solicitado.\nNos avise quando a vistoria estiver concluída. ✅'},
+  {nome:'Vistoria realizada',tipo:'unico',msg:''},
+  {nome:'Aprovação',tipo:'unico',msg:'Bom dia, [Nome]!\nA substituição de garantia foi aprovada! 🎉\nO contrato está sendo confeccionado. Em breve encaminharemos as informações para a conclusão do processo.'},
+  {nome:'Assinatura + Docs',tipo:'unico',msg:'Olá, [Nome]! Tudo bem?\nPara concluirmos a substituição de garantia, precisamos de algumas providências:\n\n📌 ASSINATURA DIGITAL\nVocê receberá via D4Sign (WhatsApp) os links para assinatura dos documentos.\nAcesse e assine conforme orientado.\n\n📌 DOCUMENTOS DO VEÍCULO\nEnviar o documento do novo veículo (ATPV ou CRV) para inclusão do gravame.'},
+  {nome:'Envio docs p/ inclusão gravame',tipo:'unico',msg:'Olá, [Nome]!\nOs documentos foram enviados para a administradora para inclusão do gravame no novo veículo. ✅\nAguardamos a confirmação da inclusão.'},
+  {nome:'Inclusão gravame',tipo:'unico',msg:'Olá, [Nome]!\nO gravame foi incluído no novo veículo. ✅\nA substituição de garantia está concluída!\nEm breve a HS realizará a transferência do consórcio para o novo bem.'},
+  {nome:'Transferência do consórcio',tipo:'unico',msg:'Boa tarde, [Nome]! Tudo certo?\nA HS confirmou a transferência do consórcio para o novo veículo. ✅\nO processo de substituição de garantia está encerrado.\nA Redecon segue à disposição para o que precisar. 🙌🏻'}
+];
+
+function today(){const d=new Date();return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()}
+function pad(n){return n<10?'0'+n:n}
+function parseDMY(s){if(!s||!s.includes('/'))return null;const p=s.split('/');if(p.length!==3)return null;return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]),12,0,0)}
+function diasUteis(s1,s2){const d1=parseDMY(s1),d2=parseDMY(s2);if(!d1||!d2||d2<d1)return null;let dias=0,cur=new Date(d1);while(cur<=d2){if(cur.getDay()!==0&&cur.getDay()!==6)dias++;cur.setDate(cur.getDate()+1)}return dias}
+function diasCorridos(s1,s2){const d1=parseDMY(s1),d2=parseDMY(s2);if(!d1||!d2||d2<d1)return null;return Math.round((d2-d1)/(1000*60*60*24))}
+// Nomes que a mesma etapa-chave tem no modelo antigo e no novo (imóvel). Procura em ordem e devolve a primeira que existir.
+const ALIAS_ETAPAS={
+  pgto:['Pagamento compra e venda','Pgto crédito','Programação de pagamento'],
+  contrato:['Contrato p/ assinatura','Envio de contrato','Coleta de assinaturas'],
+  ri:['Registro em cartório (RI)','Registro de Imóveis']
+};
+function achaEtapa(p,chave){for(const nome of ALIAS_ETAPAS[chave]){const e=p.etapas.find(x=>x.nome===nome);if(e)return e}return undefined}
+function temAlerta(et){const ref=et.tipo==='unico'?et.dataVal:et.dataInicio;if(!ref)return false;const fim=et.tipo==='unico'?et.dataVal:et.dataFim;if(fim)return false;const d=diasCorridos(ref,today());return d!==null&&d>7}
+function getHoraAgora(){
+  const h=new Date().getHours().toString().padStart(2,'0');
+  const m=new Date().getMinutes().toString().padStart(2,'0');
+  return h+':'+m;
+}
+function atualizarDataVal(idx, valor) {
+  pSel.etapas[idx].dataVal = valor;
+  // Garantir que ultimaAtualizacao é atualizado
+  pSel.ultimaAtualizacao = today();
+  salvar();
+  // Sincronizar pSel com processos
+  const idxProc = processos.findIndex(p=>p.id===pSel.id);
+  if(idxProc>=0) processos[idxProc] = pSel;
+  renderLista();
+  renderDetalhe();
+}
+function atualizarDataInicio(idx, valor) {
+  pSel.etapas[idx].dataInicio = valor;
+  pSel.etapas[idx].dataVal = valor;
+  // Garantir que ultimaAtualizacao é atualizado
+  pSel.ultimaAtualizacao = today();
+  salvar();
+  // Sincronizar pSel com processos
+  const idxProc = processos.findIndex(p=>p.id===pSel.id);
+  if(idxProc>=0) processos[idxProc] = pSel;
+  renderLista();
+  renderDetalhe();
+}
+function atualizarDataFim(idx, valor) {
+  pSel.etapas[idx].dataFim = valor;
+  // Garantir que ultimaAtualizacao é atualizado
+  pSel.ultimaAtualizacao = today();
+  salvar();
+  // Sincronizar pSel com processos
+  const idxProc = processos.findIndex(p=>p.id===pSel.id);
+  if(idxProc>=0) processos[idxProc] = pSel;
+  renderLista();
+  renderDetalhe();
+}
+function salvar(){
+  if(pSel){
+    const idx=processos.findIndex(p=>p.id===pSel.id);
+    if(idx>=0) processos[idx].ultimaAtualizacao=today();
+  }
+  localStorage.setItem('redecon_v1',JSON.stringify(processos));
+  if(window._fbSalvar) window._fbSalvar(processos);
+}
+function abrirMsgEtapa(idx){
+  const et=pSel.etapas[idx];
+  const nome=pSel.nome;
+  const primeiro=nome.split(' ')[0];
+  document.getElementById('msg-popup-title').textContent='💬 '+et.nome;
+  if(!et.msg){
+    // etapa ainda sem mensagem -- abre em branco para o usuário criar uma
+    document.getElementById('msg-popup-abas').innerHTML='';
+    document.getElementById('msg-popup-abas').style.display='none';
+    document.getElementById('msg-popup-text').value='';
+    document.getElementById('msg-popup-text').placeholder='Digite a mensagem para esta etapa. Use [Nome] onde quiser o primeiro nome do cliente.';
+    document.getElementById('msg-popup-text').dataset.etapaIdx=idx;
+    delete document.getElementById('msg-popup-text').dataset.varianteIdx;
+    document.getElementById('msg-popup').classList.add('open');
+    return;
+  }
+  if(et.msg==='VARIANTES'&&et.msgVariantes){
+    // Montar abas
+    const abas=et.msgVariantes.map((v,vi)=>
+      `<button class="msg-aba ${vi===0?'ativa':''}" onclick="selecionarAba(${vi},${et.msgVariantes.length},${idx})">${v.label}</button>`
+    ).join('');
+    document.getElementById('msg-popup-abas').innerHTML=abas;
+    document.getElementById('msg-popup-abas').style.display='flex';
+    const texto=et.msgVariantes[0].texto.replace(/\[Nome\]/g,primeiro);
+    document.getElementById('msg-popup-text').value=texto;
+    document.getElementById('msg-popup-text').placeholder='';
+    document.getElementById('msg-popup-text').dataset.etapaIdx=idx;
+    document.getElementById('msg-popup-text').dataset.varianteIdx=0;
+  } else {
+    document.getElementById('msg-popup-abas').innerHTML='';
+    document.getElementById('msg-popup-abas').style.display='none';
+    const texto=et.msg.replace(/\[Nome\]/g,primeiro);
+    document.getElementById('msg-popup-text').value=texto;
+    document.getElementById('msg-popup-text').placeholder='';
+    document.getElementById('msg-popup-text').dataset.etapaIdx=idx;
+    delete document.getElementById('msg-popup-text').dataset.varianteIdx;
+  }
+  document.getElementById('msg-popup').classList.add('open');
+}
+function selecionarAba(varIdx, total, etIdx){
+  const et=pSel.etapas[etIdx];
+  const primeiro=pSel.nome.split(' ')[0];
+  const texto=et.msgVariantes[varIdx].texto.replace(/\[Nome\]/g,primeiro);
+  document.getElementById('msg-popup-text').value=texto;
+  document.getElementById('msg-popup-text').dataset.varianteIdx=varIdx;
+  document.querySelectorAll('.msg-aba').forEach((b,i)=>{
+    b.classList.toggle('ativa',i===varIdx);
+  });
+}
+function abrirMsg(nome, etapa, msg){
+  const primeiro=nome.split(' ')[0];
+  const texto=msg.replace(/\[Nome\]/g,primeiro);
+  document.getElementById('msg-popup-title').textContent=etapa;
+  document.getElementById('msg-popup-text').value=texto;
+  document.getElementById('msg-popup').classList.add('open');
+}
+function fecharMsgPopup(){document.getElementById('msg-popup').classList.remove('open')}
+function copiarMsg(){
+  navigator.clipboard.writeText(document.getElementById('msg-popup-text').value).then(()=>{
+    const el=document.getElementById('msg-copied');
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),2000);
+  });
+}
+
+/* ===================== MENSAGEM: SALVAR EDIÇÃO NA ETAPA ===================== */
+function salvarMsgEtapa(){
+  const ta = document.getElementById('msg-popup-text');
+  const idx = ta.dataset.etapaIdx;
+  if(idx === undefined || idx === ''){ fecharMsgPopup(); return; } // popup aberto por outro caminho (sem etapa associada)
+  const et = pSel.etapas[idx];
+  if(!et){ fecharMsgPopup(); return; }
+  const varIdx = ta.dataset.varianteIdx;
+  if(et.msg === 'VARIANTES' && et.msgVariantes && varIdx !== undefined && varIdx !== ''){
+    et.msgVariantes[varIdx].texto = ta.value;
+  } else {
+    et.msg = ta.value;
+  }
+  salvar();
+  renderDetalhe();
+  fecharMsgPopup();
+  alert('Mensagem salva nesta etapa deste processo.\n\nSe quiser que ela também valha para os PRÓXIMOS processos, use o botão "⭐ salvar como padrão" logo ao lado, nesta mesma etapa.');
+}
+
+/* ===================== MODELOS PADRÃO DE ETAPAS (por tipo + subtipo) ===================== */
+// TEMPLATES_OVERRIDE: chave "Tipo::Subtipo" -> array de {nome,tipo,msg?,msgVariantes?}.
+// Se não houver override para a chave, usa o array-base (ETAPAS_IMOVEL / ETAPAS_VEICULO / etc.), intocado.
+let TEMPLATES_OVERRIDE = {};
+function _templateChave(tipo, subtipo){ return tipo+'::'+subtipo; }
+function _templateBase(tipo, subtipo){
+  if(tipo==='Imóvel') return subtipo==='Quitação de financiamento + compra' ? ETAPAS_QUITACAO_COMPRA : ETAPAS_IMOVEL;
+  return subtipo==='Substituição de garantia' ? ETAPAS_SUBST_GARANTIA_VEICULO : ETAPAS_VEICULO;
+}
+function obterTemplate(tipo, subtipo){
+  const chave = _templateChave(tipo, subtipo);
+  return TEMPLATES_OVERRIDE[chave] || _templateBase(tipo, subtipo);
+}
+async function carregarTemplates(){
+  if(!window._fbCarregarTemplates) return;
+  try{
+    const remoto = await window._fbCarregarTemplates();
+    if(!remoto) return;
+    Object.keys(remoto).forEach(chave=>{ if(Array.isArray(remoto[chave])) TEMPLATES_OVERRIDE[chave] = remoto[chave]; });
+  }catch(e){ console.error('Erro ao carregar modelos de etapas:', e); }
+}
+
+let _mstEtapaSnap = null;
+let _mstModo = 'salvar'; // 'salvar' | 'remover'
+
+function _mstListaHTML(subtipoAtual, tipoAtual){
+  return Object.keys(SUBTIPOS).map(tipo=>{
+    const itens = SUBTIPOS[tipo].map(s=>{
+      const chave = tipo+'::'+s;
+      const marcado = (tipo===tipoAtual && s===subtipoAtual) ? 'checked' : '';
+      return `<label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0">
+        <input type="checkbox" data-chave="${chave}" ${marcado}> ${s}
+      </label>`;
+    }).join('');
+    return `<div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px">${tipo==='Imóvel'?'🏠':'🚗'} ${tipo}</div><button type="button" class="link-btn" onclick="mstMarcarTodos('${tipo}')" title="Marcar todos os subtipos de ${tipo}"><i class="ti ti-checks" style="font-size:12px"></i> marcar todos</button></div>${itens}</div>`;
+  }).join('');
+}
+function mstMarcarTodos(tipo){
+  document.querySelectorAll('#mst-lista input[data-chave^="'+tipo+'::"]').forEach(el=>el.checked=true);
+}
+
+function salvarEtapaComoModelo(idx){
+  if(!pSel) return;
+  const et = pSel.etapas[idx];
+  abrirModalMst({nome:et.nome, tipo:et.tipo, msg:et.msg, msgVariantes:et.msgVariantes}, 'salvar');
+}
+
+function removerEtapaDoModelo(idx){
+  if(!pSel) return;
+  const et = pSel.etapas[idx];
+  abrirModalMst({nome:et.nome, tipo:et.tipo, msg:et.msg, msgVariantes:et.msgVariantes}, 'remover');
+}
+
+function abrirModalMst(etapaSnap, modo){
+  if(!pSel) return;
+  _mstEtapaSnap = etapaSnap;
+  _mstModo = modo;
+  if(modo==='salvar'){
+    document.getElementById('mst-titulo').textContent = '⭐ Salvar esta etapa como padrão';
+    document.getElementById('mst-explicacao').textContent = 'Escolha para quais tipos de utilização essa etapa (nome + mensagem) deve virar o padrão -- pode marcar de Imóvel e de Veículo ao mesmo tempo, se a etapa for igual nos dois. Só afeta processos criados a partir de agora -- os que já existem não mudam. As demais etapas do modelo continuam como estão.';
+    document.getElementById('mst-btn-confirmar').textContent = 'Salvar modelo';
+    document.getElementById('mst-btn-confirmar').className = 'btn btn-primary';
+  } else {
+    document.getElementById('mst-titulo').textContent = '🗑 Remover esta etapa dos modelos';
+    document.getElementById('mst-explicacao').textContent = 'Escolha de quais tipos de utilização a etapa "'+etapaSnap.nome+'" deve deixar de fazer parte do modelo padrão. Só afeta processos criados a partir de agora -- os que já existem não mudam.';
+    document.getElementById('mst-btn-confirmar').textContent = 'Remover do(s) modelo(s)';
+    document.getElementById('mst-btn-confirmar').className = 'btn btn-danger';
+  }
+  document.getElementById('mst-preview').textContent = etapaSnap.nome;
+  document.getElementById('mst-lista').innerHTML = _mstListaHTML(pSel.subtipo, pSel.tipo);
+  document.getElementById('modal-salvar-template').classList.add('open');
+}
+
+function fecharModalSalvarTemplate(){
+  document.getElementById('modal-salvar-template').classList.remove('open');
+  _mstEtapaSnap = null;
+}
+
+async function confirmarSalvarTemplate(){
+  const marcados = [...document.querySelectorAll('#mst-lista input:checked')].map(el=>el.dataset.chave); // "Tipo::Subtipo"
+  if(!marcados.length){ alert('Selecione ao menos um tipo de utilização.'); return; }
+  if(!_mstEtapaSnap) return;
+
+  const modo = _mstModo;                 // captura ANTES de qualquer espera, imune a outra ação em paralelo
+  const et = _mstEtapaSnap;              // idem — retrato da etapa, não depende mais dela ainda existir no processo
+  const entrada = {nome:et.nome, tipo:et.tipo};
+  if(et.msg) entrada.msg = et.msg;
+  if(et.msgVariantes) entrada.msgVariantes = et.msgVariantes;
+
+  fecharModalSalvarTemplate(); // fecha já aqui, antes das esperas, pra não deixar a modal aberta "no ar"
+
+  for(const chaveCompleta of marcados){
+    const [tipo, subtipo] = chaveCompleta.split('::');
+    const base = TEMPLATES_OVERRIDE[chaveCompleta] || _templateBase(tipo, subtipo);
+    let arr = base.map(e=>({...e}));
+
+    if(modo==='remover'){
+      arr = arr.filter(e=>e.nome!==et.nome);
+    } else {
+      const idxExistente = arr.findIndex(e=>e.nome===entrada.nome);
+      if(idxExistente>=0) arr[idxExistente]=entrada; else arr.push(entrada);
+    }
+
+    TEMPLATES_OVERRIDE[chaveCompleta] = arr;
+    if(window._fbSalvarTemplates){
+      try{ await window._fbSalvarTemplates(tipo, [subtipo], arr); }catch(e){ console.error(e); }
+    }
+  }
+  const rotulos = marcados.map(c=>c.replace('::',' — '));
+  if(modo==='remover'){
+    alert('🗑 Etapa "'+et.nome+'" removida do modelo de: '+rotulos.join(', ')+'.\n\nOs próximos processos com esses tipos não vão mais nascer com ela.');
+  } else {
+    alert('✅ Etapa "'+et.nome+'" salva como padrão para: '+rotulos.join(', ')+'.\n\nOs próximos processos com esses tipos de utilização já vão nascer com ela. As outras etapas do modelo não foram alteradas.');
+  }
+}
+async function carregar(){
+  // Tentar carregar do Firebase primeiro
+  if(window._fbCarregar){
+    const dadosFb = await window._fbCarregar();
+    if(dadosFb && dadosFb.length > 0){
+      processos = dadosFb;
+      localStorage.setItem('redecon_v1', JSON.stringify(processos));
+    } else {
+      try{const r=localStorage.getItem('redecon_v1');if(r)processos=JSON.parse(r)}catch(e){}
+      if(processos.length > 0) salvar(); // sincronizar localStorage para Firebase
+    }
+  } else {
+    try{const r=localStorage.getItem('redecon_v1');if(r)processos=JSON.parse(r)}catch(e){}
+  }
+
+  // Migrar nome e variantes da etapa de taxa vistoria em TODOS os processos
+  let precisaSalvar = false;
+  processos.forEach((p,pi)=>{
+    p.etapas.forEach((et,ei)=>{
+      if(et.tipo==='intervalo'&&et.temFim===undefined){
+        processos[pi].etapas[ei].temFim=true;
+        precisaSalvar=true;
+      }
+    });
+  });
+  processos.forEach((p,pi)=>{
+    p.etapas.forEach((et,ei)=>{
+      if(et.nome==='Pgto taxa vistoria'){
+        processos[pi].etapas[ei].nome='Pgto/Desconto taxa vistoria';
+        processos[pi].etapas[ei].msg='VARIANTES';
+        processos[pi].etapas[ei].msgVariantes=[
+          {label:'Boleto',texto:'Boa tarde, [Nome]!\n\nA análise da matrícula foi concluída. 📋\n\nEncaminhamos o boleto para pagamento da taxa de vistoria. Assim que realizar o pagamento, pedimos que nos envie o comprovante para darmos continuidade ao processo.'},
+          {label:'Desconto do crédito (1ª msg)',texto:'Boa tarde, [Nome]!\n\nA análise da matrícula foi concluída. Em breve você receberá por e-mail o Termo para desconto da taxa de vistoria.\n\nAssim que for enviado, te orientamos sobre como assinar. Pode ficar tranquilo!'},
+          {label:'Desconto do crédito (2ª msg)',texto:'Olá, [Nome]!\n\nO Termo para desconto da taxa de vistoria foi enviado para o seu e-mail.\n\nEncaminhamos também o manual de assinatura — é bem simples, mas qualquer dúvida é só chamar.\n\nPor favor, nos avise assim que o documento estiver assinado!'}
+        ];
+        precisaSalvar=true;
+      }
+      // Garantir campo msg em todas etapas e preencher mensagens padrão
+      const MSGS_PADRAO={"Envio p/ análise": "Olá, [Nome]!\n\nOs documentos do seu processo foram encaminhados para análise da administradora. ✅\n\nEstamos acompanhando cada etapa de perto. Assim que tivermos novidades, te avisamos!", "Triagem": "Olá, [Nome]!\n\nBoa notícia: o seu processo avançou para a etapa de triagem.\n\nNessa fase, os documentos são conferidos antes das análises específicas. O processo está caminhando bem — qualquer novidade, te avisamos!", "Análise de crédito + certidões + matrícula + seguro de vida": "Olá, [Nome]! Tudo bem?\n\nO processo avançou mais uma etapa. Agora está em análise simultânea de crédito, emissão das certidões, análise da matrícula e seguro de vida.\n\nApós a conclusão da análise da matrícula, será liberado o termo para desconto da taxa de vistoria e a engenharia agendará a avaliação no imóvel.\n\nO processo está seguindo bem. Qualquer novidade, te avisamos!", "Comitê de aprovação": "Bom dia, [Nome]! Tudo bem?\n\nBoa notícia: o processo foi encaminhado ao comitê de aprovação! 🙌🏻\n\nEstamos bem perto da reta final. Agora é aguardar o retorno para seguirmos com as próximas etapas. Assim que tivermos novidades, te avisamos!", "Aprovação de cadastro": "Boa tarde, [Nome]! Tudo bem?\n\nO processo foi aprovado! 🎉\n\nA partir de agora, a HS fará a conferência da relação final de documentos. Caso não haja pendências, o processo seguirá para atualização das certidões e confecção do contrato.\n\nSe houver algum ponto a resolver, a HS nos avisa e repassamos para você. Estamos de olho em cada detalhe. Qualquer novidade, te avisamos!", "Certificados digitais": "Bom dia, [Nome]!\n\nA assinatura do contrato será feita de forma digital. 📄\n\n⚠️ Importante: não são aceitos certificados Gov.br ou e-Notariado. É necessário um certificado ICP-Brasil.\n\nCaso não tenha, a WHZ oferece:\n• A3 em nuvem (celular) — 4 meses: R$ 85,00\n• A3 em nuvem (celular) — 12 meses: R$ 145,00\n• A1 em arquivo (computador) — 12 meses: R$ 145,00\n\nPIX — CNPJ: 43.476.346/0001-73 (WHZ Corp.)\n\nApós o pagamento, nos envie o comprovante!", "Atualização documental": "Boa tarde, [Nome]! Tudo bem?\n\nInformamos que todos os documentos exigidos para a confecção do contrato já estão atualizados.\n\nEm breve a minuta será enviada para sua conferência e aprovação.\n\nSobre a guia do ITBI: ainda não é necessário providenciar. Te avisamos quando for o momento certo!", "Envio de minuta": "Boa tarde, [Nome]!\n\nA minuta do contrato foi enviada para o seu e-mail. Temos um prazo de 24 horas para aprovação.\n\nPedimos que leia com atenção — nós também faremos a análise das informações principais.\n\nQualquer dúvida, pode nos chamar. Aguardamos sua aprovação!", "Contrato p/ assinatura": "Boa tarde, [Nome]!\n\nOs links para assinatura do contrato foram gerados:\n\n[Nome do signatário] 🔗 [link]\n\n⚠️ As assinaturas precisam ser realizadas em até 48 horas.\n\nQualquer dificuldade na assinatura, é só nos chamar!", "Emissão da guia ITBI": "Bom dia, [Nome]! Tudo bem?\n\nA coleta das assinaturas foi concluída. ✅\n\nAgora é necessário emitir e pagar a guia do ITBI. Tanto a guia quanto o comprovante precisarão ser apresentados no Registro de Imóveis.\n\nSe preferir, podemos solicitar junto à prefeitura por protocolo digital — é só nos avisar!", "Registro em cartório (RI)": "Bom dia, [Nome]!\n\nO processo foi encaminhado ao Registro de Imóveis. ✅\n\nNúmero do protocolo: [xxxxxx]\n\nAssim que tivermos retorno, te avisamos!", "Emolumentos": "Bom dia, [Nome]! Tudo bem?\n\nO Registro de Imóveis liberou a taxa de Emolumentos para concluir a averbação na matrícula.\n\nO pagamento pode ser feito via PIX (QR Code).\n\nAssim que realizar o pagamento, pedimos que nos envie o comprovante para anexarmos ao processo.", "Pgto crédito": "Boa tarde, [Nome]! Tudo certo?\n\nO pagamento de R$ [valor], referente à aquisição do imóvel, está programado para amanhã, com previsão de crédito na conta do vendedor entre 12h e 15h.\n\nPor favor, nos avise assim que confirmar o recebimento. 📩"};
+      if(et.msg===undefined||et.msg===''){
+        const mp=MSGS_PADRAO[et.nome];
+        processos[pi].etapas[ei].msg=mp||'';
+        if(mp) precisaSalvar=true;
+      }
+      if(et.nome==='Pgto/Desconto taxa vistoria'&&(!et.msgVariantes||!et.msgVariantes.length)){
+        processos[pi].etapas[ei].msg='VARIANTES';
+        processos[pi].etapas[ei].msgVariantes=[
+          {label:'Boleto',texto:'Boa tarde, [Nome]!\n\nA análise da matrícula foi concluída. 📋\n\nEncaminhamos o boleto para pagamento da taxa de vistoria. Assim que realizar o pagamento, pedimos que nos envie o comprovante para darmos continuidade ao processo.'},
+          {label:'Desconto do crédito (1ª msg)',texto:'Boa tarde, [Nome]!\n\nA análise da matrícula foi concluída. Em breve você receberá por e-mail o Termo para desconto da taxa de vistoria.\n\nAssim que for enviado, te orientamos sobre como assinar. Pode ficar tranquilo!'},
+          {label:'Desconto do crédito (2ª msg)',texto:'Olá, [Nome]!\n\nO Termo para desconto da taxa de vistoria foi enviado para o seu e-mail.\n\nEncaminhamos também o manual de assinatura — é bem simples, mas qualquer dúvida é só chamar.\n\nPor favor, nos avise assim que o documento estiver assinado!'}
+        ];
+        precisaSalvar=true;
+      }
+    });
+  });
+  if(precisaSalvar) salvar();
+
+  // Adicionar Reembolso de taxas em processos de veículo que não têm
+  processos.forEach((p,pi)=>{
+    if(p.tipo!=='Veículo') return;
+    if(p.etapas.find(et=>et.tipo==='reembolso')) return;
+    processos[pi].etapas.push({nome:'Reembolso de taxas',tipo:'reembolso',reembolsos:[{descricao:'',valor:''}],responsavel:'Redecon',comentarios:[],custom:false,msg:'Boa tarde, [Nome]!\nO pagamento de R$ [valor], referente ao reembolso de [especificar: gravame / taxa de transferência], está programado para [data], com previsão de crédito na sua conta entre 15h e 17h. \nQualquer dúvida, é só chamar! 😊'});
+    precisaSalvar=true;
+  });
+
+  // Adicionar msgs nas etapas de veículo existentes que não têm
+  const MSGS_VEICULO={
+    'Processo em análise':'Olá, [Nome]! \nOs documentos foram encaminhados para análise da administradora. ✅\nEstamos acompanhando o processo de perto.\nAssim que tivermos novidades, te avisamos!',
+    'Aprovação':'Bom dia, [Nome]!\nO processo foi aprovado! 🎉\nO contrato está sendo confeccionado. Em breve encaminharemos todas as informações para a conclusão do processo.',
+    'Assinatura + Docs':'Olá, [Nome]! Tudo bem?\nPara concluirmos o processo, precisamos de algumas providências:\n\n📌 ETAPA 1 — ASSINATURA DIGITAL\n[Nome do consorciado] receberá via D4Sign (WhatsApp).\n\n📌 ETAPA 2 — TAXAS\nO boleto do gravame e da vistoria foi enviado por e-mail.\n\n📌 ETAPA 3 — DOCUMENTO DO VEÍCULO\nEnviar ATPV com assinaturas reconhecidas.',
+    'Inclusão gravame':'Olá, [Nome]! O gravame foi incluído no veículo. ✅\nO veículo está liberado para vistoria e para os procedimentos de transferência ou emplacamento.\nAssim que o pagamento for liberado, te avisamos!',
+    'Pgto crédito':'Boa tarde, [Nome]! Tudo certo?\nO pagamento de R$ [valor], referente à compra do [veículo], está programado para [data], com previsão de crédito na conta do vendedor entre 15h e 17h.\nPor favor, nos confirme assim que o valor for creditado. 🙌🏻'
+  };
+  processos.forEach((p,pi)=>{
+    if(p.tipo!=='Veículo') return;
+    p.etapas.forEach((et,ei)=>{
+      if(!et.msg&&MSGS_VEICULO[et.nome]){
+        processos[pi].etapas[ei].msg=MSGS_VEICULO[et.nome];
+        precisaSalvar=true;
+      }
+    });
+  });
+
+  // Adicionar etapa Reembolso de taxas em processos de imóvel que não têm
+  processos.forEach((p,pi)=>{
+    if(p.tipo!=='Imóvel') return;
+    if(p.etapas.find(et=>et.tipo==='reembolso')) return;
+    processos[pi].etapas.push({nome:'Reembolso de taxas',tipo:'reembolso',reembolsos:[{descricao:'',valor:''}],responsavel:'Redecon',comentarios:[],custom:false,msg:'Olá, [Nome do Cliente]!\n\nVerificamos que haverá uma sobra de crédito no seu consórcio (atualmente no valor de R$ [SOBRA]). Com isso, podemos solicitar o reembolso de R$ [SOBRA], utilizando como base os valores pagos com o ITBI (R$ [ITBI]) e os emolumentos do Registro de Imóveis (R$ [EMOLUMENTOS]).\n\nPara darmos andamento ao seu reembolso, por gentileza, envie-nos uma foto do seu cartão bancário ou um print do seu aplicativo, onde apareçam claramente:\n\n• Nome do banco\n• Seu nome completo (titular)\n• Agência\n• Número da conta\n\nFicamos no aguardo para prosseguir com o processo. Se tiver qualquer dúvida, estamos à disposição!'});
+    precisaSalvar=true;
+  });
+
+  // Migrar etapas dos processos de imóvel em andamento
+  const novasEtapasImovel = [{"nome": "Checklist de documentos", "tipo": "intervalo", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": ""}, {"nome": "Envio p/ análise", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Olá, [Nome]!\n\nOs documentos do seu processo foram encaminhados para análise da administradora. ✅\n\nEstamos acompanhando cada etapa de perto. Assim que tivermos novidades, te avisamos!"}, {"nome": "Triagem", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Olá, [Nome]!\n\nBoa notícia: o seu processo avançou para a etapa de triagem.\n\nNessa fase, os documentos são conferidos antes das análises específicas. O processo está caminhando bem — qualquer novidade, te avisamos!"}, {"nome": "Análise de crédito + certidões + matrícula + seguro de vida", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Olá, [Nome]! Tudo bem?\n\nO processo avançou mais uma etapa. Agora está em análise simultânea de crédito, emissão das certidões, análise da matrícula e seguro de vida.\n\nApós a conclusão da análise da matrícula, será liberado o termo para desconto da taxa de vistoria e a engenharia agendará a avaliação no imóvel.\n\nO processo está seguindo bem. Qualquer novidade, te avisamos!"}, {"nome": "Pgto/Desconto taxa vistoria", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Boa tarde, [Nome]!\n\nA análise da matrícula foi concluída. 📋\n\nEncaminhamos o boleto para pagamento da taxa de vistoria. Assim que realizar o pagamento, pedimos que nos envie o comprovante para darmos continuidade ao processo."}, {"nome": "Vistoria do imóvel", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": ""}, {"nome": "Comitê de aprovação", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Bom dia, [Nome]! Tudo bem?\n\nBoa notícia: o processo foi encaminhado ao comitê de aprovação! 🙌🏻\n\nEstamos bem perto da reta final. Agora é aguardar o retorno para seguirmos com as próximas etapas. Assim que tivermos novidades, te avisamos!"}, {"nome": "Aprovação de cadastro", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Boa tarde, [Nome]! Tudo bem?\n\nO processo foi aprovado! 🎉\n\nA partir de agora, a HS fará a conferência da relação final de documentos. Caso não haja pendências, o processo seguirá para atualização das certidões e confecção do contrato.\n\nSe houver algum ponto a resolver, a HS nos avisa e repassamos para você. Estamos de olho em cada detalhe. Qualquer novidade, te avisamos!"}, {"nome": "Certificados digitais", "tipo": "intervalo", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Bom dia, [Nome]!\n\nA assinatura do contrato será feita de forma digital. 📄\n\n⚠️ Importante: não são aceitos certificados Gov.br ou e-Notariado. É necessário um certificado ICP-Brasil.\n\nCaso não tenha, a WHZ oferece:\n• A3 em nuvem (celular) — 4 meses: R$ 85,00\n• A3 em nuvem (celular) — 12 meses: R$ 145,00\n• A1 em arquivo (computador) — 12 meses: R$ 145,00\n\nPIX — CNPJ: 43.476.346/0001-73 (WHZ Corp.)\n\nApós o pagamento, nos envie o comprovante!"}, {"nome": "Atualização documental", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Boa tarde, [Nome]! Tudo bem?\n\nInformamos que todos os documentos exigidos para a confecção do contrato já estão atualizados.\n\nEm breve a minuta será enviada para sua conferência e aprovação.\n\nSobre a guia do ITBI: ainda não é necessário providenciar. Te avisamos quando for o momento certo!"}, {"nome": "Envio de minuta", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Boa tarde, [Nome]!\n\nA minuta do contrato foi enviada para o seu e-mail. Temos um prazo de 24 horas para aprovação.\n\nPedimos que leia com atenção — nós também faremos a análise das informações principais.\n\nQualquer dúvida, pode nos chamar. Aguardamos sua aprovação!"}, {"nome": "Contrato p/ assinatura", "tipo": "intervalo", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Boa tarde, [Nome]!\n\nOs links para assinatura do contrato foram gerados:\n\n[Nome do signatário] 🔗 [link]\n\n⚠️ As assinaturas precisam ser realizadas em até 48 horas.\n\nQualquer dificuldade na assinatura, é só nos chamar!"}, {"nome": "Emissão da guia ITBI", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Bom dia, [Nome]! Tudo bem?\n\nA coleta das assinaturas foi concluída. ✅\n\nAgora é necessário emitir e pagar a guia do ITBI. Tanto a guia quanto o comprovante precisarão ser apresentados no Registro de Imóveis.\n\nSe preferir, podemos solicitar junto à prefeitura por protocolo digital — é só nos avisar! *(válido para imóveis em Pato Branco/PR)*"}, {"nome": "Pgto guia ITBI", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Cliente", "comentarios": [], "custom": false, "msg": ""}, {"nome": "Registro em cartório (RI)", "tipo": "intervalo", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Cartório", "comentarios": [], "custom": false, "msg": "Bom dia, [Nome]!\n\nO processo foi encaminhado ao Registro de Imóveis. ✅\n\nNúmero do protocolo: [xxxxxx]\n\nAssim que tivermos retorno, te avisamos!"}, {"nome": "Emolumentos", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Bom dia, [Nome]! Tudo bem?\n\nO Registro de Imóveis liberou a taxa de Emolumentos para concluir a averbação na matrícula.\n\nO pagamento pode ser feito via PIX (QR Code).\n\nAssim que realizar o pagamento, pedimos que nos envie o comprovante para anexarmos ao processo."}, {"nome": "Pgto crédito", "tipo": "unico", "dataVal": "", "dataInicio": "", "dataFim": "", "responsavel": "Redecon", "comentarios": [], "custom": false, "msg": "Boa tarde, [Nome]! Tudo certo?\n\nO pagamento de R$ [valor], referente à aquisição do imóvel, está programado para amanhã, com previsão de crédito na conta do vendedor entre 12h e 15h.\n\nPor favor, nos avise assim que confirmar o recebimento. 📩"}];
+  const idsMigrar = []; // migra todos imóvel não concluídos, exceto um processo antigo identificado só por código (sem nome no código público)
+  processos.forEach((p,idx)=>{
+    if(p.tipo!=='Imóvel') return;
+    if(_hashNome(p.nome)==='dt3jow') return;
+    // Verificar se já tem as novas etapas
+    const temNovas = p.etapas.some(e=>e.nome==='Triagem'||e.nome==='Emissão da guia ITBI');
+    if(temNovas) return;
+    // Mesclar
+    const result = [];
+    for(const nova of novasEtapasImovel){
+      const antiga = p.etapas.find(e=>e.nome===nova.nome);
+      if(antiga){ result.push({...nova,...antiga,msg:nova.msg||''}); }
+      else{ result.push({...nova}); }
+    }
+    // Adicionar customizadas
+    const nomesNovos = new Set(novasEtapasImovel.map(e=>e.nome));
+    for(const et of p.etapas){
+      if(et.custom && !nomesNovos.has(et.nome)) result.push(et);
+    }
+    processos[idx].etapas = result;
+    idsMigrar.push(p.id);
+  });
+  if(idsMigrar.length>0) salvar();
+  // Garantir que todos os processos tenham ultimaAtualizacao
+  let precisaSalvarUltimaAtualizacao = false;
+  processos.forEach((p,idx)=>{
+    if(!p.ultimaAtualizacao){
+      processos[idx].ultimaAtualizacao = p.dataCriacao || today();
+      precisaSalvarUltimaAtualizacao = true;
+    }
+  });
+  if(precisaSalvarUltimaAtualizacao) salvar();
+  
+  renderLista()
+}
+function _hashNome(t){let x=2166136261;for(const ch of String(t||'')){x^=ch.codePointAt(0);x=Math.imul(x,16777619)>>>0}return x.toString(36)}
+function nomeExibicao(p){
+  if(p.subtipo==='Transferência com bem entregue'&&p.transferencia) return p.transferencia;
+  return p.nome;
+}
+function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
+function atualizarSubtipos(){
+  const t=document.getElementById('f-tipo').value;
+  document.getElementById('f-subtipo').innerHTML=SUBTIPOS[t].map(s=>`<option>${s}</option>`).join('');
+  verificarTransferencia();
+}
+function verificarTransferencia(){
+  const subtipo=document.getElementById('f-subtipo').value;
+  const semPgto=['Transferência com bem entregue','Substituição de garantia'];
+  document.getElementById('field-transferencia').style.display=semPgto.includes(subtipo)?'block':'none';
+}
+function abrirModalNovo(){atualizarSubtipos();document.getElementById('f-abertura').value=today();document.getElementById('modal-novo').classList.add('open')}
+function fecharModalNovo(){document.getElementById('modal-novo').classList.remove('open');['f-nome','f-grupo','f-obs'].forEach(id=>{document.getElementById(id).value=''})}
+
+async function processarNovoDaQuery(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('novo') !== '1') return;
+  const nome = (params.get('nome')||'').trim();
+  if(!nome){ history.replaceState({},'',location.pathname); return; }
+  const tipo = params.get('tipo')==='Veículo' ? 'Veículo' : 'Imóvel';
+  let subtipo = params.get('subtipo') || (tipo==='Imóvel' ? 'Aquisição' : 'Compra');
+  if(!SUBTIPOS[tipo].includes(subtipo)) subtipo = SUBTIPOS[tipo][0];
+  const grupo = params.get('grupo') || '';
+  const credito = params.get('credito') || '';
+
+  const emIframe = (window.parent !== window);
+  const forcar = params.get('forcar') === '1';
+  const avisarPai = (msg) => { if(emIframe){ try{ window.parent.postMessage(Object.assign({source:'redecon-processos'}, msg), '*'); }catch(e){} } };
+
+  const existente = processos.find(p => p.nome.trim().toLowerCase()===nome.toLowerCase() && !p.concluido && !p.cancelado);
+  if(existente && !forcar){
+    history.replaceState({},'',location.pathname);
+    if(emIframe){
+      // Dentro do checklist: não perguntamos aqui, devolvemos a decisão para a página que chamou.
+      avisarPai({tipo:'ja-existe', nome: existente.nome, id: existente.id});
+      return;
+    }
+    const continuar = confirm('Já existe um processo em andamento com o nome "'+nome+'". Deseja criar outro processo mesmo assim?\n\n(Cancelar abre o processo já existente.)');
+    if(!continuar){ abrirDetalhe(existente.id); return; }
+  }
+
+  const tmpl = obterTemplate(tipo, subtipo);
+  const hoje = today();
+  const etapas = tmpl.map(e => {
+    const isChecklist = e.nome==='Checklist de documentos';
+    const et = {
+      nome: e.nome, tipo: e.tipo,
+      dataVal: isChecklist ? hoje : '',
+      dataInicio: isChecklist ? hoje : '',
+      dataFim:'', responsavel:'Redecon', comentarios:[], custom:false,
+      msg: e.msgVariantes ? 'VARIANTES' : (e.msg||'')
+    };
+    if(e.msgVariantes) et.msgVariantes = JSON.parse(JSON.stringify(e.msgVariantes));
+    return et;
+  });
+  const proc = {
+    id: Date.now(), nome, tipo, subtipo, grupo,
+    obs: 'Processo criado a partir do checklist.',
+    transferencia:'', credito, dataCriacao: hoje, concluido:false, dataConclusao:'', etapas
+  };
+  proc.etapas[0].comentarios.push({data:hoje, resp:'Redecon', texto:'Checklist de documentos gerado e enviado ao cliente.'});
+  processos.push(proc);
+  salvar();
+  renderLista();
+  history.replaceState({},'',location.pathname);
+  if(window._fbSalvar){ try{ await window._fbSalvar(processos); }catch(e){} }  // espera a nuvem confirmar antes de avisar
+  avisarPai({tipo:'criado', nome: proc.nome, id: proc.id});
+  if(!emIframe) abrirDetalhe(proc.id);
+}
+
+function criarProcesso(){
+  const nome=document.getElementById('f-nome').value.trim();
+  if(!nome){alert('Informe o nome do consorciado.');return}
+  const tipo=document.getElementById('f-tipo').value;
+  const subtipo=document.getElementById('f-subtipo').value;
+  const grupo=document.getElementById('f-grupo').value.trim();
+  const obs=document.getElementById('f-obs').value.trim();
+  const abertura=document.getElementById('f-abertura').value.trim()||today();
+  const tmpl=obterTemplate(tipo, subtipo);
+  const etapas=tmpl.map(e=>{const et={nome:e.nome,tipo:e.tipo,dataVal:'',dataInicio:'',dataFim:'',responsavel:'Redecon',comentarios:[],custom:false,msg:e.msgVariantes?'VARIANTES':(e.msg||'')};if(e.msgVariantes)et.msgVariantes=JSON.parse(JSON.stringify(e.msgVariantes));return et;});
+  const transferencia=document.getElementById('f-transferencia').value.trim();
+  const etapasFiltradas=etapas;
+  const proc={id:Date.now(),nome,tipo,subtipo,grupo,obs,transferencia:transferencia||'',credito:'',dataCriacao:abertura,concluido:false,dataConclusao:'',etapas:etapasFiltradas};
+  if(obs)proc.etapas[0].comentarios.push({data:abertura,resp:'Redecon',texto:obs});
+  processos.push(proc);salvar();fecharModalNovo();_boardTipo=proc.tipo;_boardManual=true;_listaFiltroAtual='todos';renderLista()
+}
+
+function filtrar(tipo){_listaFiltroAtual=tipo;renderListaFiltro(tipo)}
+function irParaLista(tipo){
+  const anoEstat=window._estatAnoSel;
+  if(anoEstat) _anoFiltro=anoEstat;
+  showView('view-lista');
+  filtrar(tipo);
+}
+function renderLista(){renderListaFiltro(_listaFiltroAtual)}
+
+function isEmAnalise(p){ const et=p.etapas.find(e=>e.nome==='Envio p/ análise'||e.nome==='Processo em análise'); return et&&!!et.dataVal; }
+function ultimaInteracao(p){
+  // Usa apenas ultimaAtualizacao (gravado ao tocar no processo no app)
+  // Fallback para dataCriacao se nunca foi atualizado
+  if(p.ultimaAtualizacao) return parseDMY(p.ultimaAtualizacao)||new Date(0);
+  return parseDMY(p.dataCriacao)||new Date(0);
+}
+function sortByInteracao(lista){
+  return lista.slice().sort((a,b)=>ultimaInteracao(b)-ultimaInteracao(a));
+}
+function renderAnoSelector(){
+  const anos=[...new Set(processos.map(p=>{
+    const d=p.dataCriacao;
+    return d&&d.includes('/')?d.split('/')[2]:null;
+  }).filter(Boolean))].sort().reverse();
+  if(anos.length<=1){document.getElementById('ano-selector').innerHTML='';return;}
+  const opts=['todos',...anos].map(a=>{
+    const active=_anoFiltro===a;
+    return '<button onclick="setAnoFiltro(this,'+JSON.stringify(a)+')" style="padding:6px 16px;font-size:13.5px;font-weight:'+(active?'600':'500')+';border-radius:20px;border:1px solid '+(active?'var(--blue-border)':'var(--border)')+';background:'+(active?'var(--blue-light)':'var(--surface)')+';color:'+(active?'var(--blue)':'var(--text2)')+';cursor:pointer;transition:all .15s">'+(a==='todos'?'Todos':a)+'</button>';
+  }).join('');
+  document.getElementById('ano-selector').innerHTML=opts;
+}
+function setAnoFiltro(btn,ano){
+  _anoFiltro=ano;
+  filtrar(_listaFiltroAtual);
+}
+function filterByAno(lista){
+  if(_anoFiltro==='todos') return lista;
+  return lista.filter(p=>{
+    const d=p.dataCriacao;
+    return d&&d.includes('/')&&d.split('/')[2]===_anoFiltro;
+  });
+}
+/* ===================== QUADRO KANBAN ===================== */
+let _boardTipo='Imóvel',_boardManual=false;
+const KB_FASES={
+  'Imóvel':[
+    {id:'docs',nome:'Aguardando docs',sub:'Checklist com o cliente'},
+    {id:'analise',nome:'Em análise',sub:'Do envio ao comitê'},
+    {id:'contrato',nome:'Aprovado → contrato',sub:'Documentos, contrato e assinaturas'},
+    {id:'itbiri',nome:'ITBI e registro',sub:'Guia, cartório e emolumentos'},
+    {id:'pgto',nome:'Pagamento',sub:'Programação do crédito'}
+  ],
+  'Veículo':[
+    {id:'docs',nome:'Aguardando docs',sub:'Checklist com o cliente'},
+    {id:'analise',nome:'Análise e vistoria',sub:'Crédito, vistoria e comitê'},
+    {id:'contrato',nome:'Aprovado → assinatura',sub:'Contrato e documentos'},
+    {id:'gravame',nome:'Gravame',sub:'Envio e inclusão do gravame'},
+    {id:'pgto',nome:'Pagamento',sub:'Programação do crédito'}
+  ]
+};
+// Quem está com a "bola" na etapa atual
+const KB_BOLA={
+  hs:{rot:'Com a HS',chip:'com a HS',cor:'var(--chart-blue)'},
+  cliente:{rot:'Com o cliente',chip:'com o cliente',cor:'var(--chart-coral)'},
+  cartorio:{rot:'No cartório',chip:'no cartório',cor:'var(--chart-purple)'},
+  redecon:{rot:'Ação Redecon',chip:'ação Redecon',cor:'var(--chart-teal)'},
+  outro:{rot:'Outro',chip:'outros',cor:'var(--text3)'}
+};
+// Dias parado na mesma etapa: a partir de "atencao" fica amarelo, a partir de "atraso" fica vermelho.
+// Ajuste aqui se esses limites não refletirem a realidade de vocês.
+const KB_LIMITES={
+  'Imóvel':{atencao:7,atraso:14,cartorio:[20,30]},
+  'Veículo':{atencao:4,atraso:7}
+};
+
+function kbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function kbNorm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim()}
+function _ehQuadro(tipo){return tipo==='todos'||tipo==='andamento'||String(tipo).indexOf('quadro-')===0}
+
+// Fase (coluna) a partir do NOME da etapa. Cobre os nomes antigos e os do modelo novo.
+// Retorna null quando não reconhece (etapa personalizada) — aí usa a etapa vizinha.
+function kbFaseDoNome(tipo,nome){
+  const n=kbNorm(nome);
+  if(/checklist/.test(n)||/^(envio p\/ analise|processo em analise)$/.test(n)) return 'docs';
+  if(tipo==='Imóvel'){
+    if(/pagamento|^pgto credito/.test(n)) return 'pgto';
+    if(/itbi|registro|emolumento|cartorio/.test(n)) return 'itbiri';
+    if(/analise|triagem|matricula|vistoria|comite|parecer|taxa/.test(n)) return 'analise';
+    if(/aprova|certificado|confer|atualiza|contrato|minuta|assinatura|quita/.test(n)) return 'contrato';
+    return null;
+  }
+  if(/pgto credito|pagamento|transferencia do consorcio/.test(n)) return 'pgto';
+  if(/gravame/.test(n)) return 'gravame';
+  if(/comite|analise|triagem|vistoria|parecer/.test(n)) return 'analise';
+  if(/aprova|assinatura|docs|contrato/.test(n)) return 'contrato';
+  return null;
+}
+function kbFaseDoProcesso(p,idx){
+  if(idx===null) return 'pgto';
+  const ets=p.etapas||[];
+  let f=kbFaseDoNome(p.tipo,ets[idx].nome);
+  if(f) return f;
+  for(let i=idx-1;i>=0;i--){ if(ets[i].tipo==='reembolso')continue; f=kbFaseDoNome(p.tipo,ets[i].nome); if(f) return f; }
+  for(let i=idx+1;i<ets.length;i++){ if(ets[i].tipo==='reembolso')continue; f=kbFaseDoNome(p.tipo,ets[i].nome); if(f) return f; }
+  return 'analise';
+}
+// Quem tem a bola. "iniciada" = etapa de intervalo já começou (tem data de início, falta o fim).
+function kbBola(et,iniciada){
+  if(et.custom){
+    const r={'Cliente':'cliente','Cartório':'cartorio','Administradora':'hs','Redecon':'redecon'}[et.responsavel];
+    return r||'outro';
+  }
+  const n=kbNorm(et.nome);
+  if(/^(processo em analise)$/.test(n)||/^envio /.test(n)) return 'redecon';
+  if(/vistoria (digital )?realizada/.test(n)) return 'cliente';
+  if(/taxa vistoria|itbi|emolumento/.test(n)) return 'cliente';
+  if(/checklist|assinatura|^certificados digitais$/.test(n)) return iniciada?'cliente':'redecon';
+  if(/registro|cartorio/.test(n)) return iniciada?'cartorio':'redecon';
+  return 'hs';
+}
+function kbNivel(tipo,bola,dias){
+  const L=KB_LIMITES[tipo]||KB_LIMITES['Imóvel'];
+  const lim=(bola==='cartorio'&&L.cartorio)?L.cartorio:[L.atencao,L.atraso];
+  return dias>=lim[1]?'late':(dias>=lim[0]?'warn':'ok');
+}
+// Fotografia do processo: etapa atual, coluna, quem tem a bola, há quantos dias está nela
+function kbInfo(p){
+  const ets=p.etapas||[];
+  const feita=e=>statusEtapa(e).cls==='done';
+  const temData=e=>!!(e.dataVal||e.dataInicio||e.dataFim);
+  let ult=-1;
+  ets.forEach((e,i)=>{ if(e.tipo==='reembolso')return; if(feita(e)||temData(e)) ult=i; });
+  let idx=null,iniciada=false;
+  if(ult<0){ const k=ets.findIndex(e=>e.tipo!=='reembolso'); idx=k<0?null:k; }
+  else if(!feita(ets[ult])){ idx=ult; iniciada=true; }
+  else { for(let i=ult+1;i<ets.length;i++){ if(ets[i].tipo!=='reembolso'){idx=i;break;} } }
+  const et=idx!==null?ets[idx]:null;
+  const bola=et?kbBola(et,iniciada):'redecon';
+  // Data de referência: início da etapa em andamento, ou a data mais recente já registrada
+  let ref=null;
+  if(iniciada&&et&&et.dataInicio){ ref=et.dataInicio; }
+  else{
+    let best=null;
+    ets.forEach(e=>[e.dataVal,e.dataInicio,e.dataFim].forEach(s=>{ const d=parseDMY(s); if(d&&(!best||d>best.d)) best={d:d,s:s}; }));
+    ref=best?best.s:p.dataCriacao;
+  }
+  const dias=diasCorridos(ref,today())||0;
+  const validas=ets.filter(e=>e.tipo!=='reembolso');
+  const pct=validas.length?Math.round(validas.filter(feita).length/validas.length*100):0;
+  const etEnvio=ets.find(e=>e.nome==='Envio p/ análise'||e.nome==='Processo em análise');
+  const diasTotal=etEnvio&&etEnvio.dataVal?diasCorridos(etEnvio.dataVal,today()):null;
+  return {p:p,fase:kbFaseDoProcesso(p,idx),etNome:et?et.nome:'Pronto para concluir',bola:bola,dias:dias,nivel:kbNivel(p.tipo,bola,dias),pct:pct,diasTotal:diasTotal};
+}
+function kbCardHtml(i){
+  const p=i.p,b=KB_BOLA[i.bola];
+  const meta=[p.subtipo,p.grupo].filter(Boolean).join(' · ');
+  const diasTxt=i.dias===0?'hoje':i.dias+'d';
+  const diasTip=i.dias===0?'entrou na etapa hoje':i.dias+' dias na etapa atual';
+  const tip=[nomeExibicao(p),meta,i.etNome,b.rot,diasTip,i.diasTotal!==null?i.diasTotal+' dias desde o envio p/ análise':'',i.pct+'% concluído'].filter(Boolean).join(' — ');
+  return '<div class="kb-card '+i.nivel+'" onclick="abrirDetalhe(\''+p.id+'\')" title="'+kbEsc(tip)+'">'
+    +'<div class="kb-nome">'+kbEsc(nomeExibicao(p))+'</div>'
+    +'<div class="kb-meta">'+kbEsc(meta)+'</div>'
+    +'<div class="kb-etapa">'+kbEsc(i.etNome)+'</div>'
+    +'<div class="kb-foot"><span class="kb-bola"><span class="kb-dot" style="background:'+b.cor+'"></span>'+b.rot+'</span><span class="kb-dias '+i.nivel+'">'+diasTxt+'</span></div>'
+    +'<div class="kb-bar"><i style="width:'+i.pct+'%"></i></div>'
+    +'</div>';
+}
+function renderBoard(){
+  const abertos=processos.filter(p=>!p.concluido&&!p.cancelado);
+  if(!_boardManual){
+    const nIm=abertos.filter(p=>p.tipo==='Imóvel').length,nVe=abertos.filter(p=>p.tipo==='Veículo').length;
+    _boardTipo=(nIm===0&&nVe>0)?'Veículo':'Imóvel';
+  }
+  const fases=KB_FASES[_boardTipo]||KB_FASES['Imóvel'];
+  const infos=abertos.filter(p=>p.tipo===_boardTipo).map(kbInfo);
+  const nAtraso=infos.filter(i=>i.nivel==='late').length,nAtencao=infos.filter(i=>i.nivel==='warn').length;
+  let chips='<span class="kb-chip"><b>'+infos.length+'</b> em andamento</span>';
+  Object.keys(KB_BOLA).forEach(k=>{
+    const c=infos.filter(i=>i.bola===k).length;
+    if(c) chips+='<span class="kb-chip"><span class="kb-dot" style="background:'+KB_BOLA[k].cor+'"></span><b>'+c+'</b> '+KB_BOLA[k].chip+'</span>';
+  });
+  if(nAtraso) chips+='<span class="kb-chip late">⚠ <b>'+nAtraso+'</b> em atraso</span>';
+  if(nAtencao) chips+='<span class="kb-chip warn"><b>'+nAtencao+'</b> em atenção</span>';
+  const L=KB_LIMITES[_boardTipo]||KB_LIMITES['Imóvel'];
+  chips+='<span class="kb-hint">Dias na etapa atual · atenção ≥ '+L.atencao+'d · atraso ≥ '+L.atraso+'d</span>';
+  const cols=fases.map(f=>{
+    const cards=infos.filter(i=>i.fase===f.id).sort((a,b)=>b.dias-a.dias);
+    return '<div class="kb-col"><div class="kb-col-head"><span class="kb-col-title">'+f.nome+'</span><span class="kb-col-count">'+cards.length+'</span></div>'
+      +'<div class="kb-col-sub">'+f.sub+'</div>'
+      +(cards.length?cards.map(kbCardHtml).join(''):'<div class="kb-empty">—</div>')+'</div>';
+  }).join('');
+  document.getElementById('lista').innerHTML='<div class="kb-summary">'+chips+'</div><div class="kb-board">'+cols+'</div>';
+}
+
+/* ===== Concluídos e Cancelados no mesmo padrão do quadro ===== */
+const KB_MESES_LONGO=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+let _concTipo='todos';
+function kbFmtData(d){return d?String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear():'—'}
+function kbDataConclusao(p){const pg=achaEtapa(p,'pgto');return parseDMY(p.dataConclusao)||parseDMY(pg&&pg.dataVal)||null}
+function kbPrazoTotal(p){
+  const m=p.tipo==='Imóvel'?estMarcosImovel(p):estMarcosVeiculo(p);
+  return p.tipo==='Imóvel'?diasCorridos(m.env,m.pg):diasCorridos(m.an,m.pg);
+}
+// "Com a HS": imóvel = envio à análise → contrato; veículo = soma dos 4 trechos (só nos processos novos)
+function kbPrazoHS(p){
+  if(p.tipo==='Imóvel'){const m=estMarcosImovel(p);return diasCorridos(m.env,m.contIni)}
+  return estHSVeiculo(p);
+}
+function kbCorTipo(p){return p.tipo==='Imóvel'?EST_COR.imovel:EST_COR.veiculo}
+function kbMetaProc(p){return [p.subtipo,p.grupo].filter(Boolean).join(' · ')}
+
+// Um painel cinza por mês (mais recente primeiro), com os cartões dentro
+function kbPaineisPorMes(itens,dataFn,cardFn,subFn){
+  const g={},sem=[];
+  itens.forEach(function(p){
+    const d=dataFn(p);
+    if(!d){sem.push({p:p,d:null});return}
+    const k=d.getFullYear()*12+d.getMonth();
+    (g[k]=g[k]||[]).push({p:p,d:d});
+  });
+  const painel=function(titulo,arr){
+    return '<div class="kb-mes"><div class="kb-col-head"><span class="kb-col-title">'+titulo+'</span><span class="kb-col-count">'+arr.length+'</span></div>'
+      +'<div class="kb-col-sub">'+subFn(arr.map(function(x){return x.p}))+'</div>'
+      +'<div class="kb-grid">'+arr.map(function(x){return cardFn(x.p,x.d)}).join('')+'</div></div>';
+  };
+  let h='';
+  Object.keys(g).map(Number).sort(function(a,b){return b-a}).forEach(function(k){
+    const arr=g[k].sort(function(a,b){return b.d-a.d});
+    h+=painel(KB_MESES_LONGO[k%12]+' '+Math.floor(k/12),arr);
+  });
+  if(sem.length) h+=painel('Sem data',sem);
+  return h;
+}
+
+function kbCardConcluido(p,d){
+  const tot=kbPrazoTotal(p),hs=kbPrazoHS(p),temC=estTemCredito(p);
+  const hsLate=p.tipo==='Imóvel'&&hs!==null&&hs>EST_META.imovelHS;
+  const tip=[nomeExibicao(p),kbMetaProc(p),d?'Concluído em '+kbFmtData(d):'',tot!==null?tot+' dias do envio à análise ao pagamento':'',hs!==null?hs+' dias com a HS':'',temC?estFmtR(estCreditoProcesso(p)):''].filter(Boolean).join(' — ');
+  return '<div class="kb-card done" onclick="abrirDetalhe(\''+p.id+'\')" title="'+kbEsc(tip)+'">'
+    +'<div class="kb-nome">'+kbEsc(nomeExibicao(p))+'</div>'
+    +'<div class="kb-meta">'+kbEsc(kbMetaProc(p))+'</div>'
+    +(temC?'<div class="kb-cred">'+estFmtR(estCreditoProcesso(p))+'</div>':'<div class="kb-sem">Crédito não informado</div>')
+    +'<div class="kb-foot"><span class="kb-bola"><span class="kb-dot" style="background:'+kbCorTipo(p)+'"></span>'+p.tipo+'</span><span class="kb-dias">'+(d?'Concluído '+kbFmtData(d).slice(0,5):'')+'</span></div>'
+    +((tot!==null||hs!==null)?'<div class="kb-prazos">'+(tot!==null?'<span>Total <b>'+tot+'d</b></span>':'')+(hs!==null?'<span'+(hsLate?' class="late"':'')+'>Com a HS <b>'+hs+'d</b></span>':'')+'</div>':'')
+    +'</div>';
+}
+function renderConcluidos(){
+  const todos=filterByAno(processos).filter(p=>p.concluido&&!p.cancelado);
+  const nIm=todos.filter(p=>p.tipo==='Imóvel').length,nVe=todos.filter(p=>p.tipo==='Veículo').length;
+  if((_concTipo==='Imóvel'&&!nIm)||(_concTipo==='Veículo'&&!nVe)) _concTipo='todos';
+  const lista=todos.filter(p=>_concTipo==='todos'||p.tipo===_concTipo);
+  const el=document.getElementById('lista');
+  if(!todos.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox"></i>Nenhum processo concluído'+(_anoFiltro==='todos'?'':' entre os abertos em '+_anoFiltro)+'.</div>';return}
+  const chipTipo=(chave,rot,n,cor)=>'<button class="kb-chip kb-chip-btn'+(_concTipo===chave?' active':'')+'" onclick="_concTipo=\''+chave+'\';renderListaFiltro(\'concluido\')">'+(cor?'<span class="kb-dot" style="background:'+cor+'"></span>':'')+'<b>'+n+'</b> '+rot+'</button>';
+  const cred=ps=>ps.filter(estTemCredito).map(estCreditoProcesso).reduce((a,b)=>a+b,0);
+  const medT=mediaValores(lista.map(kbPrazoTotal));
+  let chips=chipTipo('todos','concluídos',todos.length)+(nIm?chipTipo('Imóvel','imóvel',nIm,EST_COR.imovel):'')+(nVe?chipTipo('Veículo','veículo',nVe,EST_COR.veiculo):'');
+  chips+='<span class="kb-chip">Crédito liberado <b>'+estFmtMi(cred(lista))+'</b></span>';
+  if(medT!==null) chips+='<span class="kb-chip">Prazo médio <b>'+medT+'d</b></span>';
+  chips+='<span class="kb-hint">Por mês de conclusão · prazo = envio à análise → pagamento</span>';
+  const sub=ps=>{
+    const t=cred(ps),m=mediaValores(ps.map(kbPrazoTotal));
+    return [ps.some(estTemCredito)?estFmtMi(t)+' liberados':'sem crédito informado',m!==null?'prazo médio '+m+'d':''].filter(Boolean).join(' · ');
+  };
+  el.innerHTML='<div class="kb-summary">'+chips+'</div>'+kbPaineisPorMes(lista,kbDataConclusao,kbCardConcluido,sub);
+}
+
+function kbFaseNome(p,fase){const f=(KB_FASES[p.tipo]||KB_FASES['Imóvel']).find(x=>x.id===fase);return f?f.nome:''}
+function kbCardCancelado(p,d){
+  const i=kbInfo(p),dias=diasCorridos(p.dataCriacao,p.dataCancelamento);
+  const tip=[nomeExibicao(p),kbMetaProc(p),'Cancelado em '+kbFmtData(d),dias!==null?dias+' dias entre a abertura e o cancelamento':'','Parou em: '+i.etNome,p.motivoCancelamento||''].filter(Boolean).join(' — ');
+  return '<div class="kb-card cancel" onclick="abrirDetalhe(\''+p.id+'\')" title="'+kbEsc(tip)+'">'
+    +'<div class="kb-nome">'+kbEsc(nomeExibicao(p))+'</div>'
+    +'<div class="kb-meta">'+kbEsc(kbMetaProc(p))+'</div>'
+    +'<div class="kb-etapa">Parou em: <b>'+kbEsc(i.etNome)+'</b></div>'
+    +'<div class="kb-motivo">'+(p.motivoCancelamento?kbEsc(p.motivoCancelamento):'Sem motivo informado')+'</div>'
+    +'<div class="kb-foot"><span class="kb-bola"><span class="kb-dot" style="background:'+kbCorTipo(p)+'"></span>'+p.tipo+'</span><span class="kb-dias">'+(d?'Cancelado '+kbFmtData(d).slice(0,5):'')+'</span></div>'
+    +(dias!==null?'<div class="kb-prazos"><span>Durou <b>'+dias+'d</b></span></div>':'')
+    +'</div>';
+}
+function renderCancelados(){
+  const lista=filterByAno(processos).filter(p=>p.cancelado);
+  const el=document.getElementById('lista');
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox"></i>Nenhum processo cancelado'+(_anoFiltro==='todos'?'':' entre os abertos em '+_anoFiltro)+'.</div>';return}
+  const nIm=lista.filter(p=>p.tipo==='Imóvel').length,nVe=lista.filter(p=>p.tipo==='Veículo').length;
+  const dur=ps=>mediaValores(ps.map(p=>diasCorridos(p.dataCriacao,p.dataCancelamento)));
+  let chips='<span class="kb-chip"><b>'+lista.length+'</b> cancelados</span>';
+  if(nIm) chips+='<span class="kb-chip"><span class="kb-dot" style="background:'+EST_COR.imovel+'"></span><b>'+nIm+'</b> imóvel</span>';
+  if(nVe) chips+='<span class="kb-chip"><span class="kb-dot" style="background:'+EST_COR.veiculo+'"></span><b>'+nVe+'</b> veículo</span>';
+  const md=dur(lista);
+  if(md!==null) chips+='<span class="kb-chip">Duraram em média <b>'+md+'d</b></span>';
+  // Onde o processo estava quando foi cancelado
+  const onde={};
+  lista.forEach(p=>{const n=kbFaseNome(p,kbInfo(p).fase);if(n) onde[n]=(onde[n]||0)+1;});
+  Object.keys(onde).sort((a,b)=>onde[b]-onde[a]).forEach(n=>{
+    chips+='<span class="kb-chip"><b>'+onde[n]+'</b> '+(onde[n]===1?'parou':'pararam')+' em '+kbEsc(n)+'</span>';
+  });
+  chips+='<span class="kb-hint">Por mês de cancelamento</span>';
+  const sub=ps=>{const m=dur(ps);return m!==null?'duraram em média '+m+'d':''};
+  el.innerHTML='<div class="kb-summary">'+chips+'</div>'+kbPaineisPorMes(lista,p=>parseDMY(p.dataCancelamento),kbCardCancelado,sub);
+}
+
+function renderStats(tipo){
+  const andamento=processos.filter(p=>!p.concluido&&!p.cancelado);
+  const nIm=andamento.filter(p=>p.tipo==='Imóvel').length,nVe=andamento.filter(p=>p.tipo==='Veículo').length;
+  const nConc=processos.filter(p=>p.concluido&&!p.cancelado).length;
+  const nCanc=processos.filter(p=>p.cancelado).length;
+  const noQuadro=_ehQuadro(tipo);
+  if(noQuadro&&!_boardManual) _boardTipo=(nIm===0&&nVe>0)?'Veículo':'Imóvel';
+  const ativo=noQuadro?'quadro-'+_boardTipo:tipo;
+  const aba=(chave,rotulo,n)=>'<button class="tab'+(ativo===chave?' active':'')+'" onclick="filtrar(\''+chave+'\')">'+rotulo+' <span style="font-weight:500;color:var(--text3)">'+n+'</span></button>';
+  document.getElementById('stats').innerHTML='<div class="tabs">'
+    +aba('quadro-Imóvel','🏠 Imóvel',nIm)+aba('quadro-Veículo','🚗 Veículo',nVe)
+    +aba('concluido','✅ Concluídos',nConc)+(nCanc?aba('cancelado','🚫 Cancelados',nCanc):'')+'</div>';
+  const anoEl=document.getElementById('ano-selector');
+  if(noQuadro){ anoEl.innerHTML=''; anoEl.parentElement.style.display='none'; }
+  else{ anoEl.parentElement.style.display='flex'; renderAnoSelector(); }
+}
+
+function progresso(p){const t=p.etapas.length,d=p.etapas.filter(et=>et.tipo==='unico'?!!et.dataVal:(!!et.dataInicio&&!!et.dataFim)).length;return Math.round(d/t*100)}
+
+function renderListaFiltro(tipo){
+  // Sincronizar pSel com processos se houver alterações pendentes
+  if(pSel){
+    const idx=processos.findIndex(p=>p.id===pSel.id);
+    if(idx>=0) processos[idx]=pSel;
+  }
+  if(_ehQuadro(tipo)){
+    if(String(tipo).indexOf('quadro-')===0){ _boardTipo=String(tipo).slice(7); _boardManual=true; }
+    renderStats(tipo);
+    renderBoard();
+    return;
+  }
+  renderStats(tipo);
+  if(tipo==='concluido'){ renderConcluidos(); return; }
+  if(tipo==='cancelado'){ renderCancelados(); return; }
+  let lista=filterByAno(processos);
+  if(tipo==='Imóvel')lista=filterByAno(processos).filter(p=>p.tipo==='Imóvel');
+  else if(tipo==='Veículo')lista=filterByAno(processos).filter(p=>p.tipo==='Veículo');
+  else if(tipo==='andamento'){
+    // Separar em análise vs aguardando documentos
+    const andamento=filterByAno(processos).filter(p=>!p.concluido&&!p.cancelado);
+    const emAnalise=andamento.filter(p=>{
+      const et=p.etapas.find(e=>e.nome==='Envio p/ análise'||e.nome==='Processo em análise');
+      return et&&!!et.dataVal;
+    });
+    const aguardando=andamento.filter(p=>{
+      const et=p.etapas.find(e=>e.nome==='Envio p/ análise'||e.nome==='Processo em análise');
+      return !et||!et.dataVal;
+    });
+    // Renderizar com separadores
+    renderStats();
+    const el=document.getElementById('lista');
+    let html='';
+    if(emAnalise.length){
+      html+=`<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:0 0 10px 2px">Em análise (${emAnalise.length})</div>`;
+      html+=`<div class="proc-list-card">`+emAnalise.sort((a,b)=>ultimaInteracao(b)-ultimaInteracao(a)).map(p=>renderCard(p)).join('')+`</div>`;
+    }
+    if(aguardando.length){
+      html+=`<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:${emAnalise.length?'1.25rem':0} 0 10px 2px">Aguardando documentos (${aguardando.length})</div>`;
+      html+=`<div class="proc-list-card">`+aguardando.sort((a,b)=>ultimaInteracao(b)-ultimaInteracao(a)).map(p=>renderCard(p)).join('')+`</div>`;
+    }
+    if(!html) html='<div class="empty"><i class="ti ti-inbox"></i>Nenhum processo em andamento.</div>';
+    el.innerHTML=html;
+    return;
+  }
+  else if(tipo==='concluido')lista=filterByAno(processos).filter(p=>p.concluido&&!p.cancelado);
+  else if(tipo==='cancelado')lista=processos.filter(p=>p.cancelado);
+  // Ordenar: em andamento primeiro, depois concluídos — cada grupo por última interação
+  lista = lista.slice().sort((a,b)=>{
+    if(a.concluido !== b.concluido) return a.concluido ? 1 : -1;
+    return ultimaInteracao(b)-ultimaInteracao(a);
+  });
+  const el=document.getElementById('lista');
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox"></i>Nenhum processo encontrado.<br>Clique em "Novo processo" para começar.</div>';return}
+
+  if(tipo==='cancelado'){
+    el.innerHTML='<div class="group-label">Cancelados ('+lista.length+')</div><div class="proc-list-card">'+lista.map(p=>renderCard(p)).join('')+'</div>';
+    return;
+  }
+
+  if(tipo==='total'){
+    const todosF=filterByAno(processos);
+    const and=sortByInteracao(todosF.filter(p=>!p.concluido&&!p.cancelado));
+    const conc=sortByInteracao(todosF.filter(p=>p.concluido&&!p.cancelado));
+    const canc=sortByInteracao(todosF.filter(p=>p.cancelado));
+    let htmlT='';
+    if(and.length) htmlT+='<div class="group-label">Em andamento ('+and.length+')</div><div class="proc-list-card">'+and.map(p=>renderCard(p)).join('')+'</div>';
+    if(conc.length) htmlT+='<div class="group-label" style="margin-top:'+(and.length?'1.25rem':'0')+'">Concluídos ('+conc.length+')</div><div class="proc-list-card">'+conc.map(p=>renderCard(p)).join('')+'</div>';
+    if(canc.length) htmlT+='<div class="group-label" style="margin-top:'+(and.length||conc.length?'1.25rem':'0')+'">Cancelados ('+canc.length+')</div><div class="proc-list-card">'+canc.map(p=>renderCard(p)).join('')+'</div>';
+    if(!htmlT) htmlT='<div class="empty"><i class="ti ti-inbox"></i>Nenhum processo encontrado.</div>';
+    el.innerHTML=htmlT;
+    return;
+  }
+
+  function renderColuna(procs, titulo, icone, includeConcluidos){
+    const emA=sortByInteracao(procs.filter(p=>!p.concluido&&!p.cancelado&&isEmAnalise(p)));
+    const aguA=sortByInteracao(procs.filter(p=>!p.concluido&&!p.cancelado&&!isEmAnalise(p)));
+    const concA=includeConcluidos?sortByInteracao(procs.filter(p=>p.concluido&&!p.cancelado)):[];
+    const total=emA.length+aguA.length+(includeConcluidos?concA.length:0);
+    let html='<div class="col-header">'+icone+' '+titulo+' ('+total+')</div>';
+    if(emA.length) html+='<div class="group-label">Em análise ('+emA.length+')</div><div class="proc-list-card">'+emA.map(p=>renderCard(p)).join('')+'</div>';
+    if(aguA.length) html+='<div class="group-label">Aguardando docs ('+aguA.length+')</div><div class="proc-list-card">'+aguA.map(p=>renderCard(p)).join('')+'</div>';
+    if(concA.length) html+='<div class="group-label">Concluídos ('+concA.length+')</div><div class="proc-list-card">'+concA.map(p=>renderCard(p)).join('')+'</div>';
+    if(!emA.length&&!aguA.length&&!concA.length) html+='<div class="empty" style="padding:1.5rem"><i class="ti ti-inbox"></i>Nenhum processo em andamento.</div>';
+    return html;
+  }
+
+  if(tipo==='todos'){
+    const imoveis=lista.filter(p=>p.tipo==='Imóvel');
+    const veiculos=lista.filter(p=>p.tipo==='Veículo');
+    let out='<div>'+renderColuna(imoveis,'Imóvel','🏠',false)+'</div>';
+    out+='<div style="margin-top:2rem">'+renderColuna(veiculos,'Veículo','🚗',false)+'</div>';
+    el.innerHTML=out;
+    return;
+  }
+
+  // Para abas específicas (Imóvel, Veículo, Em andamento, Concluídos)
+  if(tipo!=='concluido'){
+    const emAnaliseL=sortByInteracao(lista.filter(p=>!p.concluido&&!p.cancelado&&isEmAnalise(p)));
+    const aguardandoL=sortByInteracao(lista.filter(p=>!p.concluido&&!p.cancelado&&!isEmAnalise(p)));
+    const concluidosL=sortByInteracao(lista.filter(p=>p.concluido));
+    let html='';
+    if(emAnaliseL.length) html+='<div class="group-label">Em análise ('+emAnaliseL.length+')</div><div class="proc-list-card">'+emAnaliseL.map(p=>renderCard(p)).join('')+'</div>';
+    if(aguardandoL.length) html+='<div class="group-label" style="margin-top:'+(emAnaliseL.length?'1.25rem':'0')+'">Aguardando docs ('+aguardandoL.length+')</div><div class="proc-list-card">'+aguardandoL.map(p=>renderCard(p)).join('')+'</div>';
+    if(concluidosL.length) html+='<div class="group-label" style="margin-top:'+(emAnaliseL.length||aguardandoL.length?'1.25rem':'0')+'">Concluídos ('+concluidosL.length+')</div><div class="proc-list-card">'+concluidosL.map(p=>renderCard(p)).join('')+'</div>';
+    if(!html) html='<div class="empty"><i class="ti ti-inbox"></i>Nenhum processo encontrado.</div>';
+    el.innerHTML=html;
+    return;
+  }
+  // Concluídos: Imóvel e Veículo empilhados, largura total
+  const concIm=lista.filter(p=>p.tipo==='Imóvel');
+  const concVe=lista.filter(p=>p.tipo==='Veículo');
+  let outConc='<div>'+renderColuna(concIm,'Imóvel','🏠',true)+'</div>';
+  outConc+='<div style="margin-top:2rem">'+renderColuna(concVe,'Veículo','🚗',true)+'</div>';
+  el.innerHTML=outConc;
+}
+
+function renderCard(p){
+  return (()=>{
+    const pct=progresso(p);
+    // Etapa atual = última etapa que tem data mas não está concluída, ou a última com data
+  const etapaAtual=(()=>{
+    // Procura próxima etapa pendente (sem data preenchida)
+    for(const et of p.etapas){
+      const isConcluida=et.tipo==='unico'?!!et.dataVal:(et.tipo==='intervalo'?(!!et.dataInicio&&!!et.dataFim):(et.tipo==='reembolso'&&et.reembolsos&&et.reembolsos.some(r=>r.valor)));
+      if(!isConcluida) return et;
+    }
+    // Se todas estão concluídas, retorna null (vai aparecer como "Concluído")
+    return null;
+  })();
+    const icone=p.tipo==='Imóvel'?'🏠':'🚗';
+    const stateCls=p.cancelado?'state-cancel':(p.concluido?'state-done':'');
+    const tipoCls=p.tipo==='Imóvel'?'tipo-imovel':'tipo-veiculo';
+    const etEnvio=p.etapas.find(et=>et.nome==='Envio p/ análise'||et.nome==='Processo em análise');
+    const etPgtoCard=achaEtapa(p,'pgto');
+    const dEnvioCard=etEnvio?etEnvio.dataVal:'';
+    const dPgtoCard=etPgtoCard?etPgtoCard.dataVal:'';
+    const diasCard=dEnvioCard?(p.concluido?diasCorridos(dEnvioCard,dPgtoCard||p.dataConclusao||today()):diasCorridos(dEnvioCard,today())):null;
+    const dataConcCard=p.dataConclusao||dPgtoCard||'';
+    const diasStr=diasCard!==null?(p.concluido?`Concluído em ${dataConcCard?dataConcCard+' · ':''}${diasCard} dias`:`${diasCard}d em andamento`):(p.concluido&&dataConcCard?`Concluído em ${dataConcCard}`:'');
+    const etapaStr=p.cancelado?'Cancelado':(!p.concluido&&etapaAtual?etapaAtual.nome:(p.concluido?'Concluído':''));
+    const metaTop=[p.subtipo,p.grupo].filter(Boolean).join(' · ');
+    const anelCor=p.cancelado?'var(--red)':(p.concluido?'var(--green)':'var(--blue)');
+    const anel=`<div class="pc-ring" style="background:conic-gradient(${anelCor} ${pct*3.6}deg, var(--bg) 0deg)"><span>${pct}%</span></div>`;
+    const tituloHover=[nomeExibicao(p), metaTop, etapaStr, diasStr].filter(Boolean).join(' — ');
+    return`<div class="processo-card ${tipoCls} ${stateCls}" onclick="abrirDetalhe('${p.id}')" title="${tituloHover}"><div class="pc-row"><div class="pc-icon">${icone}</div><div class="pc-main"><div class="pc-nome">${nomeExibicao(p)}</div><div class="pc-meta">${metaTop}</div><div class="pc-meta" style="margin-top:5px;color:var(--text3)">${etapaStr}</div></div>${anel}</div></div>`
+  })();
+}
+
+function abrirDetalhe(id){pSel=processos.find(p=>String(p.id)===String(id));if(!pSel){console.warn('Processo não encontrado:',id);return;}showView('view-relatorio');renderRelatorio()}
+function renderDetalhe(){
+  const p=pSel;
+  const etapasHtml=p.etapas.map((et,i)=>{
+    const st=statusEtapa(et);
+    const isDone=st.cls==='done';
+    const aberta=_etapasAbertas.has(i)||!isDone;
+    const resumoData=et.tipo==='unico'?(et.dataVal||''):(et.tipo==='intervalo'?(et.dataInicio?et.dataInicio+(et.dataFim?' → '+et.dataFim:''):''):'');
+    const customTagMini=et.custom?`<span style="font-size:10px;color:var(--text3);font-weight:400">personalizada</span>`:'';
+    if(!aberta){
+      return `<div class="etapa-block etapa-collapsed ${st.cls}" onclick="toggleEtapa(${i})"><div class="etapa-collapsed-row"><div class="etapa-nome">${et.nome} ${customTagMini}<span class="status-pill ${st.pill}">${st.label}</span></div><div style="display:flex;align-items:center;gap:10px;flex-shrink:0"><span style="font-size:11.5px;color:var(--text3)">${resumoData}</span><i class="ti ti-chevron-down" style="font-size:15px;color:var(--text3)"></i></div></div></div>`;
+    }
+    const comsHtml=et.comentarios.map((c,ci)=>`<div class="comment"><div class="comment-meta">${c.data}${c.hora?' · '+c.hora:''} · ${c.resp}</div><div class="comment-text">${c.texto}</div>${!p.concluido?`<div class="comment-acoes"><button class="link-btn" onclick="editarComentario(${i},${ci})"><i class="ti ti-edit" style="font-size:11px"></i> editar</button><button class="link-btn link-btn-red" onclick="removerComentario(${i},${ci})"><i class="ti ti-x" style="font-size:11px"></i> remover</button></div>`:''}</div>`).join('');
+    const customTag=customTagMini;
+    const btnCima=i>0?'<button class="link-btn" onclick="moverEtapa('+i+',-1)" title="Mover para cima"><i class="ti ti-arrow-up" style="font-size:12px"></i></button>':'<span style="width:20px"></span>';
+    const btnBaixo=i<p.etapas.length-1?'<button class="link-btn" onclick="moverEtapa('+i+',1)" title="Mover para baixo"><i class="ti ti-arrow-down" style="font-size:12px"></i></button>':'<span style="width:20px"></span>';
+    const toggleBtn=isDone?`<button class="link-btn" onclick="toggleEtapa(${i})" title="Recolher"><i class="ti ti-chevron-up" style="font-size:13px"></i></button>`:'';
+    const removeBtn=!p.concluido?'<div style="display:flex;gap:6px;align-items:center">'+toggleBtn+btnCima+btnBaixo+'<button class="link-btn" onclick="editarNomeEtapa('+i+')" title="Editar nome"><i class="ti ti-pencil" style="font-size:12px"></i></button><button class="link-btn link-btn-red" onclick="removerEtapaQualquer('+i+')" title="Excluir etapa"><i class="ti ti-trash" style="font-size:12px"></i></button></div>':toggleBtn;
+    return`<div class="etapa-block ${st.cls}${et.custom?' custom':''}"><div class="etapa-top"><div class="etapa-nome">${et.nome} ${customTag}<span class="status-pill ${st.pill}">${st.label}</span></div>${removeBtn}</div>${renderCampos(et,i)}<div class="resp-row"><label>Responsável:</label><select ${p.concluido?'disabled':''} onchange="pSel.etapas[${i}].responsavel=this.value;salvar()">${['Redecon','Cliente','Administradora','Cartório','Banco/Financeira','Prefeitura','Outro'].map(r=>`<option ${et.responsavel===r?'selected':''}>${r}</option>`).join('')}</select></div>${et.comentarios.length?'<div class="comment-list">'+comsHtml+'</div>':''} ${!p.concluido?`<div class="etapa-acoes">
+        <button class="add-comment-btn" onclick="abrirComentario(${i})"><i class="ti ti-message-plus" style="font-size:13px"></i> adicionar comentário</button>
+        ${'<button class="msg-btn" onclick="abrirMsgEtapa('+i+')"><i class="ti ti-brand-whatsapp" style="font-size:12px"></i> '+(et.msg?'mensagem':'+ criar mensagem')+'</button>'}
+        ${!p.concluido?'<button class="add-comment-btn" onclick="salvarEtapaComoModelo('+i+')" title="Salvar esta etapa (nome + mensagem) como padrão para novos processos"><i class="ti ti-star" style="font-size:12px"></i> salvar como padrão</button>':''}
+        ${!p.concluido?'<button class="add-comment-btn" style="color:var(--red)" onclick="removerEtapaDoModelo('+i+')" title="Fazer com que novos processos não nasçam mais com esta etapa"><i class="ti ti-trash" style="font-size:12px"></i> remover dos modelos</button>':''}
+        ${et.alerta?'<button class="btn-alerta-rem" onclick="removerAlerta('+i+')" title="Remover alerta">✕ alerta</button>':'<button class="btn-alerta-neg" onclick="abrirModalAlerta('+i+')">⚠ alerta</button>'}
+      </div>`:''}
+      ${et.alerta?'<div class="'+(et.alerta.tipo==='neg'?'alerta-neg':'alerta-pos')+'"><span class="alerta-icon">'+(et.alerta.tipo==='neg'?'⚠️':'✅')+'</span><span>'+et.alerta.texto+'</span></div>':''}</div>`;
+  }).join('');
+
+  const semPgtoSubs=['Transferência com bem entregue','Substituição de garantia'];
+  const subtLiberacao=['Construção','Reforma','Ampliação','Quitação de financiamento + compra'];
+  let creditoWrap='';
+  if(semPgtoSubs.includes(p.subtipo)){
+    creditoWrap='';
+  } else if(subtLiberacao.includes(p.subtipo)){
+    // Múltiplas liberações
+    if(!p.liberacoes) p.liberacoes=[{data:'',valor:'',comentario:''}];
+    const libHtml=p.liberacoes.map((lib,li)=>{
+      const ord=li===0?'1ª':li===1?'2ª':li===2?'3ª':(li+1)+'ª';
+      const disLib=''; // Permitir edição mesmo após concluído
+      return '<div class="liberacao-item">'
+        +'<div class="liberacao-header"><span class="liberacao-num">'+ord+' liberação</span>'
+        +(li>0?'<button class="link-btn link-btn-red" onclick="removerLiberacao('+li+')"><i class="ti ti-x" style="font-size:11px"></i></button>':'')
+        +'</div>'
+        +'<div class="campos-grid campos-2" style="margin-bottom:8px">'
+        +'<div class="campo-group"><label>Data</label><input type="text" value="'+(lib.data||'')+'" placeholder="DD/MM/AAAA" '+disLib+' onchange="pSel.liberacoes['+li+'].data=this.value;salvar()"></div>'
+        +'<div class="campo-group"><label>Valor (R$)</label><input type="text" value="'+(lib.valor||'')+'" placeholder="ex: 50.000,00" '+disLib+' onchange="pSel.liberacoes['+li+'].valor=this.value;salvar()"></div>'
+        +'</div>'
+        +'<div class="campo-group"><label>Comentário</label><input type="text" value="'+(lib.comentario||'')+'" placeholder="Ex: Solicitado após vistoria de 30%" '+disLib+' onchange="pSel.liberacoes['+li+'].comentario=this.value;salvar()"></div>'
+        +'</div>';
+    }).join('');
+    creditoWrap='<div class="credito-wrap"><label><i class="ti ti-coin" style="font-size:13px;vertical-align:-2px"></i> Liberações de crédito</label>'
+      +libHtml
+      +'<button class="add-comment-btn" style="margin-top:4px" onclick="adicionarLiberacao()"><i class="ti ti-plus" style="font-size:11px"></i> adicionar liberação</button>'
+      +'</div>';
+  } else {
+    creditoWrap='<div class="credito-wrap"><label><i class="ti ti-coin" style="font-size:13px;vertical-align:-2px"></i> Crédito liberado (R$)</label><input type="text" value="'+(p.credito||'')+'" placeholder="Valor exato pago ao vendedor" '+(p.concluido?'disabled':'')+' onchange="pSel.credito=this.value;salvar()"></div>';
+  }
+
+  const transferenciaWrap=p.subtipo==='Transferência com bem entregue'?`<div style="background:var(--blue-light);border:1px solid var(--blue-border);border-radius:var(--radius);padding:.875rem 1.125rem;margin-bottom:1.25rem"><label style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">↔ Transferência de → para</label><input type="text" value="${p.transferencia||''}" placeholder="ex: Nome atual → Nome do novo titular" style="width:100%;font-size:13px;padding:7px 10px;border-radius:var(--border-radius-sm,6px);border:1px solid var(--blue-border);background:#fff;color:var(--text);font-family:inherit" ${p.concluido?'disabled':''} onchange="pSel.transferencia=this.value;salvar()"></div>`:'';
+
+  // Atualizar back-row com botões de ação
+  const br=document.getElementById('detalhe-backrow');
+  br.innerHTML=`<button class="btn btn-secondary" onclick="voltarRelatorio()"><i class="ti ti-arrow-left"></i> Voltar ao resumo</button>
+    <button class="btn btn-secondary btn-sm" onclick="verRelatorio()"><i class="ti ti-file-text"></i> Ver relatório</button>
+    ${!p.concluido?`<button class="btn btn-secondary btn-sm" onclick="abrirModalEtapa()"><i class="ti ti-plus"></i> Etapa personalizada</button>`:''}`;
+
+  document.getElementById('detalhe-conteudo').innerHTML=`<div class="detail-card"><div class="detail-top"><div><div class="detail-title">${nomeExibicao(p)}</div><div class="detail-sub">${p.tipo} · ${p.subtipo}${p.grupo?' · '+p.grupo:''} · Aberto em ${p.dataCriacao}</div></div><span class="badge ${p.cancelado?'badge-cancelado':p.concluido?'badge-concluido':p.tipo==='Imóvel'?'badge-imovel':'badge-veiculo'}">${p.cancelado?'🚫 Cancelado':p.concluido?'✅ Concluído':p.tipo==='Imóvel'?'🏠 Imóvel':'🚗 Veículo'}</span></div><div class="detail-body">${p.cancelado?`<div style="background:var(--red-light);border:1px solid var(--red-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:1.25rem"><div style="font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">🚫 Processo cancelado em ${p.dataCancelamento||'—'}${diasCorridos(p.dataCriacao,p.dataCancelamento)!==null?' · '+diasCorridos(p.dataCriacao,p.dataCancelamento)+' dias corridos':''}</div><div style="font-size:13px;color:var(--text)">${p.motivoCancelamento||''}</div></div>`:''}${transferenciaWrap}<div class="section-head" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><span>Etapas do processo</span><button class="add-comment-btn" style="text-transform:none;font-size:11px" onclick="toggleTodasEtapas()"><i class="ti ${_etapasAbertas.size>0?'ti-chevrons-up':'ti-chevrons-down'}" style="font-size:12px"></i> ${_etapasAbertas.size>0?'Recolher':'Expandir'} concluídas</button></div><div class="etapas-timeline">${etapasHtml}</div>${creditoWrap}<div class="bottom-acoes">${p.cancelado?`<button class="btn btn-secondary btn-sm" onclick="reativarProcesso()"><i class="ti ti-refresh"></i> Reativar processo</button>`:(p.concluido?`<button class="btn btn-secondary btn-sm" onclick="reabrirProcesso()"><i class="ti ti-lock-open"></i> Reabrir para edição</button>`:`<button class="btn btn-success btn-sm" onclick="confirmarConclusao()"><i class="ti ti-flag-check"></i> Concluir processo</button><button class="btn btn-danger btn-sm" onclick="abrirModalCancelar()"><i class="ti ti-ban"></i> Cancelar processo</button>`)}<button class="btn btn-danger btn-sm" onclick="excluirProcesso()"><i class="ti ti-trash"></i> Excluir</button></div></div></div>`;
+}
+
+function voltarLista(){
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  const primeiroLink=document.querySelector('.sidebar-link');
+  if(primeiroLink) primeiroLink.classList.add('active');
+  _listaFiltroAtual='todos';
+  showView('view-lista');renderLista();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function abrirEstatisticas(btn){
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  const linkEstat=document.querySelectorAll('.sidebar-link')[1];
+  if(linkEstat) linkEstat.classList.add('active');
+  showView('view-estatisticas');
+  renderEstatisticas();
+}
+
+function parseMoeda(s){
+  if(!s)return 0;
+  return parseFloat(s.replace(/[^\d,]/g,'').replace(',','.'))||0;
+}
+
+function mediaValores(arr){
+  const validos=arr.filter(v=>v!==null&&v!==undefined&&!isNaN(v));
+  if(!validos.length)return null;
+  return Math.round(validos.reduce((a,b)=>a+b,0)/validos.length);
+}
+
+/* ===================== ESTATÍSTICAS ===================== */
+// Cores: HS / partes / cartório são as mesmas do quadro Kanban. Imóvel × Veículo validados com o validador de paleta.
+const EST_COR={hs:'#2E6FA8',partes:'#D85A30',cartorio:'#6C5FB0',misto:'#A1A1AA',imovel:'#12906A',veiculo:'#B87408'};
+const EST_QUEM={hs:'Com a HS',partes:'Ação das partes',cartorio:'No cartório',misto:'HS e partes (junto)'};
+const EST_META={imovelHS:35,imovelRI:30}; // metas já usadas no relatório do processo
+const EST_MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+// Trechos em sequência (um começa onde o outro termina). "quem" diz de quem é o prazo.
+const EST_TRECHOS_IMOVEL=[
+  {id:'i1',nome:'Análise e aprovação',quem:'hs',de:'env',ate:'apr'},
+  {id:'i2',nome:'Preparo do contrato',quem:'hs',de:'apr',ate:'contIni'},
+  {id:'i3',nome:'Assinatura do contrato',quem:'partes',de:'contIni',ate:'contFim',exigeIntervalo:true},
+  {id:'i4',nome:'ITBI e documentos',quem:'partes',de:'contFim',ate:'riIni'},
+  {id:'i5',nome:'Registro no cartório',quem:'cartorio',de:'riIni',ate:'riFim'},
+  {id:'i6',nome:'Emolumentos e pagamento',quem:'partes',de:'riFim',ate:'pg'}
+];
+const EST_TRECHOS_VEICULO=[
+  {id:'v1',nome:'Análise até o envio da vistoria',quem:'hs',de:'an',ate:'vistEnv'},
+  {id:'v2',nome:'Vistoria feita pelo vendedor',quem:'partes',de:'vistEnv',ate:'vistOk'},
+  {id:'v3',nome:'Vistoria até a aprovação',quem:'hs',de:'vistOk',ate:'apr'},
+  {id:'v4',nome:'Aprovação até o envio p/ assinatura',quem:'hs',de:'apr',ate:'assIni'},
+  {id:'v5',nome:'Assinatura e documentos',quem:'partes',de:'assIni',ate:'assFim'},
+  {id:'v6',nome:'Assinado até o envio p/ gravame',quem:'partes',de:'assFim',ate:'grEnv'},
+  {id:'v7',nome:'Gravame até o pagamento',quem:'hs',de:'grEnv',ate:'pg'},
+  // Processos antigos não têm as datas de envio: só dá para medir o trecho inteiro
+  {id:'v45',nome:'Aprovação até a assinatura',quem:'misto',de:'apr',ate:'assFim',legado:true,semMarco:'assIni'},
+  {id:'v67',nome:'Assinatura até o pagamento',quem:'misto',de:'assFim',ate:'pg',legado:true,semMarco:'grEnv'}
+];
+
+function estFmtR(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function estFmtMi(v){return v>=1e6?'R$ '+(v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' mi':estFmtR(v)}
+function estFmtCompacto(v){
+  if(v>=1e6) return (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})+' mi';
+  if(v>=1e3) return (v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil';
+  return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
+}
+function estNiceMax(v){
+  if(v<=0) return 1;
+  const pow=Math.pow(10,Math.floor(Math.log10(v))),f=v/pow;
+  return (f<=1?1:f<=2?2:f<=5?5:10)*pow;
+}
+function estTip(titulo,linhas){return kbEsc(JSON.stringify({t:titulo,r:linhas}))}
+function estCreditoProcesso(p){
+  // Com liberações (Construção/Reforma/...) soma só elas; senão usa o campo único. Evita contar duas vezes.
+  if(p.liberacoes&&p.liberacoes.some(l=>l.valor)) return p.liberacoes.filter(l=>l.valor).reduce((s,l)=>s+parseMoeda(l.valor||'0'),0);
+  return parseMoeda(p.credito||'0');
+}
+function estTemCredito(p){return !!(p.credito||(p.liberacoes&&p.liberacoes.some(l=>l.valor)))}
+
+function estMarcosImovel(p){
+  const eEnv=p.etapas.find(e=>e.nome==='Envio p/ análise'||e.nome==='Processo em análise');
+  const eApr=p.etapas.find(e=>e.nome==='Aprovação de cadastro');
+  const eCont=achaEtapa(p,'contrato'),eRI=achaEtapa(p,'ri'),ePg=achaEtapa(p,'pgto');
+  return {
+    env:eEnv?eEnv.dataVal:'',apr:eApr?eApr.dataVal:'',
+    contIni:eCont?(eCont.dataInicio||eCont.dataVal):'',
+    contFim:eCont?(eCont.dataFim||eCont.dataVal):'',
+    contIntervalo:!!(eCont&&eCont.dataInicio&&eCont.dataFim),
+    riIni:eRI?eRI.dataInicio:'',riFim:eRI?eRI.dataFim:'',
+    pg:ePg?ePg.dataVal:''
+  };
+}
+function estMarcosVeiculo(p){
+  const f=function(){const nomes=Array.prototype.slice.call(arguments);return p.etapas.find(e=>nomes.indexOf(e.nome)>=0)};
+  const an=f('Processo em análise'),ve=f('Envio link vistoria digital','Envio link vistoria'),vo=f('Vistoria digital realizada','Vistoria realizada');
+  const ap=f('Aprovação'),as=f('Assinatura + Docs'),ge=f('Envio docs p/ inclusão gravame'),pg=achaEtapa(p,'pgto');
+  return {
+    an:an?an.dataVal:'',vistEnv:ve?ve.dataVal:'',vistOk:vo?vo.dataVal:'',apr:ap?ap.dataVal:'',
+    assIni:as?(as.dataInicio||''):'',                     // só existe nos processos novos (etapa com início e fim)
+    assIniHS:as?(as.dataInicio||as.dataVal||''):'',      // mesmo critério do relatório do processo
+    assFim:as?(as.dataFim||as.dataVal||''):'',
+    grEnv:ge?ge.dataVal:'',pg:pg?pg.dataVal:''
+  };
+}
+// "Prazo com a HS" do veículo: 4 trechos que não dependem do cliente. Só calcula se os 4 existirem.
+function estHSVeiculo(p){
+  const m=estMarcosVeiculo(p);
+  const t=[diasCorridos(m.an,m.vistEnv),diasCorridos(m.vistOk,m.apr),diasCorridos(m.apr,m.assIniHS),diasCorridos(m.grEnv,m.pg)];
+  return t.every(v=>v!==null)?t.reduce((a,b)=>a+b,0):null;
+}
+function estAgregaTrechos(procs,trechos,marcosFn){
+  const acc={};trechos.forEach(t=>{acc[t.id]={soma:0,n:0}});
+  procs.forEach(p=>{
+    const m=marcosFn(p);
+    trechos.forEach(t=>{
+      if(t.exigeIntervalo&&!m.contIntervalo) return;
+      if(t.semMarco&&m[t.semMarco]) return;
+      const d=diasCorridos(m[t.de],m[t.ate]);
+      if(d!==null){acc[t.id].soma+=d;acc[t.id].n++;}
+    });
+  });
+  return trechos.map(t=>Object.assign({},t,{media:acc[t.id].n?Math.round(acc[t.id].soma/acc[t.id].n):null,n:acc[t.id].n}));
+}
+// Veículo: usa a versão detalhada quando já há processos novos suficientes; senão a versão antiga (trechos agrupados)
+function estEscolheTrechosVeiculo(agg){
+  const det=agg.filter(a=>['v4','v5','v6','v7'].indexOf(a.id)>=0).reduce((s,a)=>s+a.n,0);
+  const leg=agg.filter(a=>a.legado).reduce((s,a)=>s+a.n,0);
+  const usaDet=det>0&&det>=leg;
+  return agg.filter(a=>usaDet?!a.legado:(a.legado||['v1','v2','v3'].indexOf(a.id)>=0));
+}
+
+function estSerieMensal(concluidos){
+  const mapa={};let semData=0;
+  concluidos.forEach(p=>{
+    const pg=achaEtapa(p,'pgto');
+    const d=parseDMY(p.dataConclusao)||parseDMY(pg&&pg.dataVal);
+    if(!d){semData++;return;}
+    const ch=d.getFullYear()*12+d.getMonth();
+    if(!mapa[ch]) mapa[ch]={ch:ch,ano:d.getFullYear(),mes:d.getMonth(),im:0,ve:0,imR:0,veR:0};
+    const k=mapa[ch],cred=estTemCredito(p)?estCreditoProcesso(p):0;
+    if(p.tipo==='Imóvel'){k.im++;k.imR+=cred;}else{k.ve++;k.veR+=cred;}
+  });
+  const chaves=Object.keys(mapa).map(Number);
+  if(!chaves.length) return {meses:[],semData:semData};
+  let ini=Math.min.apply(null,chaves);const fim=Math.max.apply(null,chaves);
+  if(fim-ini>11) ini=fim-11;
+  const meses=[];
+  for(let c=ini;c<=fim;c++){
+    const k=mapa[c]||{im:0,ve:0,imR:0,veR:0};
+    const ano=Math.floor(c/12),mes=c%12;
+    meses.push({rot:EST_MESES[mes]+'/'+String(ano).slice(2),mes:EST_MESES[mes],ano:ano,mostraAno:(c===ini||mes===0),im:k.im,ve:k.ve,imR:k.imR,veR:k.veR});
+  }
+  return {meses:meses,semData:semData};
+}
+
+function estGraficoMensal(cfg){
+  const H=140,CAP=18;
+  const totais=cfg.meses.map(m=>m[cfg.kA]+m[cfg.kB]);
+  const maxV=Math.max.apply(null,totais.concat([0]));
+  const cab='<div class="est-chart-head"><div class="est-chart-title">'+cfg.titulo+'</div><div class="est-leg-row"><span class="est-leg"><span class="est-dot" style="background:'+EST_COR.imovel+'"></span>Imóvel</span><span class="est-leg"><span class="est-dot" style="background:'+EST_COR.veiculo+'"></span>Veículo</span></div></div>';
+  if(!cfg.meses.length||maxV<=0) return '<div class="est-chart">'+cab+'<div class="estat-note" style="padding:2.5rem 0">Nenhum processo concluído com data neste período.</div></div>';
+  const max=estNiceMax(maxV);
+  const ticks=[0];
+  if(!cfg.inteiro||max%2===0) ticks.push(max/2);
+  ticks.push(max);
+  const grid=ticks.map(t=>'<div class="est-gl'+(t===0?' base':'')+'" style="bottom:'+(t/max*H)+'px"><span>'+cfg.fmtEixo(t)+'</span></div>').join('');
+  const cols=cfg.meses.map(m=>{
+    const a=m[cfg.kA],b=m[cfg.kB],tot=a+b;
+    const segs=(a>0?'<div style="flex:'+a+' 1 0;background:'+EST_COR.imovel+'"></div>':'')+(b>0?'<div style="flex:'+b+' 1 0;background:'+EST_COR.veiculo+'"></div>':'');
+    const tip=estTip(m.rot,[[EST_COR.imovel,'Imóvel',cfg.fmtTip(a)],[EST_COR.veiculo,'Veículo',cfg.fmtTip(b)],['','Total',cfg.fmtTip(tot)]]);
+    return '<div class="est-col" tabindex="0" data-tip="'+tip+'">'+(tot>0?'<div class="est-cap">'+cfg.fmtCap(tot)+'</div><div class="est-stack" style="height:'+Math.max(tot/max*H,3)+'px">'+segs+'</div>':'')+'</div>';
+  }).join('');
+  const rotulos=cfg.meses.map(m=>'<div>'+m.mes+(m.mostraAno?'<small>'+m.ano+'</small>':'')+'</div>').join('');
+  const linhas=cfg.meses.map(m=>'<tr><td>'+m.rot+'</td><td>'+cfg.fmtTip(m[cfg.kA])+'</td><td>'+cfg.fmtTip(m[cfg.kB])+'</td><td>'+cfg.fmtTip(m[cfg.kA]+m[cfg.kB])+'</td></tr>').join('');
+  return '<div class="est-chart">'+cab
+    +'<div class="est-plot" style="height:'+(H+CAP)+'px">'+grid+'<div class="est-cols">'+cols+'</div></div>'
+    +'<div class="est-xl">'+rotulos+'</div>'
+    +'<details class="est-det"><summary>Ver como tabela</summary><table class="est-tab"><thead><tr><th>Mês</th><th>Imóvel</th><th>Veículo</th><th>Total</th></tr></thead><tbody>'+linhas+'</tbody></table></details>'
+    +'</div>';
+}
+
+function estMedidor(titulo,val,meta,detalhe){
+  if(val===null) return '<div class="est-med"><div class="est-med-top"><span>'+titulo+'</span><span class="est-med-val">—</span></div><div class="est-med-track" style="background:#ECECEE"></div><div class="est-med-sub">Sem dados suficientes</div></div>';
+  const pct=Math.min(100,val/meta*100);
+  const est=val>meta?'late':(val>=meta*0.85?'warn':'ok');
+  const cfg={ok:{cor:'#3B6D11',trilho:'#E1EDD0',txt:'✓ Dentro da meta'},warn:{cor:'#D9930D',trilho:'#F6E7C7',txt:'! Perto do limite'},late:{cor:'#C23B3B',trilho:'#F3D6D6',txt:'▲ Acima da meta'}}[est];
+  return '<div class="est-med"><div class="est-med-top"><span>'+titulo+'</span><span class="est-med-val">'+val+'<small> de '+meta+' dias</small></span></div>'
+    +'<div class="est-med-track" style="background:'+cfg.trilho+'"><i style="width:'+pct+'%;background:'+cfg.cor+'"></i></div>'
+    +'<div class="est-med-sub">'+cfg.txt+(detalhe?' · '+detalhe:'')+'</div></div>';
+}
+
+function estBlocoTempo(icone,titulo,sub,medTotal,trechos,medidoresHtml,notaHtml){
+  const vis=trechos.filter(t=>t.media!==null);
+  const barraVis=vis.filter(t=>t.media>0);
+  const soma={};vis.forEach(t=>{soma[t.quem]=(soma[t.quem]||0)+t.media});
+  const chips=Object.keys(EST_QUEM).filter(k=>soma[k]>0).map(k=>'<span class="est-leg"><span class="est-dot" style="background:'+EST_COR[k]+'"></span>'+EST_QUEM[k]+' <b>'+soma[k]+'d</b></span>').join('');
+  let corpo;
+  if(!vis.length){
+    corpo='<div class="estat-note" style="text-align:left;margin:14px 0 4px">Ainda não há datas suficientes para montar a linha do tempo.</div>';
+  }else{
+    const segs=barraVis.map(t=>'<div class="est-seg" tabindex="0" style="flex:'+t.media+' 1 0;background:'+EST_COR[t.quem]+'" data-tip="'+estTip(t.nome,[[EST_COR[t.quem],EST_QUEM[t.quem],t.media+' dias (média)'],['','Processos',String(t.n)]])+'"></div>').join('');
+    const linhas=vis.map(t=>'<div class="est-trecho"><span class="est-dot" style="background:'+EST_COR[t.quem]+'"></span><span class="est-trecho-nome">'+t.nome+'</span><span class="est-trecho-dias">'+t.media+'d</span><span class="est-trecho-n">'+t.n+' proc.</span></div>').join('');
+    corpo='<div class="est-leg-row" style="margin:12px 0 10px">'+chips+'</div>'
+      +'<div class="est-barra">'+segs+'</div>'
+      +'<div class="est-trechos">'+linhas+'</div>';
+  }
+  return '<div class="est-tempo">'
+    +'<div class="est-tempo-head"><div><span class="est-tempo-titulo">'+icone+' '+titulo+'</span><span class="est-tempo-sub"> · '+sub+'</span></div>'
+    +'<div class="est-tempo-total"><small>Total médio</small> <b>'+(medTotal!==null?medTotal:'—')+'</b><span> dias</span></div></div>'
+    +corpo+(medidoresHtml?'<div class="est-meds">'+medidoresHtml+'</div>':'')+(notaHtml?'<div class="estat-note" style="text-align:left;margin-top:8px">'+notaHtml+'</div>':'')
+    +'</div>';
+}
+
+// Dica ao passar o mouse (ou focar com o teclado): um só elemento para a página inteira
+function estTipInit(){
+  if(window._estTipOk) return;
+  window._estTipOk=true;
+  const tip=document.createElement('div');
+  tip.id='est-tip';tip.setAttribute('role','tooltip');
+  document.body.appendChild(tip);
+  function mostrar(el,x,y){
+    let d;try{d=JSON.parse(el.getAttribute('data-tip'))}catch(e){return}
+    tip.textContent='';
+    const t=document.createElement('div');t.className='est-tip-t';t.textContent=d.t;tip.appendChild(t);
+    (d.r||[]).forEach(function(r){
+      const row=document.createElement('div');row.className='est-tip-r';
+      const k=document.createElement('span');k.className='est-tip-k';
+      if(r[0]){const dot=document.createElement('span');dot.className='est-dot';dot.style.background=r[0];k.appendChild(dot);}
+      k.appendChild(document.createTextNode(r[1]));
+      const v=document.createElement('b');v.textContent=r[2];
+      row.appendChild(k);row.appendChild(v);tip.appendChild(row);
+    });
+    tip.style.display='block';
+    const w=tip.offsetWidth,h=tip.offsetHeight;
+    tip.style.left=Math.max(8,Math.min(x+14,window.innerWidth-w-8))+'px';
+    tip.style.top=Math.max(8,Math.min(y+14,window.innerHeight-h-8))+'px';
+  }
+  function esconder(){tip.style.display='none'}
+  document.addEventListener('pointermove',function(e){const el=e.target.closest&&e.target.closest('[data-tip]');if(el)mostrar(el,e.clientX,e.clientY);else esconder();});
+  document.addEventListener('focusin',function(e){const el=e.target.closest&&e.target.closest('[data-tip]');if(el){const r=el.getBoundingClientRect();mostrar(el,r.left+r.width/2,r.top);}});
+  document.addEventListener('focusout',esconder);
+  document.addEventListener('scroll',esconder,true);
+}
+
+function estTile(rot,valor,sub,op){
+  op=op||{};
+  return '<div class="stat-card'+(op.onclick?' clickable':'')+'"'+(op.onclick?' onclick="'+op.onclick+'"':'')+'>'
+    +'<div class="stat-label">'+rot+'</div><div class="stat-value"'+(op.estilo?' style="'+op.estilo+'"':'')+'>'+valor+'</div>'
+    +(sub?'<div class="est-tile-sub">'+sub+'</div>':'')+'</div>';
+}
+
+function renderEstatisticas(){
+  const anosDisponiveis=[...new Set(processos.map(p=>{const d=p.dataCriacao;return d&&d.includes('/')?d.split('/')[2]:null}).filter(Boolean))].sort().reverse();
+  const anoSel=window._estatAnoSel||(anosDisponiveis[0]||'todos');
+  window._estatAnoSel=anoSel;
+  const doPeriodo=processos.filter(p=>anoSel==='todos'||(p.dataCriacao&&p.dataCriacao.includes('/')&&p.dataCriacao.split('/')[2]===anoSel));
+  const processosFiltrados=doPeriodo.filter(p=>!p.cancelado);
+  const canceladosFilt=doPeriodo.filter(p=>p.cancelado);
+  const concluidos=processosFiltrados.filter(p=>p.concluido);
+  const emAndamento=processosFiltrados.filter(p=>!p.concluido);
+  const anoLabel=anoSel==='todos'?'Todos os anos':anoSel;
+  const plural=(n,s,p)=>n+' '+(n===1?s:p);
+
+  const imConc=concluidos.filter(p=>p.tipo==='Imóvel'),veConc=concluidos.filter(p=>p.tipo==='Veículo');
+  const imAnd=emAndamento.filter(p=>p.tipo==='Imóvel'),veAnd=emAndamento.filter(p=>p.tipo==='Veículo');
+  const todosIm=imConc.concat(imAnd),todosVe=veConc.concat(veAnd);
+
+  // ---- Prazos
+  const mI=todosIm.map(estMarcosImovel),mV=todosVe.map(estMarcosVeiculo);
+  const medTotalIm=mediaValores(mI.map(m=>diasCorridos(m.env,m.pg)));
+  const medTotalVe=mediaValores(mV.map(m=>diasCorridos(m.an,m.pg)));
+  const medHSIm=mediaValores(mI.map(m=>diasCorridos(m.env,m.contIni)));
+  const medRIIm=mediaValores(mI.map(m=>diasCorridos(m.riIni,m.riFim)));
+  const hsVe=todosVe.map(estHSVeiculo).filter(v=>v!==null);
+  const medHSVe=mediaValores(hsVe);
+  const trIm=estAgregaTrechos(todosIm,EST_TRECHOS_IMOVEL,estMarcosImovel);
+  const trVe=estEscolheTrechosVeiculo(estAgregaTrechos(todosVe,EST_TRECHOS_VEICULO,estMarcosVeiculo));
+
+  // ---- Créditos (só concluídos do período, com crédito preenchido)
+  const credIm=imConc.filter(estTemCredito).map(estCreditoProcesso),credVe=veConc.filter(estTemCredito).map(estCreditoProcesso);
+  const totalIm=credIm.reduce((a,b)=>a+b,0),totalVe=credVe.reduce((a,b)=>a+b,0),totalGeral=totalIm+totalVe;
+  const nCred=credIm.length+credVe.length;
+  const ticket=(tot,n)=>n?estFmtR(Math.round(tot/n)):'—';
+
+  // ---- Série mensal
+  const serie=estSerieMensal(concluidos);
+  const grafCont=estGraficoMensal({titulo:'Concluídos por mês',meses:serie.meses,kA:'im',kB:'ve',inteiro:true,fmtEixo:v=>String(v),fmtCap:v=>String(v),fmtTip:v=>String(v)});
+  const grafCred=estGraficoMensal({titulo:'Crédito liberado por mês (R$)',meses:serie.meses,kA:'imR',kB:'veR',inteiro:false,fmtEixo:estFmtCompacto,fmtCap:estFmtCompacto,fmtTip:estFmtR});
+
+  // ---- Gargalos / cancelados / alertas (mantidos como eram)
+  function nomeCanonico(n){
+    for(const k of ['contrato','ri']){const a=ALIAS_ETAPAS[k];if(a.indexOf(n)>=0)return a[a.length-1];}
+    return n;
+  }
+  function analisarGargalos(procs){
+    const m={};
+    procs.filter(p=>p.concluido).forEach(p=>{
+      p.etapas.forEach(et=>{
+        const tf=et.tipo==='intervalo'||(et.tipo==='unico'&&et.temFim===true);
+        let d=null;
+        if(tf&&et.dataInicio&&et.dataFim) d=diasCorridos(et.dataInicio,et.dataFim);
+        if(!d||d<=0) return;
+        const nm=nomeCanonico(et.nome);
+        if(!m[nm]) m[nm]={t:0,n:0,comentarios:[]};
+        m[nm].t+=d; m[nm].n++;
+        et.comentarios.forEach(c=>{ if(c.texto) m[nm].comentarios.push(c.texto); });
+      });
+    });
+    return Object.entries(m).map(([nome,v])=>({nome,media:Math.round(v.t/v.n),count:v.n,comentarios:v.comentarios})).sort((a,b)=>b.media-a.media).slice(0,5);
+  }
+  function renderGargBlock(procs,tipo,anoLabel){
+    const conc=procs.filter(p=>p.concluido&&p.tipo===tipo);
+    if(!conc.length) return '';
+    const garg=analisarGargalos(conc);
+    if(!garg.length) return '';
+    const icone=tipo==='Imóvel'?'🏠':'🚗';
+    const max=garg[0].media;
+    return `<div class="estat-section">
+      <div class="estat-section-head">${icone} Etapas com maior duração — ${tipo} · ${anoLabel}</div>
+      <div class="estat-body">
+        ${garg.map((g,i)=>{
+          const pct=max?Math.max(4,(g.media/max*100)):0;
+          const cor=i===0?'#3F3F46':'#8A8A93';
+          return`<div style="margin-bottom:${i<garg.length-1?'14px':'2px'}">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px;gap:10px">
+              <div style="display:flex;align-items:baseline;gap:8px;min-width:0">
+                <span style="font-size:12px;font-weight:700;color:var(--text3);flex-shrink:0">${i+1}º</span>
+                <span style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.nome}</span>
+                <span style="font-size:11px;color:var(--text3);flex-shrink:0">${g.count} proc.</span>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);flex-shrink:0">${g.media}<span style="font-size:10.5px;font-weight:500;color:var(--text2)"> dias</span></div>
+            </div>
+            <div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-left:22px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:0 4px 4px 0"></div></div>
+          </div>`;
+        }).join('')}
+        <div class="estat-note" style="margin-top:12px">Baseado em ${conc.length} processo${conc.length!==1?'s':''} concluído${conc.length!==1?'s':''}</div>
+      </div>
+    </div>`;
+  }
+  const gargHtml=concluidos.length?(renderGargBlock(processosFiltrados,'Imóvel',anoLabel)+renderGargBlock(processosFiltrados,'Veículo',anoLabel)):'';
+  const canceladosHtml=canceladosFilt.length?`<div class="estat-section"><div class="estat-section-head">🚫 Processos cancelados — ${anoLabel} · ${canceladosFilt.length}</div><div class="estat-body">${canceladosFilt.map(p=>{const dias=diasCorridos(p.dataCriacao,p.dataCancelamento);return`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:600;color:var(--text)">${nomeExibicao(p)} <span style="font-size:11px;font-weight:400;color:var(--text2)">· ${p.tipo} · ${p.subtipo}${p.grupo?' · '+p.grupo:''}</span></div><div style="font-size:11px;color:var(--red);margin-top:3px">📅 Cancelado em ${p.dataCancelamento||'—'}${dias!==null?' · '+dias+' dias corridos (abertura → cancelamento)':''}</div><div style="font-size:12px;color:var(--text2);margin-top:3px;font-style:italic">${p.motivoCancelamento||'—'}</div></div>`}).join('')}</div></div>`:'';
+  const alertasNeg=[],alertasPos=[];
+  processosFiltrados.forEach(p=>{p.etapas.forEach(et=>{if(!et.alerta)return;const item={proc:nomeExibicao(p),etapa:et.nome,texto:et.alerta.texto};if(et.alerta.tipo==='neg')alertasNeg.push(item);else alertasPos.push(item);});});
+  const alertasHtml=(alertasNeg.length||alertasPos.length)?`<div class="estat-section"><div class="estat-section-head">⚠️ Alertas negativos — ${anoLabel}</div><div class="estat-body">${alertasNeg.length?alertasNeg.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:600">${a.proc} — ${a.etapa}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">${a.texto}</div></div>`).join(''):'<div class="estat-note">Nenhum alerta negativo.</div>'}</div></div><div class="estat-section"><div class="estat-section-head">✅ Alertas positivos — ${anoLabel}</div><div class="estat-body">${alertasPos.length?alertasPos.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:600">${a.proc} — ${a.etapa}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">${a.texto}</div></div>`).join(''):'<div class="estat-note">Nenhum alerta positivo.</div>'}</div></div>`:'';
+
+  // ---- Montagem
+  const pills=['todos'].concat(anosDisponiveis).map(a=>'<button class="est-pill'+(anoSel===a?' active':'')+'" onclick="window._estatAnoSel=\''+a+'\';renderEstatisticas()">'+(a==='todos'?'Todos':a)+'</button>').join('');
+  const duo='<div class="est-duo"><div><b>'+(medTotalIm!==null?medTotalIm+'d':'—')+'</b><span>Imóvel</span></div><div><b>'+(medTotalVe!==null?medTotalVe+'d':'—')+'</b><span>Veículo</span></div></div>';
+  const tiles=estTile('⏳ Em andamento',emAndamento.length,'🏠 '+imAnd.length+' imóvel · 🚗 '+veAnd.length+' veículo',{onclick:"irParaLista('todos')"})
+    +estTile('✅ Concluídos',concluidos.length,'🏠 '+imConc.length+' imóvel · 🚗 '+veConc.length+' veículo',{onclick:"irParaLista('concluido')"})
+    +(canceladosFilt.length?estTile('🚫 Cancelados',canceladosFilt.length,'no período',{onclick:"irParaLista('cancelado')"}):'')
+    +estTile('Crédito liberado','<span title="'+estFmtR(totalGeral)+'">'+estFmtMi(totalGeral)+'</span>',plural(nCred,'processo','processos')+' · média '+ticket(totalGeral,nCred),{estilo:'font-size:26px;line-height:1.2;color:var(--green);white-space:nowrap'})
+    +'<div class="stat-card"><div class="stat-label">Prazo médio total</div>'+duo+'<div class="est-tile-sub">envio à análise → pagamento</div></div>';
+
+  const medsIm=estMedidor('Com a HS',medHSIm,EST_META.imovelHS,'envio à análise → contrato')+estMedidor('No cartório (RI)',medRIIm,EST_META.imovelRI,'entrada → saída');
+  const medsVe='<div class="est-med"><div class="est-med-top"><span>Com a HS (4 trechos)</span><span class="est-med-val">'+(medHSVe!==null?medHSVe+'<small> dias</small>':'—')+'</span></div><div class="est-med-sub">'+(hsVe.length?'soma dos 4 trechos em '+plural(hsVe.length,'processo completo','processos completos')+' · sem meta definida':'Aparece nos próximos processos, quando as datas novas forem preenchidas')+'</div></div>';
+  const notaTempo='Média de cada trecho entre os processos que têm as duas datas. A soma dos trechos pode diferir do total médio quando faltam datas em alguns processos.';
+
+  const tempoIm=todosIm.length?estBlocoTempo('🏠','Imóvel',plural(imConc.length,'concluído','concluídos')+' · '+imAnd.length+' em andamento',medTotalIm,trIm,medsIm,notaTempo):'<div class="estat-note" style="text-align:left">Nenhum processo de imóvel no período.</div>';
+  const tempoVe=todosVe.length?estBlocoTempo('🚗','Veículo',plural(veConc.length,'concluído','concluídos')+' · '+veAnd.length+' em andamento',medTotalVe,trVe,medsVe,notaTempo):'<div class="estat-note" style="text-align:left">Nenhum processo de veículo no período.</div>';
+
+  const barraCred=totalGeral>0?'<div class="est-barra" style="height:12px;margin-top:2px">'
+    +(totalIm>0?'<div class="est-seg" tabindex="0" style="flex:'+totalIm+' 1 0;background:'+EST_COR.imovel+'" data-tip="'+estTip('Imóvel',[[EST_COR.imovel,'Crédito liberado',estFmtR(totalIm)],['','Processos',String(credIm.length)]])+'"></div>':'')
+    +(totalVe>0?'<div class="est-seg" tabindex="0" style="flex:'+totalVe+' 1 0;background:'+EST_COR.veiculo+'" data-tip="'+estTip('Veículo',[[EST_COR.veiculo,'Crédito liberado',estFmtR(totalVe)],['','Processos',String(credVe.length)]])+'"></div>':'')
+    +'</div>':'';
+  const credCard=(rot,cor,tot,n)=>'<div class="estat-card" style="text-align:left"><div class="estat-card-label"><span class="est-dot" style="background:'+cor+'"></span> '+rot+'</div><div class="estat-card-val" style="font-size:18px;color:var(--text)">'+estFmtR(tot)+'</div><div class="estat-card-sub" style="margin:4px 0 0">'+plural(n,'processo','processos')+' · média '+ticket(tot,n)+'</div></div>';
+
+  document.getElementById('estatisticas-conteudo').innerHTML=
+    '<div class="page-header"><div><div class="page-title">Estatísticas</div><div class="page-sub">'+plural(processosFiltrados.length,'processo','processos')+' abertos em '+(anoSel==='todos'?'todos os anos':anoSel)+(canceladosFilt.length?' · '+plural(canceladosFilt.length,'cancelado','cancelados'):'')+'</div></div><div class="est-pills"><span class="est-pills-rot">Abertos em</span>'+pills+'</div></div>'
+    +'<div class="stats">'+tiles+'</div>'
+    +'<div class="estat-section"><div class="estat-section-head"><i class="ti ti-chart-bar"></i> Evolução mensal</div><div class="estat-body"><div class="est-2col">'+grafCont+grafCred+'</div>'
+      +(serie.semData?'<div class="estat-note" style="text-align:left;margin-top:12px">'+plural(serie.semData,'processo concluído sem data de conclusão não aparece','processos concluídos sem data de conclusão não aparecem')+' nos gráficos.</div>':'')+'</div></div>'
+    +'<div class="estat-section"><div class="estat-section-head"><i class="ti ti-clock-hour-4"></i> Onde o tempo é gasto</div><div class="estat-body">'+tempoIm+'<div class="est-sep"></div>'+tempoVe+'</div></div>'
+    +'<div class="estat-section"><div class="estat-section-head"><i class="ti ti-coin"></i> Créditos liberados</div><div class="estat-body">'+barraCred
+      +'<div class="estat-grid" style="margin-top:1rem;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">'+credCard('Imóvel',EST_COR.imovel,totalIm,credIm.length)+credCard('Veículo',EST_COR.veiculo,totalVe,credVe.length)
+      +'<div class="estat-card" style="text-align:left;border-color:var(--green-border);background:var(--green-light)"><div class="estat-card-label" style="color:var(--green)">Total geral</div><div class="estat-card-val green" style="font-size:18px">'+estFmtR(totalGeral)+'</div><div class="estat-card-sub" style="margin:4px 0 0">'+plural(nCred,'processo','processos')+' · média '+ticket(totalGeral,nCred)+'</div></div></div>'
+      +'<div class="estat-note">Apenas processos concluídos, abertos no período, com crédito liberado preenchido</div>'
+      +'<div class="estat-note" style="margin-top:2px">Construção/Reforma/Ampliação com liberação parcial só entram quando forem concluídos</div></div></div>'
+    +gargHtml+alertasHtml+canceladosHtml;
+  estTipInit();
+}
+function abrirEtapas(){_etapasAbertas=new Set();showView('view-detalhe');renderDetalhe()}
+function toggleEtapa(i){if(_etapasAbertas.has(i))_etapasAbertas.delete(i);else _etapasAbertas.add(i);renderDetalhe()}
+function toggleTodasEtapas(){
+  if(_etapasAbertas.size>0){_etapasAbertas=new Set();}
+  else{pSel.etapas.forEach((et,i)=>{if(statusEtapa(et).cls==='done')_etapasAbertas.add(i);});}
+  renderDetalhe();
+}
+function voltarRelatorio(){showView('view-relatorio');renderRelatorio()}
+function voltarDetalhe(){showView('view-relatorio');renderRelatorio()}
+
+function statusEtapa(et){
+  if(et.tipo==='reembolso'){
+    const temDados=et.reembolsos&&et.reembolsos.some(r=>r.descricao||r.valor);
+    if(temDados)return{cls:'done',pill:'pill-done',label:'Concluída'};
+    return{cls:'pending',pill:'pill-pending',label:'Pendente'};
+  }
+  const temFim=et.tipo==='intervalo'||(et.tipo==='unico'&&et.temFim===true);
+  let done=false;
+  if(temFim){
+    done=!!(et.dataInicio)&&!!(et.dataFim);
+  } else {
+    done=!!(et.dataVal);
+  }
+  if(done)return{cls:'done',pill:'pill-done',label:'Concluída'};
+  if(temAlerta(et))return{cls:'alert',pill:'pill-alert',label:'Em atraso'};
+  const emAndamento=temFim&&!!et.dataInicio&&!et.dataFim;
+  if(emAndamento)return{cls:'current',pill:'pill-current',label:'Em andamento'};
+  return{cls:'pending',pill:'pill-pending',label:'Pendente'}
+}
+
+function renderCampos(et,idx){
+  const dis=pSel.concluido?'disabled':'';
+  
+  // Etapas de tipo reembolso
+  if(et.tipo==='reembolso'){
+    if(!et.reembolsos) et.reembolsos=[{descricao:'',valor:''}];
+    const reemHtml=et.reembolsos.map((r,ri)=>{
+      return '<div class="reembolso-item">'
+        +'<div class="campos-grid campos-2">'
+        +'<div class="campo-group"><label>Descrição</label><input type="text" value="'+(r.descricao||'')+'" placeholder="ITBI, Emolumentos..." '+dis+' onchange="pSel.etapas['+idx+'].reembolsos['+ri+'].descricao=this.value;salvar()"></div>'
+        +'<div class="campo-group"><label>Valor (R$)</label><input type="text" value="'+(r.valor||'')+'" placeholder="ex: 1.500,00" '+dis+' onchange="pSel.etapas['+idx+'].reembolsos['+ri+'].valor=this.value;salvar()"></div>'
+        +'</div>'
+        +(ri>0?'<button class="link-btn link-btn-red" style="margin-top:8px" onclick="removerReembolso('+idx+','+ri+')"><i class="ti ti-x" style="font-size:11px"></i> remover</button>':'')
+        +'</div>';
+    }).join('');
+    return '<div class="reembolso-wrap">'+reemHtml+'<button class="add-comment-btn" style="margin-top:8px" onclick="adicionarReembolso('+idx+')"><i class="ti ti-plus" style="font-size:11px"></i> adicionar item</button></div>';
+  }
+  
+  const temFim=et.tipo==='intervalo'||(et.tipo==='unico'&&et.temFim);
+  if(!temFim){
+    const btnAddFim=!pSel.concluido?`<button class="add-comment-btn" style="margin-top:4px" onclick="ativarFim(${idx})"><i class="ti ti-plus" style="font-size:11px"></i> adicionar data de fim</button>`:'';
+    return`<div class="campos-grid" style="grid-template-columns:1fr"><div class="campo-group"><label>Data</label><input type="text" value="${et.dataVal||''}" placeholder="DD/MM/AAAA" ${dis} onchange="atualizarDataVal(${idx}, this.value)"></div></div>${btnAddFim}`;
+  } else {
+    const dias=diasCorridos(et.dataInicio||et.dataVal,et.dataFim);
+    const diasHtml=dias!==null?`<div class="dias-tag"><i class="ti ti-clock" style="font-size:12px"></i>${dias} dia${dias!==1?'s':''} corridos${!et.dataFim?' (em curso)':''}</div>`:'';
+    const isFixo=et.tipo==='intervalo';
+    const labelInicio=et.nome==='Checklist de documentos'?'Envio do checklist':et.nome==='Registro em cartório (RI)'?'Entrada RI':et.nome==='Contrato p/ assinatura'?'Envio p/ assinatura':'Data início';
+    const labelFim=et.nome==='Checklist de documentos'?'Último documento recebido':et.nome==='Registro em cartório (RI)'?'Saída RI':et.nome==='Contrato p/ assinatura'?'Data assinatura':'Data fim';
+    const btnRemFim=(!pSel.concluido&&!isFixo)?`<button class="add-comment-btn" style="color:var(--red);margin-top:4px" onclick="desativarFim(${idx})"><i class="ti ti-x" style="font-size:11px"></i> remover data de fim</button>`:'';
+    const dInicio=et.dataInicio||et.dataVal||'';
+    return`<div class="campos-grid" style="grid-template-columns:1fr 1fr">
+      <div class="campo-group"><label>${labelInicio}</label><input type="text" value="${dInicio}" placeholder="DD/MM/AAAA" ${dis} onchange="atualizarDataInicio(${idx}, this.value)"></div>
+      <div class="campo-group"><label>${labelFim}</label><input type="text" value="${et.dataFim||''}" placeholder="DD/MM/AAAA" ${dis} onchange="atualizarDataFim(${idx}, this.value)"></div>
+    </div>${diasHtml}${btnRemFim}`;
+  }
+}
+function ativarFim(idx){pSel.etapas[idx].temFim=true;pSel.etapas[idx].dataInicio=pSel.etapas[idx].dataVal||'';salvar();renderDetalhe();}
+function desativarFim(idx){pSel.etapas[idx].temFim=false;pSel.etapas[idx].dataVal=pSel.etapas[idx].dataInicio||'';pSel.etapas[idx].dataFim='';salvar();renderDetalhe();}
+
+function abrirModalEtapa(){
+  const sel=document.getElementById('me-posicao');
+  sel.innerHTML='<option value="-1">No início</option>'+
+    pSel.etapas.map((et,i)=>`<option value="${i}">${et.nome}</option>`).join('')+
+    '<option value="fim" selected>No final</option>';
+  document.getElementById('modal-etapa').classList.add('open')
+}
+function fecharModalEtapa(){document.getElementById('modal-etapa').classList.remove('open');document.getElementById('me-nome').value=''}
+function criarEtapaCustom(){
+  const nome=document.getElementById('me-nome').value.trim();
+  if(!nome){alert('Informe o nome.');return}
+  const resp=document.getElementById('me-resp').value;
+  const posVal=document.getElementById('me-posicao').value;
+  const novaEtapa={nome,tipo:'unico',dataVal:'',dataInicio:'',dataFim:'',responsavel:resp,comentarios:[],custom:true,criadoEm:today()};
+  if(posVal==='-1'){
+    pSel.etapas.unshift(novaEtapa);
+  } else if(posVal==='fim'){
+    pSel.etapas.push(novaEtapa);
+  } else {
+    pSel.etapas.splice(parseInt(posVal)+1,0,novaEtapa);
+  }
+  salvar();fecharModalEtapa();renderDetalhe()
+}
+function removerEtapaCustom(idx){if(!confirm('Remover esta etapa?'))return;pSel.etapas.splice(idx,1);salvar();renderDetalhe()}
+let _alertaIdx=null;
+function abrirModalAlerta(idx){
+  _alertaIdx=idx;
+  const et=pSel.etapas[idx];
+  document.getElementById('alerta-titulo').textContent='Alerta — '+et.nome;
+  document.getElementById('alerta-tipo').value=(et.alerta&&et.alerta.tipo)||'neg';
+  document.getElementById('alerta-texto').value=(et.alerta&&et.alerta.texto)||'';
+  document.getElementById('modal-alerta').classList.add('open');
+}
+function fecharModalAlerta(){document.getElementById('modal-alerta').classList.remove('open')}
+function salvarAlerta(){
+  const texto=document.getElementById('alerta-texto').value.trim();
+  if(!texto){alert('Descreva o motivo do alerta.');return;}
+  const tipo=document.getElementById('alerta-tipo').value;
+  pSel.etapas[_alertaIdx].alerta={tipo,texto};
+  salvar();fecharModalAlerta();renderDetalhe();
+}
+function removerAlerta(idx){
+  delete pSel.etapas[idx].alerta;
+  salvar();renderDetalhe();
+}
+function moverEtapa(idx, dir){
+  const etapas = pSel.etapas;
+  const novoIdx = idx + dir;
+  if(novoIdx < 0 || novoIdx >= etapas.length) return;
+  const temp = etapas[idx];
+  etapas[idx] = etapas[novoIdx];
+  etapas[novoIdx] = temp;
+  salvar();
+  renderDetalhe();
+}
+function removerEtapaQualquer(idx){
+  const et=pSel.etapas[idx];
+  const nome=et.nome;
+  if(!confirm('Excluir a etapa "'+nome+'"? Esta ação não pode ser desfeita.'))return;
+  const snap = {nome:et.nome, tipo:et.tipo, msg:et.msg, msgVariantes:et.msgVariantes};
+  pSel.etapas.splice(idx,1);
+  _etapasAbertas = new Set(); // índices mudaram, evita abrir a etapa errada
+  salvar();
+  renderDetalhe();
+  if(confirm('Excluída deste processo.\n\nDeseja também remover "'+nome+'" do modelo padrão de algum tipo de processo? (ex: essa etapa não deveria nascer em Construção, só em Aquisição)')){
+    abrirModalMst(snap, 'remover');
+  }
+}
+function editarNomeEtapa(idx){
+  const et=pSel.etapas[idx];
+  const novoNome=prompt('Editar nome da etapa:',et.nome);
+  if(novoNome===null) return;
+  const nome=novoNome.trim();
+  if(!nome){alert('O nome não pode estar vazio.');return;}
+  pSel.etapas[idx].nome=nome;
+  salvar();renderDetalhe();
+}
+function confirmarConclusao(){if(!confirm('Confirma a conclusão?'))return;pSel.concluido=true;pSel.dataConclusao=today();salvar();renderDetalhe()}
+function reabrirProcesso(){if(!confirm('Reabrir este processo para edição?'))return;pSel.concluido=false;pSel.dataConclusao='';salvar();renderDetalhe()}
+function abrirModalCancelar(){document.getElementById('cancelar-motivo').value='';document.getElementById('cancelar-data').value=today();document.getElementById('modal-cancelar').classList.add('open')}
+function fecharModalCancelar(){document.getElementById('modal-cancelar').classList.remove('open')}
+function confirmarCancelamento(){
+  const motivo=document.getElementById('cancelar-motivo').value.trim();
+  if(!motivo){alert('Informe o motivo do cancelamento.');return}
+  const data=document.getElementById('cancelar-data').value.trim()||today();
+  pSel.cancelado=true;
+  pSel.dataCancelamento=data;
+  pSel.motivoCancelamento=motivo;
+  pSel.concluido=false;
+  salvar();
+  fecharModalCancelar();
+  renderDetalhe();
+}
+function reativarProcesso(){if(!confirm('Reativar este processo?'))return;pSel.cancelado=false;pSel.dataCancelamento='';pSel.motivoCancelamento='';salvar();renderDetalhe()}
+function adicionarReembolso(etIdx){
+  if(!pSel.etapas[etIdx].reembolsos) pSel.etapas[etIdx].reembolsos=[];
+  pSel.etapas[etIdx].reembolsos.push({descricao:'',valor:''});
+  salvar();renderDetalhe();
+}
+function removerReembolso(etIdx,ri){
+  if(!confirm('Remover este reembolso?'))return;
+  pSel.etapas[etIdx].reembolsos.splice(ri,1);
+  salvar();renderDetalhe();
+}
+function adicionarLiberacao(){
+  if(!pSel.liberacoes) pSel.liberacoes=[];
+  pSel.liberacoes.push({data:'',valor:'',comentario:''});
+  salvar();renderDetalhe();
+}
+function removerLiberacao(idx){
+  if(!confirm('Remover esta liberação?'))return;
+  pSel.liberacoes.splice(idx,1);
+  salvar();renderDetalhe();
+}
+function adicionarReembolso(etIdx){
+  if(!pSel.etapas[etIdx].reembolsos) pSel.etapas[etIdx].reembolsos=[];
+  pSel.etapas[etIdx].reembolsos.push({descricao:'',valor:''});
+  salvar();renderDetalhe();
+}
+function removerReembolso(etIdx,reIdx){
+  if(!confirm('Remover este reembolso?'))return;
+  pSel.etapas[etIdx].reembolsos.splice(reIdx,1);
+  salvar();renderDetalhe();
+}
+function excluirProcesso(){if(!confirm('Excluir permanentemente?'))return;processos=processos.filter(p=>p.id!==pSel.id);salvar();voltarLista()}
+
+function abrirComentario(idx){
+  modalComEtapaIdx=idx;
+  modalComIdx=null;
+  editandoComentario=false;
+  document.getElementById('mc-titulo').textContent='Comentário — '+pSel.etapas[idx].nome;
+  document.getElementById('mc-data').value=today();
+  document.getElementById('mc-hora').value=getHoraAgora();
+  document.getElementById('mc-texto').value='';
+  document.getElementById('mc-resp').value='Redecon';
+  document.getElementById('modal-comentario').classList.add('open');
+}
+function editarComentario(etIdx,cIdx){
+  modalComEtapaIdx=etIdx;
+  modalComIdx=cIdx;
+  editandoComentario=true;
+  const c=pSel.etapas[etIdx].comentarios[cIdx];
+  document.getElementById('mc-titulo').textContent='Editar comentário — '+pSel.etapas[etIdx].nome;
+  document.getElementById('mc-data').value=c.data;
+  document.getElementById('mc-hora').value=c.hora||'';
+  document.getElementById('mc-texto').value=c.texto;
+  document.getElementById('mc-resp').value=c.resp;
+  document.getElementById('modal-comentario').classList.add('open');
+}
+function fecharModalComentario(){document.getElementById('modal-comentario').classList.remove('open')}
+function salvarComentario(){
+  const texto=document.getElementById('mc-texto').value.trim();
+  if(!texto){alert('Escreva um comentário.');return}
+  const resp=document.getElementById('mc-resp').value;
+  const data=document.getElementById('mc-data').value.trim()||today();
+  const hora=document.getElementById('mc-hora').value.trim()||'';
+  const et=pSel.etapas[modalComEtapaIdx];
+  if(editandoComentario){
+    et.comentarios[modalComIdx]={data,hora,resp,texto}
+  }else{
+    et.comentarios.push({data,hora,resp,texto});
+    et.responsavel=resp
+  }
+  salvar();
+  fecharModalComentario();
+  renderDetalhe()
+}
+function removerComentario(etIdx,cIdx){if(!confirm('Remover comentário?'))return;pSel.etapas[etIdx].comentarios.splice(cIdx,1);salvar();renderDetalhe()}
+
+function verRelatorio(){showView('view-relatorio');renderRelatorio()}
+
+function copiarResumoRelatorio(){
+  const p=pSel;
+  if(!p) return;
+  const linhas=[
+    nomeExibicao(p),
+    `${p.tipo} — ${p.subtipo}${p.grupo?' · Grupo '+p.grupo:''}`,
+    `Status: ${p.cancelado?'Cancelado':(p.concluido?'Concluído em '+p.dataConclusao:'Em andamento')}`
+  ];
+  const totalEl=document.querySelector('#relatorio-conteudo .total-box-val');
+  if(totalEl) linhas.push('Duração total: '+totalEl.textContent.trim());
+  navigator.clipboard.writeText(linhas.join('\n')).then(()=>{
+    const btn=document.getElementById('btn-copiar-resumo');
+    if(!btn) return;
+    const original=btn.innerHTML;
+    btn.innerHTML='<i class="ti ti-check"></i> Copiado';
+    setTimeout(()=>{btn.innerHTML=original},1800);
+  });
+}
+
+function renderReembolsoRelatorio(p){
+  const etRe=p.etapas.find(et=>et.tipo==='reembolso');
+  if(!etRe||!etRe.reembolsos||!etRe.reembolsos.some(r=>r.descricao||r.valor)) return '';
+  const ordens=['1º','2º','3º','4º','5º'];
+  const total=etRe.reembolsos.filter(r=>r.valor).reduce((s,r)=>{
+    const n=parseFloat((r.valor||'0').replace(/[^\d,]/g,'').replace(',','.'));
+    return s+(isNaN(n)?0:n);
+  },0);
+  let html='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">';
+  html+=etRe.reembolsos.filter(r=>r.descricao||r.valor).map((r,i)=>
+    '<div class="rel-row"><div class="rel-row-label">'+(ordens[i]||((i+1)+'º'))+' reembolso — '+(r.descricao||'—')+'</div><div class="rel-row-val">'+(r.valor?'R$ '+r.valor:'—')+'</div></div>'
+  ).join('');
+  if(total>0) html+='<div class="rel-row" style="font-weight:600"><div class="rel-row-label">Total reembolsado</div><div class="rel-row-val">R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+  html+='</div>';
+  return html;
+}
+function renderCreditoRelatorio(p){
+  const sl=['Construção','Reforma','Ampliação','Quitação de financiamento + compra'];
+  if(sl.includes(p.subtipo)&&p.liberacoes&&p.liberacoes.length){
+    const validas=p.liberacoes.filter(l=>l.data||l.valor);
+    if(!validas.length) return '';
+    const ordens=['1ª','2ª','3ª','4ª','5ª','6ª'];
+    const total=p.liberacoes.filter(l=>l.valor).reduce((s,l)=>{
+      const n=parseFloat((l.valor||'0').replace(/[^\d,]/g,'').replace(',','.'));
+      return s+(isNaN(n)?0:n);
+    },0);
+    let html=validas.map((l,i)=>'<div class="rel-row"><div class="rel-row-label">'+(ordens[i]||((i+1)+'ª'))+' liberação'+(l.data?' · '+l.data:'')+'</div><div class="rel-row-val">'+(l.valor?'R$ '+l.valor:'—')+(l.comentario?' — '+l.comentario:'')+'</div></div>').join('');
+    if(total>0) html+='<div class="rel-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px"><div class="rel-row-label">Total liberado</div><div class="rel-row-val">R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+    return html;
+  }
+  return p.credito?'<div class="rel-row"><div class="rel-row-label">Crédito liberado</div><div class="rel-row-val">R$ '+p.credito+'</div></div>':'';
+}
+function renderRelatorio(){
+  const p=pSel;
+  // Etapas chave
+  const etapaPgto=achaEtapa(p,'pgto');
+  const dPgto=etapaPgto?etapaPgto.dataVal:'';
+  const emAndamento=!p.concluido;
+  const refFinal=dPgto||(emAndamento?today():'');
+  let prazoAprovacao=null,prazoHS=null,prazoAposContrato=null,prazoRI=null,prazoTotal=null,totalDias=null,prazoGravame=null,prazoRI2=null;
+
+  if(p.tipo==='Imóvel'){
+    const etapaEnvio=p.etapas.find(et=>et.nome==='Envio p/ análise');
+    const etapaAprov=p.etapas.find(et=>et.nome==='Aprovação de cadastro');
+    const etapaContrato=achaEtapa(p,'contrato');
+    const etapaRI=achaEtapa(p,'ri');
+    const dEnvio=etapaEnvio?etapaEnvio.dataVal:'';
+    const dAprov=etapaAprov?etapaAprov.dataVal:'';
+    const dContrato=etapaContrato?(etapaContrato.dataInicio||etapaContrato.dataVal):'';
+    const dAssinatura=etapaContrato?(etapaContrato.dataFim||etapaContrato.dataVal):'';
+    const dRIEntrada=etapaRI?etapaRI.dataInicio:'';
+    const dRISaida=etapaRI?etapaRI.dataFim:'';
+    prazoAprovacao=dEnvio&&dAprov?diasCorridos(dEnvio,dAprov):null;
+    prazoHS=dEnvio&&dContrato?diasCorridos(dEnvio,dContrato):null;
+    prazoAposContrato=dAssinatura&&dRIEntrada?diasCorridos(dAssinatura,dRIEntrada):dAssinatura?diasCorridos(dAssinatura,refFinal):null;
+    prazoRI=dRIEntrada?diasCorridos(dRIEntrada,dRISaida||refFinal):null;
+    prazoTotal=dEnvio?diasCorridos(dEnvio,refFinal):null;
+    totalDias=emAndamento&&dEnvio?diasCorridos(dEnvio,today()):prazoTotal;
+    const etapaRI2=p.etapas.find(et=>et.nome==='Registro 2º contrato - Compra e venda');
+    const dRI2Entrada=etapaRI2?etapaRI2.dataInicio:'';
+    const dRI2Saida=etapaRI2?etapaRI2.dataFim:'';
+    prazoRI2=dRI2Entrada?diasCorridos(dRI2Entrada,dRI2Saida||refFinal):null;
+  } else {
+    const etapaAnalise=p.etapas.find(et=>et.nome==='Processo em análise');
+    const etapaVistEnvio=p.etapas.find(et=>et.nome==='Envio link vistoria digital');
+    const etapaVistFeita=p.etapas.find(et=>et.nome==='Vistoria digital realizada');
+    const etapaAprovV=p.etapas.find(et=>et.nome==='Aprovação');
+    const etapaAssin=p.etapas.find(et=>et.nome==='Assinatura + Docs');
+    const etapaEnvioGravame=p.etapas.find(et=>et.nome==='Envio docs p/ inclusão gravame');
+    const etapaGravame=p.etapas.find(et=>et.nome==='Inclusão gravame');
+    const dAnalise=etapaAnalise?etapaAnalise.dataVal:'';
+    const dVistEnvio=etapaVistEnvio?etapaVistEnvio.dataVal:'';
+    const dVistFeita=etapaVistFeita?etapaVistFeita.dataVal:'';
+    const dAprovV=etapaAprovV?etapaAprovV.dataVal:'';
+    const dAssinInicio=etapaAssin?(etapaAssin.dataInicio||etapaAssin.dataVal):'';
+    const dAssinV=etapaAssin?(etapaAssin.dataFim||etapaAssin.dataVal):'';
+    const dEnvioGravame=etapaEnvioGravame?etapaEnvioGravame.dataVal:'';
+    const dGravame=etapaGravame?etapaGravame.dataVal:'';
+    prazoAprovacao=dAnalise&&dAprovV?diasCorridos(dAnalise,dAprovV):null;
+    const prazoAssinatura=dAprovV&&dAssinV?diasCorridos(dAprovV,dAssinV):null;
+    prazoGravame=dAssinV&&dGravame?diasCorridos(dAssinV,dGravame):null;
+    prazoAposContrato=prazoAssinatura;
+    prazoTotal=dAnalise&&refFinal?diasCorridos(dAnalise,refFinal):null;
+    totalDias=emAndamento&&dAnalise?diasCorridos(dAnalise,today()):prazoTotal;
+    const trechoVist=dAnalise&&dVistEnvio?diasCorridos(dAnalise,dVistEnvio):null;
+    const trechoAprovV=dVistFeita&&dAprovV?diasCorridos(dVistFeita,dAprovV):null;
+    const trechoAssinEnvio=dAprovV&&dAssinInicio?diasCorridos(dAprovV,dAssinInicio):null;
+    const trechoGravamePgto=dEnvioGravame&&dPgto?diasCorridos(dEnvioGravame,dPgto):null;
+    prazoHS=[trechoVist,trechoAprovV,trechoAssinEnvio,trechoGravamePgto].every(v=>v!==null)?(trechoVist+trechoAprovV+trechoAssinEnvio+trechoGravamePgto):null;
+  }
+  const gargalosHtml='';
+  const totalBox=totalDias!==null?`<div class="total-box${emAndamento?' andamento':''}"><span class="total-box-label"><i class="ti ti-calendar-stats"></i> Duração total${emAndamento?' (em andamento — até hoje)':' (envio à análise → pgto crédito)'}</span><span class="total-box-val">${totalDias} dias corridos</span></div>`:'';
+  function marcoSub(dias,max){if(dias===null)return'';return dias<=max?`<div class="rel-metric-sub ok">Dentro do prazo</div>`:`<div class="rel-metric-sub alert">Acima do prazo (até ${max}d)</div>`;}
+  const prazoOutras=(totalDias!==null&&prazoHS!==null&&prazoRI!==null)?Math.max(totalDias-prazoHS-prazoRI-(prazoRI2!==null?prazoRI2:0),0):null;
+  const outrasBox=prazoOutras!==null?`<div class="rel-metric"><div class="rel-metric-label">Ação das partes</div><div class="rel-metric-val">${prazoOutras}<small> dias</small></div><div class="rel-metric-sub info">Assinaturas, docs, taxas</div></div>`:``;
+  const prazoOutrasV=(totalDias!==null&&prazoHS!==null)?Math.max(totalDias-prazoHS,0):null;
+  const outrasBoxV=prazoOutrasV!==null?`<div class="rel-metric"><div class="rel-metric-label">Ação das partes</div><div class="rel-metric-val">${prazoOutrasV}<small> dias</small></div><div class="rel-metric-sub info">Vistoria do vendedor, assinaturas, taxas</div></div>`:``;
+  const marcosBox=p.tipo==='Imóvel'
+    ?`<div class="rel-metric-grid"><div class="rel-metric"><div class="rel-metric-label">Com a HS (até 35 dias)</div><div class="rel-metric-val">${prazoHS!==null?prazoHS+'<small> dias</small>':'—'}</div>${marcoSub(prazoHS,35)}</div><div class="rel-metric"><div class="rel-metric-label">No RI (até 30 dias)</div><div class="rel-metric-val">${prazoRI!==null?prazoRI+'<small> dias</small>':'—'}</div>${marcoSub(prazoRI,30)}</div>${prazoRI2!==null?`<div class="rel-metric"><div class="rel-metric-label">No RI — 2º contrato (até 30 dias)</div><div class="rel-metric-val">${prazoRI2}<small> dias</small></div>${marcoSub(prazoRI2,30)}</div>`:``}${outrasBox}</div>`
+    :(prazoHS!==null?`<div class="rel-metric-grid"><div class="rel-metric"><div class="rel-metric-label">Com a HS</div><div class="rel-metric-val">${prazoHS}<small> dias</small></div><div class="rel-metric-sub info">Análise, vistoria, aprovação e gravame</div></div>${outrasBoxV}</div>`:'');
+  function relStepper(milestones){
+    const doneCount=milestones.filter(m=>m.date).length;
+    const frac=milestones.length>1?Math.max(0,Math.min(1,(doneCount-1)/(milestones.length-1))):0;
+    const items=milestones.map(m=>`<div class="rel-stepper-item${m.date?' done':''}"><div class="rel-stepper-dot"></div><div class="rel-stepper-label">${m.label}</div><div class="rel-stepper-date">${m.date||'—'}</div></div>`).join('');
+    return `<div class="section-head">Etapas principais</div><div class="rel-stepper"><div class="rel-stepper-track"></div><div class="rel-stepper-progress" style="width:calc((100% - 40px) * ${frac.toFixed(2)})"></div><div class="rel-stepper-row">${items}</div></div>`;
+  }
+  let stepperHtml='';
+  if(p.tipo==='Imóvel'){
+    const etapaEnvio2=p.etapas.find(et=>et.nome==='Envio p/ análise');
+    const etapaAprov2=p.etapas.find(et=>et.nome==='Aprovação de cadastro');
+    const etapaContrato2=achaEtapa(p,'contrato');
+    const etapaRI2Marco=achaEtapa(p,'ri');
+    stepperHtml=relStepper([
+      {label:'Envio análise',date:etapaEnvio2?etapaEnvio2.dataVal:''},
+      {label:'Aprovação',date:etapaAprov2?etapaAprov2.dataVal:''},
+      {label:'Assinatura',date:etapaContrato2?(etapaContrato2.dataFim||etapaContrato2.dataVal):''},
+      {label:'Registro (RI)',date:etapaRI2Marco?(etapaRI2Marco.dataFim||etapaRI2Marco.dataInicio):''},
+      {label:'Pagamento',date:dPgto||''}
+    ]);
+  } else {
+    const etapaAnalise2=p.etapas.find(et=>et.nome==='Processo em análise');
+    const etapaAprovV2=p.etapas.find(et=>et.nome==='Aprovação');
+    const etapaAssin2=p.etapas.find(et=>et.nome==='Assinatura + Docs');
+    const etapaGravame2=p.etapas.find(et=>et.nome==='Inclusão gravame');
+    stepperHtml=relStepper([
+      {label:'Análise',date:etapaAnalise2?etapaAnalise2.dataVal:''},
+      {label:'Aprovação',date:etapaAprovV2?etapaAprovV2.dataVal:''},
+      {label:'Assinatura',date:etapaAssin2?(etapaAssin2.dataFim||etapaAssin2.dataVal):''},
+      {label:'Gravame',date:etapaGravame2?etapaGravame2.dataVal:''},
+      {label:'Pagamento',date:dPgto||''}
+    ]);
+  }
+  const etapasHtml=p.etapas.map(et=>{
+    let dataInfo='';
+    const done=et.tipo==='unico'?!!et.dataVal:(!!et.dataInicio&&!!et.dataFim);
+    if(et.tipo==='unico'&&et.dataVal)dataInfo=et.dataVal;
+    else if(et.tipo==='intervalo'&&et.dataInicio){const d=diasUteis(et.dataInicio,et.dataFim||today());dataInfo=et.dataInicio+(et.dataFim?' → '+et.dataFim+' ('+d+' dias úteis)':' → em andamento')}
+    if(!dataInfo&&!et.comentarios.length)return'';
+    const dataConc=et.tipo==='unico'?et.dataVal:et.dataFim;
+    const alertaRelHtml=et.alerta?('<div class="'+(et.alerta.tipo==='neg'?'alerta-neg':'alerta-pos')+'" style="margin-top:4px"><span class="alerta-icon">'+(et.alerta.tipo==='neg'?'⚠️':'✅')+'</span><span>'+et.alerta.texto+'</span></div>'):'';
+    const comsHtml=et.comentarios.map(c=>{
+      const isIntercorrencia=dataConc&&parseDMY(c.data)&&parseDMY(dataConc)&&parseDMY(c.data)<parseDMY(dataConc);
+      return`<div class="rel-comment${isIntercorrencia?' intercorrencia':''}">
+        ${isIntercorrencia?'<div class="intercorrencia-tag"><i class="ti ti-alert-circle"></i> Intercorrência</div>':''}
+        <div class="rel-comment-meta">${c.data}${c.hora?' · '+c.hora:''} · ${c.resp}</div>${c.texto}</div>`
+    }).join('');
+    return`<div class="rel-etapa ${done?'done':''}"><div class="rel-etapa-header"><span class="rel-etapa-nome">${et.nome}</span><span class="rel-etapa-info">${dataInfo}${dataInfo?' · ':''}${et.responsavel}</span></div>${comsHtml}</div>`
+  }).filter(Boolean).join('');
+
+  function fmt(v){return v!==null?'<span style="font-size:18px;font-weight:700">'+v+'</span><span style="font-size:11px;font-weight:400;margin-left:2px">dias</span>':'—'}
+  const tabelaPrazosHtml=p.tipo==='Imóvel'?`
+  <div class="section-head">Prazos (dias corridos)</div>
+  <div style="overflow-x:auto;margin-bottom:1.25rem">
+  <table class="prazo-table">
+    <thead><tr>
+      <th>Aprovação<br><span>Aprov − Envio análise</span></th>
+      <th>Com HS<br><span>Contrato − Envio análise</span></th>
+      <th>Após contrato<br><span>Entrada RI − Assinatura</span></th>
+      <th>No RI<br><span>Saída − Entrada RI</span></th>
+      <th class="total-col">Total<br><span>Pgto − Envio análise</span></th>
+    </tr></thead>
+    <tbody><tr>
+      <td>${fmt(prazoAprovacao)}</td>
+      <td>${fmt(prazoHS)}</td>
+      <td>${fmt(prazoAposContrato)}</td>
+      <td>${fmt(prazoRI)}</td>
+      <td class="total-col">${fmt(prazoTotal)}</td>
+    </tr></tbody>
+  </table>
+  </div>`:`
+  <div class="section-head">Prazos (dias corridos)</div>
+  <div style="overflow-x:auto;margin-bottom:1.25rem">
+  <table class="prazo-table">
+    <thead><tr>
+      <th>Aprovação<br><span>Análise − Aprovação</span></th>
+      <th>Assinatura + Docs<br><span>Aprovação − Assinatura</span></th>
+      <th>Inclusão de gravame<br><span>Assinatura − Gravame</span></th>
+      <th class="total-col">Pagamento<br><span>Análise − Pgto</span></th>
+    </tr></thead>
+    <tbody><tr>
+      <td>${fmt(prazoAprovacao)}</td>
+      <td>${fmt(prazoAposContrato)}</td>
+      <td>${fmt(prazoGravame)}</td>
+      <td class="total-col">${fmt(prazoTotal)}</td>
+    </tr></tbody>
+  </table>
+  </div>`;
+  const statusPillClass=p.cancelado?'cancel':(p.concluido?'ok':'andamento');
+  const statusPillTxt=p.cancelado?'Cancelado':(p.concluido?'Concluído · '+p.dataConclusao:'Em andamento');
+  document.getElementById('relatorio-conteudo').innerHTML=`<div class="rel-card"><div class="rel-top"><div><div class="rel-top-title">${nomeExibicao(p)}</div><div class="rel-top-sub">${p.tipo} · ${p.subtipo}${p.grupo?' · Grupo '+p.grupo:''}</div></div><span class="rel-status-pill ${statusPillClass}">${statusPillTxt}</span></div><div class="rel-body"><div class="section-head">Resumo</div><div class="rel-resumo"><div class="rel-row"><div class="rel-row-label">Consorciado</div><div class="rel-row-val">${nomeExibicao(p)}</div></div><div class="rel-row"><div class="rel-row-label">Tipo / Subtipo</div><div class="rel-row-val">${p.tipo} — ${p.subtipo}</div></div><div class="rel-row"><div class="rel-row-label">Grupo / Cota</div><div class="rel-row-val">${p.grupo||'—'}</div></div><div class="rel-row"><div class="rel-row-label">Abertura</div><div class="rel-row-val">${p.dataCriacao}</div></div><div class="rel-row"><div class="rel-row-label">Status</div><div class="rel-row-val">${p.concluido?'Concluído em '+p.dataConclusao:'Em andamento'}</div></div>${renderCreditoRelatorio(p)}${renderReembolsoRelatorio(p)}</div>${totalBox}${marcosBox||""}${gargalosHtml}${stepperHtml}${tabelaPrazosHtml}<div class="section-head">Linha do tempo detalhada</div>${etapasHtml}</div></div>`
+}
+
+document.querySelectorAll('.modal-backdrop').forEach(b=>{b.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
+document.getElementById('msg-popup').addEventListener('click',function(e){if(e.target===this)fecharMsgPopup()});
+document.getElementById('modal-alerta').addEventListener('click',function(e){if(e.target===this)fecharModalAlerta()});
+window._bootAposAuth = async function(){
+  if(window._fbPronto){
+    await Promise.all([carregar(), carregarTemplates()]);  // dados + modelos de etapas atualizados
+    processarNovoDaQuery();    // só então cria o processo novo, se houver
+  } else {
+    // Firebase ainda carregando - usar localStorage enquanto isso
+    try{const r=localStorage.getItem('redecon_v1');if(r)processos=JSON.parse(r)}catch(e){}
+    renderLista();
+    window._fbProntoCallback = async function(){
+      await Promise.all([carregar(), carregarTemplates()]);
+      processarNovoDaQuery();
+    };
+  }
+};
+if(window._authUser) window._bootAposAuth();
+</script>
+</body>
+</html>
