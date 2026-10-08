@@ -520,7 +520,7 @@
         <div class="field" style="flex:1"><label>Parcela mensal (R$)</label><input type="text" id="f_parcela" placeholder="Ex.: 2.345,67"></div>
         <div class="field" style="flex:1"><label>Seguro prestamista (R$)</label><input type="text" id="f_seguro" placeholder="Ex.: 129,40"></div>
       </div>
-      <div class="field"><label>Renda mínima a comprovar (R$) — calculada: (parcela + seguro) × 3, ajustável</label><input type="text" id="f_renda" placeholder="Preenchida automaticamente"></div>
+      <div class="field"><label>Renda mínima a comprovar (R$) — calculada: (parcela + seguro) × 3, ajustável</label><input type="text" id="f_renda" placeholder="Preenchida automaticamente"><div class="hint" id="f_renda_hint"></div></div>
       <div id="fin_bem_wrap">
         <div class="field"><label id="f_fundo_label">Fundo comum (R$)</label><input type="text" id="f_fundo" placeholder="Ex.: 400.000,00"></div>
         <div class="field"><label id="f_valbem_label">Valor mínimo do imóvel (R$) — calculado: igual ao fundo comum, ajustável</label><input type="text" id="f_valbem" placeholder="Preenchido automaticamente"></div>
@@ -1235,7 +1235,9 @@ function slideObsResumoAvulso(modo){
   }
   let rendaHtml='';
   if(renda){
-    rendaHtml = `<div class="finbox"><h4>Renda mínima a comprovar</h4><div class="valor">R$ <span contenteditable="true">${renda}</span><span class="nota-extra" contenteditable="true">+ parcelas de outros consórcios já contemplados e utilizados</span></div><p contenteditable="true">Exigência do Banco Central: renda líquida mínima de 3 vezes o valor da parcela mensal. Pode ser composta com a renda do cônjuge. Se o cliente já tiver outros consórcios contemplados e utilizados (imóvel, veículo, construção etc.) com parcelas em andamento, some elas também.</p></div>`;
+    const aDev = document.getElementById('a_parte').value==='devedor';
+    const aEc = document.getElementById('a_ec').value;
+    rendaHtml = rendaFinbox(renda, aDev ? nomesDevedorAvulso() : '', aDev && (aEc==='casado'||aEc==='solteiro_ue') && document.getElementById('a_cjrenda_on').checked);
   }
   if(!obsHtml && !rendaHtml) return '';
   const titulo = obsHtml ? 'Observações e resumo do processo' : 'Resumo do processo';
@@ -2525,13 +2527,49 @@ function finBemRecalc(){
 }
 document.getElementById('f_fundo').addEventListener('input', finBemRecalc);
 document.getElementById('p_valor').addEventListener('input', finBemRecalc);
+/* Renda mínima: com devedor solidário, quem comprova é o devedor (+ cônjuge, quando incluído) */
+function nomesDevedores(){
+  return [...document.querySelectorAll('#devs .subcard')].map(dv=>{
+    const n=(dv.querySelector('.f_nome').value||'').trim()||'Devedor solidário';
+    const ec=dv.querySelector('.f_ec').value;
+    const cjOn=(ec==='casado'||ec==='solteiro_ue') && dv.querySelector('.f_cjrenda_on')?.checked;
+    const cj=(dv.querySelector('.f_cjnome')?.value||'').trim()||'cônjuge';
+    return cjOn ? n+' e '+cj : n;
+  }).join(' e ');
+}
+function devedoresComCj(){
+  return [...document.querySelectorAll('#devs .subcard')].some(dv=>{
+    const ec=dv.querySelector('.f_ec').value;
+    return (ec==='casado'||ec==='solteiro_ue') && dv.querySelector('.f_cjrenda_on')?.checked;
+  });
+}
+function nomesDevedorAvulso(){
+  const n=document.getElementById('a_nome').value.trim()||'Devedor solidário';
+  const ec=document.getElementById('a_ec').value;
+  const cjOn=(ec==='casado'||ec==='solteiro_ue') && document.getElementById('a_cjrenda_on').checked;
+  const cj=document.getElementById('a_cjnome').value.trim()||'cônjuge';
+  return cjOn ? n+' e '+cj : n;
+}
+function rendaFinbox(renda, devedores, comCj){
+  const titulo = devedores ? 'Renda mínima a comprovar — devedor solidário' : 'Renda mínima a comprovar';
+  const texto = devedores
+    ? 'Exigência do Banco Central: renda líquida mínima de 3 vezes o valor da parcela mensal. Como o processo tem devedor solidário, a renda é comprovada '+(comCj?'pelo devedor solidário e cônjuge':'pelo devedor solidário')+': <b>'+devedores+'</b>. Se houver outros consórcios já contemplados e utilizados (imóvel, veículo, construção etc.) com parcelas em andamento, some elas também.'
+    : 'Exigência do Banco Central: renda líquida mínima de 3 vezes o valor da parcela mensal. Pode ser composta com a renda do cônjuge. Se o cliente já tiver outros consórcios contemplados e utilizados (imóvel, veículo, construção etc.) com parcelas em andamento, some elas também.';
+  return '<div class="finbox"><h4>'+titulo+'</h4><div class="valor">R$ <span contenteditable="true">'+renda+'</span><span class="nota-extra" contenteditable="true">+ parcelas de outros consórcios já contemplados e utilizados</span></div><p contenteditable="true">'+texto+'</p></div>';
+}
+function atualizarHintRenda(){
+  const el=document.getElementById('f_renda_hint'); if(!el) return;
+  const avulsoDev = (chipVals('emissao')[0]||'completo')==='avulso' && document.getElementById('a_parte').value==='devedor';
+  const temDev = (chipVals('emissao')[0]||'completo')!=='avulso' && temDevedorSolidario();
+  el.innerHTML = (temDev||avulsoDev) ? '👥 Com devedor solidário, essa renda é comprovada pelo devedor (+ cônjuge, quando incluído) — não pelo consorciado.' : '';
+}
 function slideResumoFin(modo, soRenda){
   const renda=document.getElementById('f_renda').value.trim();
   const valbem=soRenda ? '' : document.getElementById('f_valbem').value.trim();
   if(!renda && !valbem) return '';
   const bemLabel = modo==='veiculo' ? 'do veículo' : 'do imóvel';
   let h='<div class="slide"><h3 class="titulo" contenteditable="true">Resumo do processo</h3><div class="sub" contenteditable="true">Valores de referência para a análise — em caso de dúvida, fale com a Redecon</div>';
-  if(renda) h+=`<div class="finbox"><h4>Renda mínima a comprovar</h4><div class="valor">R$ <span contenteditable="true">${renda}</span><span class="nota-extra" contenteditable="true">+ parcelas de outros consórcios já contemplados e utilizados</span></div><p contenteditable="true">Exigência do Banco Central: renda líquida mínima de 3 vezes o valor da parcela mensal. Pode ser composta com a renda do cônjuge. Se o cliente já tiver outros consórcios contemplados e utilizados (imóvel, veículo, construção etc.) com parcelas em andamento, some elas também.</p></div>`;
+  if(renda) h+=rendaFinbox(renda, nomesDevedores(), devedoresComCj());
   if(valbem){
     let txtBem;
     if(modo!=='veiculo'){
@@ -2778,6 +2816,10 @@ function limparTudo(){
 onFormChange();
 document.getElementById('form').addEventListener('input', procAutoSave);
 document.getElementById('form').addEventListener('change', procAutoSave);
+document.getElementById('form').addEventListener('change', atualizarHintRenda);
+document.getElementById('form').addEventListener('click', ()=>setTimeout(atualizarHintRenda,0));
+new MutationObserver(atualizarHintRenda).observe(document.getElementById('devs'), {childList:true});
+atualizarHintRenda();
 document.getElementById('pre_texto').addEventListener('input', procAutoSave);
 procBadge(); procRender();
 </script>
