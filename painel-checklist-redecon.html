@@ -229,13 +229,14 @@
     .doc [contenteditable]:focus{outline:none}
     body.only-cons #bl_vend{display:none !important}
     body.only-vend #bl_cons{display:none !important}
-    .slide.excl,.sl-toggle{display:none !important}
+    .slide.excl,.sl-toggle,.sl-ctrl{display:none !important}
   }
   .printbar{max-width:960px;margin:0 auto 18px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
   .slide{position:relative}
   .slide.excl{opacity:.35;outline:2px dashed #c9c9d0}
-  .slide .sl-toggle{position:absolute;top:10px;right:10px;z-index:5;border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;color:#555;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-  .slide .sl-toggle:hover{border-color:var(--coral);color:var(--coral)}
+  .slide .sl-ctrl{position:absolute;top:10px;right:10px;z-index:5;display:flex;gap:6px}
+  .slide .sl-ctrl button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;color:#555;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .slide .sl-ctrl button:hover{border-color:var(--coral);color:var(--coral)}
   .slide.excl .sl-toggle{background:var(--coral);color:#fff;border-color:var(--coral)}
   #tipoModalBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
   #tipoModalBackdrop.open{display:flex}
@@ -643,7 +644,7 @@
     <div class="body">
       <div id="devs"></div>
       <button class="addline" onclick="addDev()">+ Adicionar devedor solidário</button>
-      <div class="hint">Documentos pessoais + renda. Sem DPS.</div>
+      <div class="hint">Documentos pessoais + renda. Sem DPS.<br>Com devedor solidário, o checklist <b>não pede a renda do consorciado</b> (PF ou PJ) — só a dos devedores.</div>
     </div>
   </div>
 
@@ -1323,7 +1324,7 @@ function gerar(){
       docsRenda(chipVals('cj_rendas'), document.getElementById('cj_emp_regime').value)
         .forEach(d=>cardsR.push({t:d[0], d:d[1], pessoa:cjNome}));
     }
-    if(cardsR.length){
+    if(cardsR.length && !temDevedorSolidario()){
       html += slideCards('Comprovação de renda', (temCj && document.getElementById('cj_renda_on').checked) ? cNome+' e '+cjNome : cNome, cardsR);
     }
   } else {
@@ -1344,7 +1345,7 @@ function gerar(){
     html += slideCards('Documentos da empresa', pjNome + ' — empresa com no mínimo 1 ano de abertura', cardsE);
 
     const cardsR = PJ_RENDA[document.getElementById('pj_regime').value].map(d=>({t:d[0],d:d[1],pessoa:pjNome}));
-    html += slideCards('Comprovação de renda da empresa', pjNome, cardsR);
+    if(!temDevedorSolidario()) html += slideCards('Comprovação de renda da empresa', pjNome, cardsR);
 
     const socios = [...document.querySelectorAll('#pj_socios .subcard')];
     if(socios.length){
@@ -1600,6 +1601,8 @@ function gerar(){
   try{ document.getElementById('slides').scrollIntoView({behavior:'smooth'}); }catch(e){}
 }
 
+/* Com devedor solidário cadastrado, a renda é comprovada só pelos devedores — o consorciado (PF ou PJ) não envia renda. */
+function temDevedorSolidario(){ return document.querySelectorAll('#devs .subcard').length > 0; }
 function devSlides(dv, modo){
   const n = dv.querySelector('.f_nome').value.trim();
   const ecD = dv.querySelector('.f_ec').value;
@@ -1757,7 +1760,7 @@ function gerarVeiculo(){
       docsRenda(chipVals('cj_rendas'), document.getElementById('cj_emp_regime').value)
         .forEach(d=>cardsR.push({t:d[0], d:d[1], pessoa:cjNome}));
     }
-    if(cardsR.length){
+    if(cardsR.length && !temDevedorSolidario()){
       html += slideCards('Comprovação de renda', (temCj && document.getElementById('cj_renda_on').checked) ? cNome+' e '+cjNome : cNome, cardsR);
     }
   } else {
@@ -1773,7 +1776,7 @@ function gerarVeiculo(){
     cardsE.push({t:'Contrato Social ou Consolidação', d:'Com as alterações posteriores, se houver. Via eletrônica ou desmaterializada.', pessoa:pjNome});
     cardsE.push({t:'Dados da empresa', d:'Informar telefone e e-mail da PJ.', pessoa:pjNome});
     html += slideCards('Documentos da empresa', pjNome + ' — empresa com no mínimo 1 ano de abertura', cardsE);
-    html += slideCards('Comprovação de renda da empresa', pjNome, PJ_RENDA[document.getElementById('pj_regime').value].map(d=>({t:d[0],d:d[1],pessoa:pjNome})));
+    if(!temDevedorSolidario()) html += slideCards('Comprovação de renda da empresa', pjNome, PJ_RENDA[document.getElementById('pj_regime').value].map(d=>({t:d[0],d:d[1],pessoa:pjNome})));
     const socios = [...document.querySelectorAll('#pj_socios .subcard')];
     if(socios.length){
       const cardsS = [];
@@ -2632,12 +2635,21 @@ function _criarProcessoViaIframe(params, btn, textoOriginal, forcado){
 /* ====== EMISSÃO AVULSA: seleção de telas ====== */
 function decorateSlides(){
   document.querySelectorAll('#slides .slide').forEach(s=>{
-    if(s.querySelector('.sl-toggle')) return;
+    if(s.querySelector('.sl-ctrl')) return;
+    const box=document.createElement('div');
+    box.className='sl-ctrl no-print';
     const b=document.createElement('button');
-    b.className='sl-toggle no-print';
+    b.className='sl-toggle';
+    b.title='Manter ou tirar esta tela do PDF (dá para voltar atrás)';
     b.textContent='Incluir ✓';
     b.onclick=()=>{ s.classList.toggle('excl'); b.textContent = s.classList.contains('excl')?'Excluída ✕':'Incluir ✓'; };
-    s.appendChild(b);
+    const del=document.createElement('button');
+    del.className='sl-del';
+    del.title='Apagar esta tela inteira';
+    del.textContent='🗑 Excluir tela';
+    del.onclick=()=>{ if(confirm('Excluir esta tela inteira do checklist?')){ s.remove(); procAutoSave(); } };
+    box.appendChild(b); box.appendChild(del);
+    s.appendChild(box);
   });
 }
 function selTodas(incluir){
