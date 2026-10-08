@@ -52,6 +52,9 @@
   .field{margin-bottom:12px}
   .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;letter-spacing:.3px}
   .field input[type=text],.field select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+  .field textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fff;font-family:inherit;resize:vertical;line-height:1.4}
+  .termobox{border:1px dashed var(--coral2);border-radius:10px;padding:12px;margin-top:12px;background:#fffaf8}
+  .termobox .tt{font-size:12px;font-weight:800;color:var(--coral);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
   .field input:focus,.field select:focus{outline:2px solid var(--coral2);border-color:var(--coral)}
   .chips{display:flex;flex-wrap:wrap;gap:7px}
   .chip{border:1px solid var(--line);border-radius:20px;padding:7px 13px;font-size:13px;cursor:pointer;user-select:none;background:#fff;transition:.12s}
@@ -267,6 +270,7 @@
     <a href="index.html" style="color:#fff;text-decoration:none;font-size:12px;opacity:.85">🏠 Central</a>
     <a href="painel-checklist-redecon.html" style="color:#fff;text-decoration:none;font-size:12px;font-weight:700">📋 Checklist</a>
     <a href="redecon_processos.html" style="color:#fff;text-decoration:none;font-size:12px;opacity:.85">🗂️ Gestão de Processos</a>
+    <a href="termo-opcao-redecon.html" style="color:#fff;text-decoration:none;font-size:12px;opacity:.85">📝 Termo de Opção</a>
     <div class="arc"></div>
     <h1>Painel de Checklist<small>Redecon Consórcios · HS Consórcios</small></h1>
   </div>
@@ -713,6 +717,17 @@
       <label class="switch"><input type="checkbox" id="i_aberta1"> Matrícula aberta há menos de 1 ano (exige matrícula de origem)</label>
       <div class="field hide" id="i_origem_wrap" style="margin-top:6px"><label>Nº da matrícula de origem (opcional)</label><input type="text" id="i_origem" placeholder="Ex.: 12.300"></div>
       <div class="field" style="margin-top:10px"><label>Observação na matrícula (opcional)</label><input type="text" id="i_obs" placeholder="Ex.: Constando a baixa do usufruto"></div>
+      <div class="termobox hide" id="i_termo_wrap">
+        <div class="tt">📝 Para o Termo de Opção</div>
+        <div class="field"><label>Descrição do imóvel (início da matrícula, 2–3 linhas)</label><textarea id="i_termo_desc" rows="3" placeholder="Ex.: Lote urbano nº 12 da quadra nº 34, com área de 360,00 m², situado no Loteamento …"></textarea></div>
+        <div class="inline">
+          <div class="field" style="flex:2"><label>Matrícula nº</label><input type="text" id="i_termo_mat" placeholder="Ex.: 12.345"></div>
+          <div class="field" style="flex:1"><label>LV</label><input type="text" id="i_termo_lv"></div>
+          <div class="field" style="flex:1"><label>FLS.</label><input type="text" id="i_termo_fls"></div>
+        </div>
+        <div class="field"><label>Registro de Imóveis de</label><input type="text" id="i_termo_ri" placeholder="Ex.: 1º Serviço de Registro de Imóveis de Pato Branco"></div>
+        <div class="hint">Vêm da análise da matrícula (aba Pré-análise). Os dados pessoais e a conta bancária são preenchidos só no Termo e não ficam salvos.</div>
+      </div>
     </div>
   </div>
 
@@ -768,6 +783,7 @@ function onFormChange(){
   document.getElementById('sec_veic').classList.toggle('hide', avulso || modo!=='veiculo');
   document.getElementById('v_cond_wrap').classList.toggle('hide', avulso || modo!=='veiculo');
   document.getElementById('sec_vend').classList.toggle('hide', !temVend);
+  document.getElementById('i_termo_wrap').classList.toggle('hide', avulso || modo!=='imovel' || !utz.includes('aquisicao'));
   /* campos do avulso */
   const aParte = document.getElementById('a_parte').value;
   const aEc = document.getElementById('a_ec').value;
@@ -1592,6 +1608,7 @@ function gerar(){
     bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeCapa.replace(/'/g,'')}')">🖨 Imprimir / Salvar PDF</button>`;
   }
   bar += `<button class="btn btn-light" onclick="criarProcessoNoAcompanhamento('imovel', this)">🗂️ Criar processo no acompanhamento</button>`;
+  if(utz.includes('aquisicao')) bar += `<button class="btn btn-light" onclick="abrirTermoOpcao()">📝 Gerar Termo de Opção</button>`;
   bar += '</div>';
   html = bar + html;
 
@@ -1607,6 +1624,50 @@ function gerar(){
    Compara nomes ignorando acentos/maiúsculas; "Fábio" casa com "Fábio Silva" (mesmo primeiro nome e
    todas as palavras do nome mais curto contidas no mais longo). */
 function normNome(n){ return (n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(Boolean); }
+/* ===================== TERMO DE OPÇÃO (entrega dos dados ao gerador) =====================
+   Passa só o que o checklist já tem (tipos, nomes, grupo/cota, CPF/CNPJ das Negativas e dados do imóvel).
+   A entrega usa uma chave temporária no navegador, apagada pelo Termo assim que ele lê. */
+function abrirTermoOpcao(){
+  const g = id => document.getElementById(id);
+  const docDe = nome => { if(!nome) return ''; const p = NEG.pessoas.find(x => mesmoNome(x.nome, nome)); return p ? (p.cpf || '') : ''; };
+  const temCj = ec => ec==='casado' || ec==='solteiro_ue';
+  const d = {};
+  const cTipo = chipVals('c_tipo')[0] || 'pf';
+  d['c.tipo'] = cTipo;
+  d['c.grupo'] = [g('p_grupo').value.trim(), g('p_cota').value.trim()].filter(Boolean).join(' / ');
+  if(cTipo==='pf'){
+    d['c.nome1'] = g('c_nome').value.trim() || g('p_nome').value.trim();
+    d['c.cpf1'] = docDe(d['c.nome1']);
+    if(temCj(g('c_ec').value)){ d['c.nome2'] = g('cj_nome').value.trim(); d['c.cpf2'] = docDe(d['c.nome2']); }
+  } else {
+    d['c.razao'] = g('pj_nome').value.trim();
+    d['c.cnpj'] = docDe(d['c.razao']);
+  }
+  const vends = [...document.querySelectorAll('#vends .subcard')];
+  if(vends.length > 1 && !confirm('Este processo tem '+vends.length+' vendedores. Os 4 modelos do Termo têm um bloco de vendedor (vendedor + cônjuge) — para mais vendedores, o modelo deve ser solicitado à HS.\n\nAbrir o Termo com o primeiro vendedor mesmo assim?')) return;
+  const v = vends[0];
+  if(v){
+    const vTipo = v.querySelector('.f_tipo').value;
+    d['v.tipo'] = vTipo;
+    if(vTipo==='pf'){
+      d['v.nome1'] = v.querySelector('.f_nome').value.trim();
+      d['v.cpf1'] = docDe(d['v.nome1']);
+      if(temCj(v.querySelector('.v_pf .f_ec').value)){ d['v.nome2'] = (v.querySelector('.f_cjnome')?.value||'').trim(); d['v.cpf2'] = docDe(d['v.nome2']); }
+    } else {
+      d['v.razao'] = v.querySelector('.f_nomepj').value.trim();
+      d['v.cnpj'] = docDe(d['v.razao']);
+    }
+  }
+  d['i.desc'] = g('i_termo_desc').value.trim();
+  d['i.mat'] = g('i_termo_mat').value.trim();
+  d['i.lv'] = g('i_termo_lv').value.trim();
+  d['i.fls'] = g('i_termo_fls').value.trim();
+  d['i.ri'] = g('i_termo_ri').value.trim();
+  Object.keys(d).forEach(k => { if(!d[k]) delete d[k]; });
+  try{ localStorage.setItem('redecon_termo_prefill', JSON.stringify({ts:Date.now(), origem:(PROC_ATUAL || g('p_nome').value.trim() || ''), d})); }
+  catch(e){ alert('Não foi possível passar os dados ao Termo neste navegador. Ele vai abrir em branco.'); }
+  window.open('termo-opcao-redecon.html', '_blank');
+}
 function mesmoNome(a,b){
   const A=normNome(a), B=normNome(b);
   if(!A.length || !B.length) return false;
@@ -2067,6 +2128,10 @@ matricula_aberta_menos_1ano: sim | nao
 matricula_origem: (nº, se houver)
 garagem_matricula_separada: sim | nao
 observacao: (ex.: constando a baixa do usufruto)
+descricao_termo: (para o Termo de Opção — 2 a 3 linhas, EM UMA ÚNICA LINHA, com o início da matrícula: unidade ou lote, quadra, edificação, áreas, condomínio e localização; sem nomes nem dados pessoais)
+livro:
+folha:
+registro_imoveis: (ex.: 1º Serviço de Registro de Imóveis de Pato Branco)
 [PESSOA]
 nome:
 cpf:
@@ -2147,6 +2212,11 @@ function aplicarAnalise(){
   g('i_origem_wrap').classList.toggle('hide', !g('i_aberta1').checked);
   g('i_garagem').checked = sim(imv.garagem_matricula_separada);
   if(imv.observacao) g('i_obs').value=imv.observacao;
+  if(imv.descricao_termo) g('i_termo_desc').value=imv.descricao_termo;
+  if(imv.matricula){ const nm=String(imv.matricula).match(/\d[\d.\/-]*/); if(nm) g('i_termo_mat').value=nm[0].replace(/[.\/-]$/,''); }
+  if(imv.livro) g('i_termo_lv').value=imv.livro;
+  if(imv.folha) g('i_termo_fls').value=imv.folha;
+  if(imv.registro_imoveis) g('i_termo_ri').value=imv.registro_imoveis;
   resumo.push('Imóvel: '+(imv.tipo||'urbano')+(imv.matricula?' — matrícula '+imv.matricula:'')+(g('i_menos1').checked?' · adquirido <1 ano':'')+(g('i_aberta1').checked?' · aberta <1 ano':'')+(imv.condominio && imv.condominio!=='nao'?' · condomínio ('+imv.condominio+')':''));
   /* pessoas -> vendedores no checklist + planilha de negativas */
   const ECOK=['solteiro','solteiro_ue','casado','divorciado','viuvo'];
@@ -2202,7 +2272,7 @@ function tipoModalCancelar(){
 function procsAll(){ return store.get('redecon_procs') || {}; }
 function procBadge(){ document.getElementById('proc_badge').textContent = PROC_ATUAL ? ('🗂 '+PROC_ATUAL) : ''; }
 function limparFormSilencioso(){
-  document.querySelectorAll('#form input[type=text]').forEach(i=>i.value='');
+  document.querySelectorAll('#form input[type=text], #form textarea').forEach(i=>i.value='');
   document.querySelectorAll('#form input[type=checkbox]').forEach(i=>i.checked=false);
   document.querySelectorAll('#form .chip.on').forEach(c=>c.classList.remove('on'));
   document.querySelector('#c_tipo .chip[data-v=pf]').classList.add('on');
@@ -2755,7 +2825,8 @@ function coletarForm(){
     parentesco:g('v_parentesco').checked,
     anus:[...document.querySelectorAll('#anus .subcard')].map(s=>({nome:s.querySelector('.f_nome').value, ec:s.querySelector('.f_ec').value})),
     i:{tipo:chipVals('i_tipo')[0]||'urbano', id:g('i_id').value, cond:g('i_cond').value, condnome:g('i_condnome').value, aptobox:g('i_aptobox').checked, garagem:g('i_garagem').checked,
-       menos1:g('i_menos1').checked, aberta1:g('i_aberta1').checked, origem:g('i_origem').value, obs:g('i_obs').value},
+       menos1:g('i_menos1').checked, aberta1:g('i_aberta1').checked, origem:g('i_origem').value, obs:g('i_obs').value,
+       termoDesc:g('i_termo_desc').value, termoMat:g('i_termo_mat').value, termoLv:g('i_termo_lv').value, termoFls:g('i_termo_fls').value, termoRi:g('i_termo_ri').value},
     v:{bem:g('v_bem').value, cond:chipVals('v_cond')[0]||'usado', vendpj:g('v_vendpj').checked, temproc:g('v_temproc').checked, procnome:g('v_procnome').value, id:g('v_id').value},
     fin:{parcela:g('f_parcela').value, seguro:g('f_seguro').value, renda:g('f_renda').value, fundo:g('f_fundo').value, valbem:g('f_valbem').value},
     neg: NEG,
@@ -2794,6 +2865,7 @@ function aplicarForm(o){
   g('anus').innerHTML=''; o.anus.forEach(a=>{ addAnu(); const el=g('anus').lastElementChild; el.querySelector('.f_nome').value=a.nome; el.querySelector('.f_ec').value=a.ec; });
   g('i_id').value=o.i.id; g('i_cond').value=o.i.cond; g('i_condnome').value=o.i.condnome||''; document.getElementById('i_condnome_wrap').classList.toggle('hide', (o.i.cond||'nao')==='nao'); g('i_aptobox').checked=o.i.aptobox; g('i_garagem').checked=o.i.garagem;
   g('i_menos1').checked=o.i.menos1; g('i_aberta1').checked=o.i.aberta1; g('i_origem').value=o.i.origem; g('i_obs').value=o.i.obs;
+  g('i_termo_desc').value=o.i.termoDesc||''; g('i_termo_mat').value=o.i.termoMat||''; g('i_termo_lv').value=o.i.termoLv||''; g('i_termo_fls').value=o.i.termoFls||''; g('i_termo_ri').value=o.i.termoRi||'';
   g('i_origem_wrap').classList.toggle('hide', !o.i.aberta1);
   g('v_bem').value=o.v.bem; g('v_vendpj').checked=o.v.vendpj; g('v_id').value=o.v.id;
   g('v_temproc').checked=!!o.v.temproc; document.getElementById('v_proc_wrap').classList.toggle('hide', !o.v.temproc); g('v_procnome').value=o.v.procnome||'';
@@ -2837,7 +2909,7 @@ function printBloco(qual, nome){
 
 function limparTudo(){
   if(!confirm('Limpar formulário e resultado?')) return;
-  document.querySelectorAll('#form input[type=text]').forEach(i=>i.value='');
+  document.querySelectorAll('#form input[type=text], #form textarea').forEach(i=>i.value='');
   document.querySelectorAll('#form input[type=checkbox]').forEach(i=>i.checked=false);
   document.querySelectorAll('#form .chip.on').forEach(c=>c.classList.remove('on'));
   document.querySelector('#c_tipo .chip[data-v=pf]').classList.add('on');
