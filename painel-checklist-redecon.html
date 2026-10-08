@@ -151,8 +151,7 @@
   .doc.off{opacity:.38}
   .doc.off .strip{background:#bbb}
   .doc.wide{grid-column:1/-1}
-  .doc.wide p{max-width:none;column-gap:34px}
-  @media(min-width:700px){.doc.wide p.cols{columns:2}}
+  .doc.wide p{max-width:none}
   .doc .ctrl{position:absolute;top:9px;right:8px;display:flex;gap:4px}
   .doc .ctrl button{border:0;background:#f0f0f2;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer;color:#555}
   .doc .ctrl button:hover{background:var(--coral);color:#fff}
@@ -1114,7 +1113,7 @@ function cardHTML(pessoa, t, dsc){
     <div class="inner">
       <h4><span class="cb">✔</span><span contenteditable="true">${t}</span></h4>
       ${pessoa?`<div class="pessoa" contenteditable="true">${pessoa}</div>`:''}
-      <p contenteditable="true"${wide && dsc.length>600?' class="cols"':''}>${dsc}</p>
+      <p contenteditable="true">${dsc}</p>
     </div>
   </div>`;
 }
@@ -1145,8 +1144,6 @@ async function carregarDocTemplates(){
 function toggleLargura(id){
   const el = document.getElementById(id);
   el.classList.toggle('wide');
-  const p = el.querySelector('p');
-  if(p) p.classList.toggle('cols', el.classList.contains('wide') && (p.textContent||'').length>600);
 }
 function custaHTML(t, dsc){
   return `<div class="custa" id="cd${++CARDSEQ}">
