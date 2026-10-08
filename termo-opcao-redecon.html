@@ -61,6 +61,10 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#t
   .confere{display:flex;gap:9px;align-items:flex-start;background:#fff8e6;border:1px solid #f1d58b;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin-top:4px;cursor:pointer}
   .confere input{width:17px;height:17px;margin-top:1px;accent-color:var(--coral);flex:0 0 auto}
   .privacidade{font-size:11.5px;color:var(--muted);line-height:1.5;background:#f7f7f9;border-radius:10px;padding:10px 12px;margin-bottom:14px}
+  .rasc-linha{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .rasc-linha label{font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap}
+  .rasc-linha select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
+  .rasc-info{font-size:11.5px;color:var(--ok);font-weight:600;margin-bottom:6px}
   .hide{display:none !important}
 
   /* ============ PRÉVIA ============ */
@@ -138,7 +142,11 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#t
 <main>
 <div id="form">
 
-  <div class="privacidade">🔒 Os dados digitados aqui <b>não são salvos na nuvem</b>. Ficam só nesta aba do navegador (sobrevivem a um recarregar da página) e somem ao fechar a aba ou ao clicar em <b>Apagar dados</b>. Depois de enviar o processo para análise, apague.</div>
+  <div class="privacidade">
+    <div class="rasc-linha"><label for="rasc_sel">📂 Rascunho</label><select id="rasc_sel"></select></div>
+    <div id="rasc_info" class="rasc-info"></div>
+    🔒 Os dados ficam salvos <b>só neste computador</b> (no navegador), um rascunho por processo, e <b>não vão para a nuvem</b>. Continuam aqui até você clicar em <b>Apagar dados</b> — faça isso depois que o processo for enviado e o termo estiver assinado.
+  </div>
 
   <div class="sec">
     <h2><span class="dot"></span>Modelo</h2>
@@ -403,8 +411,14 @@ const MASK = {
 };
 
 /* ===================== ESTADO DO FORMULÁRIO ===================== */
-const STORE_KEY = 'redecon_termo_opcao_rascunho';
+/* Rascunhos salvos neste computador (localStorage), um por processo, até "Apagar dados".
+   { [id]: { processo, dados, salvoEm, ts } } — id "p:<processo do checklist>" ou "a:<carimbo>" (termo sem processo). */
+const STORE_KEY = 'redecon_termo_rascunhos';
+const ULTIMO_KEY = 'redecon_termo_ultimo';
+const SESSAO_ANTIGA = 'redecon_termo_opcao_rascunho';
 let proprioManual = false;
+let RASC_ID = '';
+let RASC_PROC = '';
 
 function chipVal(id){ const c = document.querySelector('#' + id + ' .chip.on'); return c ? c.dataset.v : 'pf'; }
 function setChip(id, v){ document.querySelectorAll('#' + id + ' .chip').forEach(c => c.classList.toggle('on', c.dataset.v === v)); }
@@ -415,23 +429,76 @@ function coletar(){
 }
 function hojeISO(){ const d = new Date(); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
 function padroes(){ $('[data-k="d.local"]').value = 'Pato Branco'; $('[data-k="d.data"]').value = hojeISO(); }
-function salvarRascunho(){ try{ sessionStorage.setItem(STORE_KEY, JSON.stringify(coletar())); }catch(e){} }
-function restaurar(){
-  let o = null;
-  try{ o = JSON.parse(sessionStorage.getItem(STORE_KEY)); }catch(e){}
-  if(!o){ padroes(); return; }
+function lerRascunhos(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; } }
+function gravarRascunhos(m){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(m)); return true; }catch(e){ return false; } }
+function temConteudo(o){ return Object.keys(o).some(k => /^[cvi]\./.test(k) && !/\.tipo$/.test(k) && String(o[k] || '').trim()); }
+function rotuloRascunho(r){
+  if(r.processo) return r.processo;
+  const d = r.dados || {}, n = d['c.razao'] || d['c.nome1'];
+  return 'Sem processo' + (n ? ' — ' + n : '');
+}
+function salvarRascunho(){
+  if(!RASC_ID) RASC_ID = 'a:' + Date.now();
+  const m = lerRascunhos(), dados = coletar();
+  if(temConteudo(dados)) m[RASC_ID] = { processo: RASC_PROC, dados, salvoEm: new Date().toLocaleString('pt-BR'), ts: Date.now() };
+  else delete m[RASC_ID];
+  gravarRascunhos(m);
+  try{ localStorage.setItem(ULTIMO_KEY, RASC_ID); }catch(e){}
+  montarSeletor();
+}
+function limparCampos(){
+  document.querySelectorAll('[data-k]').forEach(el => { el.value = ''; el.classList.remove('bad','auto'); });
+  $('#banco_ok').checked = false; proprioManual = false;
+  setChip('c_tipo', 'pf'); setChip('v_tipo', 'pf');
+}
+function aplicarDados(o){
   setChip('c_tipo', o['c.tipo'] || 'pf'); setChip('v_tipo', o['v.tipo'] || 'pf');
   document.querySelectorAll('[data-k]').forEach(el => { if(o[el.dataset.k] != null) el.value = o[el.dataset.k]; });
   proprioManual = !!o._proprioManual; $('#banco_ok').checked = !!o._bancoOk;
   if(!$('[data-k="d.local"]').value && !$('[data-k="d.data"]').value) padroes();
 }
+function abrirRascunho(id, processo){
+  RASC_ID = id; RASC_PROC = processo || '';
+  const r = lerRascunhos()[id];
+  limparCampos();
+  if(r){ RASC_PROC = r.processo || RASC_PROC; aplicarDados(r.dados || {}); } else padroes();
+  try{ localStorage.setItem(ULTIMO_KEY, id); }catch(e){}
+  return !!r;
+}
+function dataCurta(s){ s = s || ''; return s.slice(0, 5) + ' ' + s.slice(12, 17); }
+function montarSeletor(){
+  const sel = $('#rasc_sel'); if(!sel) return;
+  const m = lerRascunhos();
+  const ids = Object.keys(m).sort((a, b) => (m[b].ts || 0) - (m[a].ts || 0));
+  let h = ids.map(id => '<option value="' + E(id) + '"' + (id === RASC_ID ? ' selected' : '') + '>' + E(rotuloRascunho(m[id])) + ' · ' + E(dataCurta(m[id].salvoEm)) + '</option>').join('');
+  if(!m[RASC_ID]) h = '<option value="' + E(RASC_ID) + '" selected>' + E(RASC_PROC ? RASC_PROC + ' (ainda vazio)' : 'Termo em branco (ainda não salvo)') + '</option>' + h;
+  h += '<option value="__novo">＋ Novo termo em branco</option>';
+  sel.innerHTML = h;
+  const r = m[RASC_ID];
+  $('#rasc_info').textContent = r ? '✓ Salvo neste computador em ' + r.salvoEm : '';
+}
+function restaurar(){
+  /* rascunho da versão anterior (só na aba) vira rascunho salvo */
+  try{
+    const antigo = JSON.parse(sessionStorage.getItem(SESSAO_ANTIGA));
+    if(antigo && temConteudo(antigo)){ const m = lerRascunhos(); const id = 'a:' + Date.now(); m[id] = { processo: '', dados: antigo, salvoEm: new Date().toLocaleString('pt-BR'), ts: Date.now() }; gravarRascunhos(m); localStorage.setItem(ULTIMO_KEY, id); }
+    sessionStorage.removeItem(SESSAO_ANTIGA);
+  }catch(e){}
+  let ult = ''; try{ ult = localStorage.getItem(ULTIMO_KEY) || ''; }catch(e){}
+  const m = lerRascunhos();
+  if(ult && m[ult]) abrirRascunho(ult);
+  else { const ids = Object.keys(m).sort((a, b) => (m[b].ts || 0) - (m[a].ts || 0)); if(ids.length) abrirRascunho(ids[0]); else { RASC_ID = 'a:' + Date.now(); padroes(); } }
+  montarSeletor();
+}
 function apagarDados(){
-  if(!confirm('Apagar todos os dados digitados neste termo?')) return;
-  try{ sessionStorage.removeItem(STORE_KEY); }catch(e){}
-  document.querySelectorAll('[data-k]').forEach(el => { el.value = ''; el.classList.remove('bad','auto'); });
-  $('#banco_ok').checked = false; proprioManual = false;
-  setChip('c_tipo', 'pf'); setChip('v_tipo', 'pf');
-  padroes(); atualizar();
+  const nome = RASC_PROC || 'este termo';
+  if(!confirm('Apagar os dados de ' + (RASC_PROC ? '"' + nome + '"' : nome) + ' deste computador?\n\nOs outros rascunhos salvos não são afetados.')) return;
+  clearTimeout(_t);
+  const m = lerRascunhos(); delete m[RASC_ID]; gravarRascunhos(m);
+  RASC_ID = 'a:' + Date.now(); RASC_PROC = '';
+  limparCampos(); padroes();
+  $('#puxados').classList.add('hide');
+  atualizar();
 }
 
 /* ===================== MODELOS ===================== */
@@ -685,24 +752,38 @@ function aplicarPrefill(){
   try{ pk = JSON.parse(localStorage.getItem(PREFILL_KEY)); localStorage.removeItem(PREFILL_KEY); }catch(e){}
   if(!pk || !pk.d || (Date.now() - (pk.ts || 0)) > 10 * 60 * 1000) return;
   const d = pk.d;
-  const temRascunho = [...document.querySelectorAll('[data-k]')].some(el => el.value.trim() && !/^d\./.test(el.dataset.k));
-  if(temRascunho && !confirm('Chegaram dados do processo' + (pk.origem ? ' "' + pk.origem + '"' : '') + ' pelo checklist.\n\nSubstituir o que já está digitado nesta aba?')) return;
-  if(temRascunho){ document.querySelectorAll('[data-k]').forEach(el => { if(!/^d\./.test(el.dataset.k)) el.value = ''; }); $('#banco_ok').checked = false; proprioManual = false; }
-  if(d['c.tipo']) setChip('c_tipo', d['c.tipo']);
-  if(d['v.tipo']) setChip('v_tipo', d['v.tipo']);
+  /* cada processo tem o seu rascunho: se já existe, reabre e só completa o que estiver vazio */
+  const id = pk.origem ? 'p:' + pk.origem : 'a:' + Date.now();
+  const existia = abrirRascunho(id, pk.origem || '');
+  if(!existia){
+    if(d['c.tipo']) setChip('c_tipo', d['c.tipo']);
+    if(d['v.tipo']) setChip('v_tipo', d['v.tipo']);
+  }
   const usados = [];
   Object.keys(d).forEach(k => {
     const el = document.querySelector('[data-k="' + k + '"]');
-    if(!el || !d[k]) return;
+    if(!el || !d[k] || el.value.trim()) return;
     el.value = el.dataset.m ? MASK[el.dataset.m](d[k]) : d[k];
     if(ROTULOS[k]) usados.push(ROTULOS[k]);
   });
   const box = $('#puxados');
   box.classList.remove('hide');
-  box.innerHTML = '<b>📋 Dados puxados do checklist' + (pk.origem ? ' — ' + E(pk.origem) : '') + '</b>'
-    + (usados.length ? E(usados.join(', ')) + '.' : 'Nenhum dado disponível no checklist.')
-    + '<br>Complete o restante (endereços, RG, profissão, contatos, conta bancária e valores) e confira tudo antes de gerar.';
+  box.innerHTML = existia
+    ? '<b>📂 Rascunho de ' + E(pk.origem) + ' reaberto</b>Nada do que já estava digitado foi alterado.'
+      + (usados.length ? ' Do checklist foram completados só os campos vazios: ' + E(usados.join(', ')) + '.' : '')
+    : '<b>📋 Dados puxados do checklist' + (pk.origem ? ' — ' + E(pk.origem) : '') + '</b>'
+      + (usados.length ? E(usados.join(', ')) + '.' : 'Nenhum dado disponível no checklist.')
+      + '<br>Complete o restante (endereços, RG, profissão, contatos, conta bancária e valores) e confira tudo antes de gerar.';
+  montarSeletor();
 }
+$('#rasc_sel').addEventListener('change', e => {
+  const v = e.target.value;   /* ler antes de salvar: salvar remonta a lista */
+  clearTimeout(_t); salvarRascunho();
+  if(v === '__novo'){ RASC_ID = 'a:' + Date.now(); RASC_PROC = ''; limparCampos(); padroes(); }
+  else abrirRascunho(v);
+  $('#puxados').classList.add('hide');
+  atualizar(); montarSeletor();
+});
 restaurar();
 aplicarPrefill();
 atualizar();
