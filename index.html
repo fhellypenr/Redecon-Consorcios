@@ -329,6 +329,13 @@ svg{display:block}
 .vazio{font-size:12px;color:var(--muted)}
 .link-group{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#8b8e95;margin:14px 2px 6px}
 .link-group:first-child{margin-top:0}
+.calc{border:1px solid var(--border-strong);border-radius:12px;padding:14px;background:#fafbfc}
+.calc label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin:0 0 4px}
+.calc input{width:100%;padding:9px 11px;border:1px solid var(--border-strong);border-radius:9px;font-size:14px;margin-bottom:10px;background:#fff}
+.calc-res{display:grid;gap:6px;margin-top:4px}
+.calc-res div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 10px;border-radius:8px;background:#fff;border:1px solid var(--border)}
+.calc-res div.total{border-color:#1e3460;font-weight:800;color:#1e3460}
+.calc small{display:block;margin-top:8px;color:var(--muted-2);font-size:11px;line-height:1.45}
 .upd{display:block;margin-top:4px;font-size:10.5px!important;color:var(--muted-2)!important;font-weight:600}
 .upd.velho{color:var(--amber)!important}
 .message-content .upd{margin:2px 0 0}
@@ -628,6 +635,7 @@ window._iniciarCentral = function(B){
   function openDetail(id){
     const f = fichaById(id); if(!f) return;
     let h = '<div class="detail-section">' + statusTag(f.status) + avisoRevisao(f.atualizado) + '</div>';
+    if(f.calc === 'devolucao') h += calcDevolucaoHTML();
     f.secoes.forEach(s => {
       h += '<div class="detail-section"><h3>' + esc(s.t) + '</h3><ul>' + s.itens.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>';
     });
@@ -637,6 +645,34 @@ window._iniciarCentral = function(B){
     if(ms.length) h += '<div class="detail-section"><h3>Mensagens prontas</h3>' + ms.map(msgRow).join('') + '</div>';
     h += '<div class="detail-meta"><div class="meta-box"><span>Fonte</span><strong>' + esc(f.fonte) + '</strong></div><div class="meta-box"><span>Última atualização</span><strong>' + esc(f.atualizado || B.atualizado) + '</strong></div></div>';
     abrirDrawer(catNome(f.cat), f.titulo, f.resumo, h);
+    if(f.calc === 'devolucao') ligarCalcDevolucao();
+  }
+  /* ----- Calculadora da devolução do cancelado ----- */
+  const numBR = v => {
+    let t = String(v || '').replace(/[R$\s%]/g, '');
+    if(t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');           // 286.796,41 → 286796.41
+    else if((t.match(/\./g) || []).length > 1 || /\.\d{3}$/.test(t)) t = t.replace(/\./g, ''); // 286.796 → 286796
+    const n = parseFloat(t); return isFinite(n) ? n : NaN;                      // 2.3752 fica decimal
+  };
+  const brl = n => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+  function calcDevolucaoHTML(){
+    return '<div class="detail-section"><h3>Calculadora</h3><div class="calc">'
+      + '<label for="cdBem">Bem de referência atual (R$)</label><input id="cdBem" inputmode="decimal" placeholder="Ex.: 286.796,41">'
+      + '<label for="cdPct">Percentual pago do fundo comum (%)</label><input id="cdPct" inputmode="decimal" placeholder="Ex.: 2,3752">'
+      + '<div class="calc-res" id="cdRes"><div><span>Valor sobre o fundo comum</span><span>—</span></div><div><span>Multa de 35%</span><span>—</span></div><div class="total"><span>Devolução estimada</span><span>—</span></div></div>'
+      + '<small>Estimativa do valor de hoje. O valor oficial é o informado pela HS.</small></div></div>';
+  }
+  function ligarCalcDevolucao(){
+    const bem = document.getElementById('cdBem'), pct = document.getElementById('cdPct'), res = document.getElementById('cdRes');
+    if(!bem || !pct || !res) return;
+    const calc = () => {
+      const b = numBR(bem.value), p = numBR(pct.value);
+      const linhas = res.querySelectorAll('div span:last-child');
+      if(!(b > 0) || !(p > 0) || p > 100){ linhas.forEach(x => x.textContent = '—'); return; }
+      const fc = b * p / 100, multa = fc * 0.35;
+      linhas[0].textContent = brl(fc); linhas[1].textContent = '− ' + brl(multa); linhas[2].textContent = brl(fc - multa);
+    };
+    bem.addEventListener('input', calc); pct.addEventListener('input', calc);
   }
   function openMsg(id){
     const m = msgById(id); if(!m) return;
