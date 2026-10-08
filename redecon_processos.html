@@ -267,6 +267,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
 .total-box-val{font-size:20px;font-weight:700;color:var(--blue)}
 .total-box:not(.andamento) .total-box-label{color:var(--blue)!important}
 .total-box:not(.andamento) .total-box-val{color:var(--blue)!important}
+.total-box.cancelado{background:var(--red-light);border-color:var(--red-border)}
+.total-box.cancelado .total-box-label,.total-box.cancelado .total-box-val{color:var(--red)!important}
 .empty{text-align:center;padding:3rem 1rem;color:var(--text3);background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;width:100%}
 .two-col>div{min-width:0;width:100%}
@@ -2389,8 +2391,10 @@ function renderRelatorio(){
   // Etapas chave
   const etapaPgto=achaEtapa(p,'pgto');
   const dPgto=etapaPgto?etapaPgto.dataVal:'';
-  const emAndamento=!p.concluido;
-  const refFinal=dPgto||(emAndamento?today():'');
+  const cancelado=!!p.cancelado;
+  const emAndamento=!p.concluido&&!cancelado;
+  // Cancelado: a contagem para na data do cancelamento (não segue até hoje)
+  const refFinal=cancelado?(p.dataCancelamento||dPgto||''):(dPgto||(emAndamento?today():''));
   let prazoAprovacao=null,prazoHS=null,prazoAposContrato=null,prazoRI=null,prazoTotal=null,totalDias=null,prazoGravame=null,prazoRI2=null;
 
   if(p.tipo==='Imóvel'){
@@ -2443,7 +2447,7 @@ function renderRelatorio(){
     prazoHS=[trechoVist,trechoAprovV,trechoAssinEnvio,trechoGravamePgto].every(v=>v!==null)?(trechoVist+trechoAprovV+trechoAssinEnvio+trechoGravamePgto):null;
   }
   const gargalosHtml='';
-  const totalBox=totalDias!==null?`<div class="total-box${emAndamento?' andamento':''}"><span class="total-box-label"><i class="ti ti-calendar-stats"></i> Duração total${emAndamento?' (em andamento — até hoje)':' (envio à análise → pgto crédito)'}</span><span class="total-box-val">${totalDias} dias corridos</span></div>`:'';
+  const totalBox=totalDias!==null?`<div class="total-box${emAndamento?' andamento':(cancelado?' cancelado':'')}"><span class="total-box-label"><i class="ti ti-calendar-stats"></i> Duração total${emAndamento?' (em andamento — até hoje)':(cancelado?' (envio à análise → cancelamento)':' (envio à análise → pgto crédito)')}</span><span class="total-box-val">${totalDias} dias corridos</span></div>`:'';
   function marcoSub(dias,max){if(dias===null)return'';return dias<=max?`<div class="rel-metric-sub ok">Dentro do prazo</div>`:`<div class="rel-metric-sub alert">Acima do prazo (até ${max}d)</div>`;}
   const prazoOutras=(totalDias!==null&&prazoHS!==null&&prazoRI!==null)?Math.max(totalDias-prazoHS-prazoRI-(prazoRI2!==null?prazoRI2:0),0):null;
   const outrasBox=prazoOutras!==null?`<div class="rel-metric"><div class="rel-metric-label">Ação das partes</div><div class="rel-metric-val">${prazoOutras}<small> dias</small></div><div class="rel-metric-sub info">Assinaturas, docs, taxas</div></div>`:``;
@@ -2541,7 +2545,7 @@ function renderRelatorio(){
   </div>`;
   const statusPillClass=p.cancelado?'cancel':(p.concluido?'ok':'andamento');
   const statusPillTxt=p.cancelado?'Cancelado':(p.concluido?'Concluído · '+p.dataConclusao:'Em andamento');
-  document.getElementById('relatorio-conteudo').innerHTML=`<div class="rel-card"><div class="rel-top"><div><div class="rel-top-title">${nomeExibicao(p)}</div><div class="rel-top-sub">${p.tipo} · ${p.subtipo}${p.grupo?' · Grupo '+p.grupo:''}</div></div><span class="rel-status-pill ${statusPillClass}">${statusPillTxt}</span></div><div class="rel-body"><div class="section-head">Resumo</div><div class="rel-resumo"><div class="rel-row"><div class="rel-row-label">Consorciado</div><div class="rel-row-val">${nomeExibicao(p)}</div></div><div class="rel-row"><div class="rel-row-label">Tipo / Subtipo</div><div class="rel-row-val">${p.tipo} — ${p.subtipo}</div></div><div class="rel-row"><div class="rel-row-label">Grupo / Cota</div><div class="rel-row-val">${p.grupo||'—'}</div></div><div class="rel-row"><div class="rel-row-label">Abertura</div><div class="rel-row-val">${p.dataCriacao}</div></div><div class="rel-row"><div class="rel-row-label">Status</div><div class="rel-row-val">${p.concluido?'Concluído em '+p.dataConclusao:'Em andamento'}</div></div>${renderCreditoRelatorio(p)}${renderReembolsoRelatorio(p)}</div>${totalBox}${marcosBox||""}${gargalosHtml}${stepperHtml}${tabelaPrazosHtml}<div class="section-head">Linha do tempo detalhada</div>${etapasHtml}</div></div>`
+  document.getElementById('relatorio-conteudo').innerHTML=`<div class="rel-card"><div class="rel-top"><div><div class="rel-top-title">${nomeExibicao(p)}</div><div class="rel-top-sub">${p.tipo} · ${p.subtipo}${p.grupo?' · Grupo '+p.grupo:''}</div></div><span class="rel-status-pill ${statusPillClass}">${statusPillTxt}</span></div><div class="rel-body"><div class="section-head">Resumo</div><div class="rel-resumo"><div class="rel-row"><div class="rel-row-label">Consorciado</div><div class="rel-row-val">${nomeExibicao(p)}</div></div><div class="rel-row"><div class="rel-row-label">Tipo / Subtipo</div><div class="rel-row-val">${p.tipo} — ${p.subtipo}</div></div><div class="rel-row"><div class="rel-row-label">Grupo / Cota</div><div class="rel-row-val">${p.grupo||'—'}</div></div><div class="rel-row"><div class="rel-row-label">Abertura</div><div class="rel-row-val">${p.dataCriacao}</div></div><div class="rel-row"><div class="rel-row-label">Status</div><div class="rel-row-val">${p.cancelado?'Cancelado em '+(p.dataCancelamento||'—'):(p.concluido?'Concluído em '+p.dataConclusao:'Em andamento')}</div></div>${p.cancelado?'<div class="rel-row" style="grid-column:1/-1"><div class="rel-row-label" style="color:var(--red)">Motivo do cancelamento</div><div class="rel-row-val">'+(p.motivoCancelamento?kbEsc(p.motivoCancelamento):'Sem motivo informado')+'</div></div>':''}${renderCreditoRelatorio(p)}${renderReembolsoRelatorio(p)}</div>${totalBox}${marcosBox||""}${gargalosHtml}${stepperHtml}${tabelaPrazosHtml}<div class="section-head">Linha do tempo detalhada</div>${etapasHtml}</div></div>`
 }
 
 document.querySelectorAll('.modal-backdrop').forEach(b=>{b.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
