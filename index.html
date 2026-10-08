@@ -336,6 +336,34 @@ svg{display:block}
 .calc-res div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 10px;border-radius:8px;background:#fff;border:1px solid var(--border)}
 .calc-res div.total{border-color:#1e3460;font-weight:800;color:#1e3460}
 .calc small{display:block;margin-top:8px;color:var(--muted-2);font-size:11px;line-height:1.45}
+.hoje{margin:0 0 22px;border:1px solid var(--border-strong);border-radius:16px;background:#fff;box-shadow:var(--shadow-sm);overflow:hidden}
+.hoje-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:#1e3460;color:#fff}
+.hoje-top strong{font-size:15px}.hoje-top span{font-size:12.5px;opacity:.85}
+.hoje-top .btn{background:#fff;color:#1e3460;border:0}
+.hoje-body{padding:14px 18px;display:grid;gap:10px}
+.hoje-ev{border-left:4px solid var(--c,#1e3460);padding:6px 12px;background:#fafbfc;border-radius:0 10px 10px 0}
+.hoje-ev b{display:block;font-size:13.5px}.hoje-ev ul{margin:4px 0 0;padding-left:18px;font-size:12.5px;color:var(--muted);line-height:1.5}
+.hoje-prox{font-size:12.5px;color:var(--muted)}.hoje-prox b{color:var(--text)}
+.hoje-diario{font-size:12px;color:var(--muted-2)}
+.ev-azul{--c:#1e3460}.ev-vermelho{--c:#e63329}.ev-verde{--c:#167451}.ev-laranja{--c:#c26a00}.ev-cinza{--c:#8a8f98}
+.cal-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:18px;align-items:start}
+.cal-card,.cal-dia{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow-sm)}
+.cal-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}.cal-head strong{flex:1;text-align:center;font-size:16px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.cal-dow span{font-size:11px;font-weight:800;color:var(--muted-2);text-align:center;text-transform:uppercase;padding-bottom:4px}
+.cal-cel{min-height:78px;border:1px solid var(--border);border-radius:10px;padding:5px;text-align:left;background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:3px;font:inherit;color:inherit}
+.cal-cel:hover{border-color:#1e3460}.cal-cel.vazio{visibility:hidden;cursor:default}
+.cal-cel.fds{background:#f6f7f9}.cal-cel.hoje-cel{border:2px solid #e63329}.cal-cel.sel{outline:2px solid #1e3460;outline-offset:1px}
+.cal-num{font-size:12px;font-weight:800}
+.cal-chip{display:block;font-size:10px;line-height:1.25;padding:2px 5px;border-radius:5px;background:var(--c);color:#fff;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-chip.cinza{background:#eceef1;color:#4a4f57;border:1px dashed #b9bdc4}
+.cal-legenda{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:12px;font-size:11.5px;color:var(--muted)}
+.cal-legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--c);margin-right:5px;vertical-align:-1px}
+.cal-aviso{font-size:11.5px;color:var(--muted-2);margin:10px 0 0;line-height:1.5}
+.cal-dia h3{margin:0 0 4px;font-size:16px}.cal-dia .sub{font-size:12px;color:var(--muted);margin:0 0 12px}
+.cal-dia .hoje-ev{margin-bottom:10px}.cal-dia .ficha-links{margin-top:6px}
+@media (max-width:900px){.cal-wrap{grid-template-columns:1fr}.cal-cel{min-height:56px}.cal-chip{font-size:0;height:6px;padding:0}}
+@media print{.cal-chip{border:1px solid #000;color:#000!important;background:#fff!important}}
 .upd{display:block;margin-top:4px;font-size:10.5px!important;color:var(--muted-2)!important;font-weight:600}
 .upd.velho{color:var(--amber)!important}
 .message-content .upd{margin:2px 0 0}
@@ -373,6 +401,7 @@ svg{display:block}
     <a class="nav-btn" href="simulacao.html"><span class="nav-icon">∑</span>Simulações</a>
     <a class="nav-btn" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener"><span class="nav-icon">◇</span>Uso do Crédito</a>
     <button class="nav-btn" data-view="operacional"><span class="nav-icon">☷</span>Central Operacional</button>
+    <button class="nav-btn" data-view="rotina"><span class="nav-icon">▦</span>Rotina do mês</button>
   </nav>
 
   <div class="nav-label">Apoio</div>
@@ -393,7 +422,7 @@ svg{display:block}
 
 <div class="mobile-nav">
   <button data-view="home">Início</button><a href="redecon_processos.html">Processos</a><a href="painel-checklist-redecon.html">Checklist</a>
-  <a href="simulacao.html">Simulações</a><a href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener">Uso do crédito</a><button data-view="operacional">Operacional</button><button data-view="mensagens">Mensagens</button><button data-view="links">Links</button>
+  <a href="simulacao.html">Simulações</a><a href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener">Uso do crédito</a><button data-view="rotina">Rotina</button><button data-view="operacional">Operacional</button><button data-view="mensagens">Mensagens</button><button data-view="links">Links</button>
 </div>
 
 <section id="view-home" class="view active">
@@ -414,6 +443,8 @@ svg{display:block}
     </div>
     <div id="searchResults" class="search-results"></div>
   </div>
+
+  <div id="hojeBox" class="hoje" hidden></div>
 
   <div class="section-title">
     <div><h2>Ferramentas principais</h2><p>Uma única porta de entrada para tudo que o escritório usa.</p></div>
@@ -502,6 +533,20 @@ svg{display:block}
         </div>
       </div>
     </aside>
+  </div>
+</section>
+
+<section id="view-rotina" class="view module-view">
+  <div class="hero"><div><div class="eyebrow">Rotina do escritório</div><h1>Calendário do mês</h1><p>O que fazer em cada dia: faturas, vencimento, pendências, assembleias e fechamento. Clique em um dia para ver as tarefas.</p></div><button class="btn" data-view="home">← Voltar ao início</button></div>
+  <div class="cal-wrap">
+    <div class="cal-card">
+      <div class="cal-head"><button class="btn" id="calPrev" aria-label="Mês anterior">‹</button><strong id="calTitulo"></strong><button class="btn" id="calNext" aria-label="Próximo mês">›</button><button class="btn" id="calHoje">Hoje</button></div>
+      <div class="cal-grid cal-dow"><span>dom</span><span>seg</span><span>ter</span><span>qua</span><span>qui</span><span>sex</span><span>sáb</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legenda" id="calLegenda"></div>
+      <p class="cal-aviso" id="calAviso"></p>
+    </div>
+    <div class="cal-dia" id="calDia"></div>
   </div>
 </section>
 
@@ -647,6 +692,93 @@ window._iniciarCentral = function(B){
     abrirDrawer(catNome(f.cat), f.titulo, f.resumo, h);
     if(f.calc === 'devolucao') ligarCalcDevolucao();
   }
+  /* ----- Rotina do mês: calendário + "hoje" na tela inicial ----- */
+  const R = B.rotina || null;
+  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const DOW = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  const util = d => d.getDay() !== 0 && d.getDay() !== 6;
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  function maisUteis(d, n){ const x = new Date(d); let k = 0; while(k < n){ x.setDate(x.getDate() + 1); if(util(x)) k++; } return x; }
+  function vencimento(a, m){ const d = new Date(a, m, 10); while(!util(d)) d.setDate(d.getDate() + 1); return d; }
+  function eventosDoMes(a, m){
+    const mapa = {}; if(!R) return mapa;
+    const add = (dia, e) => { (mapa[dia] = mapa[dia] || []).push(e); };
+    const venc = vencimento(a, m), ult = new Date(a, m + 1, 0).getDate();
+    R.eventos.forEach(e => {
+      const q = e.quando;
+      if(q.dias){ for(let d = q.dias[0]; d <= Math.min(q.dias[1], ult); d++) add(d, e); }
+      else if(q.antes_venc){ for(let d = 3; d < venc.getDate(); d++) add(d, e); }
+      else if(q.vencimento !== undefined){ const d = q.vencimento ? maisUteis(venc, q.vencimento) : venc; if(d.getMonth() === m) add(d.getDate(), e); }
+      else if(q.assembleia){ const d = maisUteis(venc, q.assembleia === 'imovel' ? 4 : 5); if(d.getMonth() === m) add(d.getDate(), e); }
+    });
+    return mapa;
+  }
+  const dataBR = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+  function evHTML(e, comItens){
+    return '<div class="hoje-ev ev-' + esc(e.cor) + '"><b>' + esc(e.titulo) + '</b>'
+      + (comItens ? '<ul>' + e.itens.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul>' : '')
+      + (comItens && e.ficha ? '<div class="ficha-links"><button class="btn" data-abrir-ficha="' + esc(e.ficha) + '">Abrir ficha →</button></div>' : '') + '</div>';
+  }
+  function ligarAbrirFicha(raiz){ raiz.querySelectorAll('[data-abrir-ficha]').forEach(b => b.addEventListener('click', () => openDetail(b.dataset.abrirFicha))); }
+  function proximoMarco(hoje){
+    for(let i = 1; i <= 40; i++){
+      const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + i);
+      const evs = (eventosDoMes(d.getFullYear(), d.getMonth())[d.getDate()] || []).filter(e => e.id !== 'antes-venc');
+      if(evs.length) return {d, evs};
+    }
+    return null;
+  }
+  function renderHoje(){
+    const box = document.getElementById('hojeBox'); if(!box || !R) return;
+    const h = new Date(), evs = eventosDoMes(h.getFullYear(), h.getMonth())[h.getDate()] || [];
+    const prox = proximoMarco(h);
+    box.innerHTML = '<div class="hoje-top"><div><strong>Rotina de hoje</strong><br><span>' + cap(DOW[h.getDay()]) + ', ' + dataBR(h) + '</span></div><button class="btn" data-view="rotina">Ver calendário do mês →</button></div>'
+      + '<div class="hoje-body">' + (evs.length ? evs.map(e => evHTML(e, true)).join('') : '<div class="hoje-prox">Nenhuma tarefa fixa hoje — só a rotina diária.</div>')
+      + (prox ? '<div class="hoje-prox">Próximo: <b>' + esc(prox.evs.map(e => e.titulo).join(' · ')) + '</b> em ' + DOW[prox.d.getDay()] + ', ' + dataBR(prox.d) + '</div>' : '')
+      + '<div class="hoje-diario">Todo dia: ' + esc(R.diario.join(' · ')) + '</div></div>';
+    box.hidden = false;
+    box.querySelector('[data-view]').addEventListener('click', () => showView('rotina'));
+    ligarAbrirFicha(box);
+  }
+  let calA, calM, calSel;
+  function renderCal(){
+    const grid = document.getElementById('calGrid'); if(!grid) return;
+    if(!R){ grid.innerHTML = '<p class="vazio">Calendário indisponível: a base não foi carregada.</p>'; return; }
+    const mapa = eventosDoMes(calA, calM), ini = new Date(calA, calM, 1).getDay(), ult = new Date(calA, calM + 1, 0).getDate();
+    const h = new Date(), ehMesAtual = h.getFullYear() === calA && h.getMonth() === calM;
+    document.getElementById('calTitulo').textContent = cap(MESES[calM]) + ' de ' + calA;
+    let g = ''; for(let i = 0; i < ini; i++) g += '<div class="cal-cel vazio"></div>';
+    for(let d = 1; d <= ult; d++){
+      const dt = new Date(calA, calM, d), evs = mapa[d] || [];
+      const cls = ['cal-cel']; if(!util(dt)) cls.push('fds'); if(ehMesAtual && d === h.getDate()) cls.push('hoje-cel'); if(d === calSel) cls.push('sel');
+      g += '<button class="' + cls.join(' ') + '" data-dia="' + d + '"><span class="cal-num">' + d + '</span>'
+        + evs.map(e => '<span class="cal-chip ev-' + esc(e.cor) + (e.cor === 'cinza' ? ' cinza' : '') + '" title="' + esc(e.titulo) + '">' + esc(e.curto || e.titulo) + '</span>').join('') + '</button>';
+    }
+    grid.innerHTML = g;
+    grid.querySelectorAll('[data-dia]').forEach(b => b.addEventListener('click', () => { calSel = +b.dataset.dia; renderCal(); if(window.innerWidth < 900) document.getElementById('calDia').scrollIntoView({behavior:'smooth', block:'start'}); }));
+    const leg = {}; R.eventos.forEach(e => { if(e.id !== 'assembleia-veiculo') leg[e.titulo.replace(' — imóvel', '')] = e.cor; });
+    document.getElementById('calLegenda').innerHTML = Object.entries(leg).map(([t, c]) => '<span class="ev-' + esc(c) + '"><i></i>' + esc(t) + '</span>').join('');
+    document.getElementById('calAviso').textContent = R.aviso || '';
+    renderDia(mapa);
+  }
+  function renderDia(mapa){
+    const box = document.getElementById('calDia'); if(!box) return;
+    const d = calSel || 1, dt = new Date(calA, calM, d), evs = mapa[d] || [];
+    box.innerHTML = '<h3>' + cap(DOW[dt.getDay()]) + ', ' + d + ' de ' + MESES[calM] + '</h3><p class="sub">' + (evs.length ? evs.length + ' tarefa(s) fixa(s) neste dia' : 'Sem tarefa fixa — só a rotina diária') + '</p>'
+      + evs.map(e => evHTML(e, true)).join('')
+      + '<div class="hoje-ev ev-cinza"><b>Todo dia</b><ul>' + R.diario.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>';
+    ligarAbrirFicha(box);
+  }
+  (function iniciarRotina(){
+    const h = new Date(); calA = h.getFullYear(); calM = h.getMonth(); calSel = h.getDate();
+    const mover = n => { calM += n; if(calM < 0){ calM = 11; calA--; } if(calM > 11){ calM = 0; calA++; } calSel = 1; renderCal(); };
+    const p = document.getElementById('calPrev'), n = document.getElementById('calNext'), t = document.getElementById('calHoje');
+    if(p) p.addEventListener('click', () => mover(-1));
+    if(n) n.addEventListener('click', () => mover(1));
+    if(t) t.addEventListener('click', () => { const x = new Date(); calA = x.getFullYear(); calM = x.getMonth(); calSel = x.getDate(); renderCal(); });
+    renderHoje(); renderCal();
+  })();
+
   /* ----- Calculadora da devolução do cancelado ----- */
   const numBR = v => {
     let t = String(v || '').replace(/[R$\s%]/g, '');
