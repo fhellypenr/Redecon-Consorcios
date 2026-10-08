@@ -43,7 +43,7 @@
   @media(max-width:1100px){main{grid-template-columns:1fr}}
 
   /* ===================== FORM ===================== */
-  #form{background:#fff;border-right:1px solid var(--line);padding:22px;overflow-y:auto;max-height:calc(100vh - 70px)}
+  #form{background:#fff;border-right:1px solid var(--line);padding:22px;overflow-y:auto;max-height:calc(100vh - 108px)}
   @media(max-width:1100px){#form{max-height:none;border-right:0;border-bottom:1px solid var(--line)}}
   .sec{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
   .sec>h2{background:var(--navy);color:#fff;font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:11px 14px;display:flex;align-items:center;gap:8px}
@@ -74,6 +74,16 @@
   nav.tabs button{background:transparent;border:0;color:#a9a9b4;padding:13px 22px;font-size:14px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent}
   nav.tabs button:hover{color:#fff}
   nav.tabs button.on{color:#fff;border-bottom-color:var(--coral)}
+  nav.tabs .tabs-acoes{display:flex;gap:8px;align-items:center;padding:7px 0 7px 14px}
+  nav.tabs .tabs-acoes .btn{padding:7px 12px;font-size:12.5px;border-bottom:0;white-space:nowrap}
+  nav.tabs .tabs-acoes .btn-ghost{background:transparent;color:#d4d4dc;border:1px solid #3a3a46}
+  nav.tabs .tabs-acoes .btn-ghost:hover{border-color:var(--coral2);color:#fff}
+  nav.tabs .tabs-acoes .btn-coral{background:var(--coral);color:#fff;border:1px solid var(--coral)}
+  nav.tabs .tabs-acoes .btn-coral:hover{background:#a92300}
+  @media(max-width:700px){nav.tabs{padding:0 10px}nav.tabs button{padding:11px 12px;font-size:13px}nav.tabs .tabs-acoes{overflow-x:auto;justify-content:flex-start}}
+  @media(max-width:1250px){nav.tabs{flex-wrap:wrap}nav.tabs .tabs-acoes{width:100%;justify-content:flex-end;padding:0 0 8px}}
+  #tab_termo{background:var(--bg)}
+  #termo_frame{display:block;width:100%;border:0;height:calc(100vh - 108px)}
   .page{padding:26px;max-width:1180px;margin:0 auto}
   /* barra de processos */
   #procbar{background:#fff;border-bottom:1px solid var(--line);padding:10px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -121,7 +131,7 @@
   #gerar{width:100%;padding:14px;font-size:16px}
 
   /* ===================== RESULTADO ===================== */
-  #resultado{padding:26px;overflow-y:auto;max-height:calc(100vh - 70px)}
+  #resultado{padding:26px;overflow-y:auto;max-height:calc(100vh - 108px)}
   @media(max-width:1100px){#resultado{max-height:none}}
   #vazio{color:var(--muted);text-align:center;margin-top:12vh;line-height:1.7}
   #vazio .arcbig{width:70px;height:70px;margin:0 auto 18px;border-radius:50%;border:9px solid var(--coral);border-left-color:transparent;border-bottom-color:transparent;transform:rotate(-45deg);opacity:.35}
@@ -191,7 +201,7 @@
     @page{size:A4 landscape;margin:0}
     body{background:#fff}
     header.app,#form,#vazio,.addcard,.doc .ctrl,.custa .ctrl,.no-print,nav.tabs,#procbar,#msgs_envio{display:none !important}
-    #tab_pre,#tab_neg,#tab_perg,#tab_proc{display:none !important}
+    #tab_pre,#tab_neg,#tab_perg,#tab_proc,#tab_termo{display:none !important}
     body.print-neg #tab_neg{display:block !important;padding:10mm}
     body.print-neg #tab_chk{display:none !important}
     body.print-neg .neg-actions,body.print-neg #neg_links,body.print-neg .panelbox p.desc,body.print-neg #neg_resumo{display:none !important}
@@ -254,43 +264,33 @@
 </style>
 </head>
 <body>
+<script src="topbar-redecon.js" data-pagina="checklist" data-titulo="Painel de Checklist"></script>
 
 <script type="module">
   import { requireAuth, userBadgeHTML } from './auth.js';
   window._authReady = requireAuth();
   window._authReady.then(user=>{
     window._authUser = user;
-    const box = document.getElementById('checklist-userbox');
+    const box = document.getElementById('rc-userbox');
     if(box) box.innerHTML = userBadgeHTML(user);
     if(typeof iniciarSyncFirebase === 'function') iniciarSyncFirebase();
   });
 </script>
-<header class="app">
-  <div class="brand">
-    <a href="index.html" style="color:#fff;text-decoration:none;font-size:12px;opacity:.85">🏠 Central</a>
-    <a href="painel-checklist-redecon.html" style="color:#fff;text-decoration:none;font-size:12px;font-weight:700">📋 Checklist</a>
-    <a href="redecon_processos.html" style="color:#fff;text-decoration:none;font-size:12px;opacity:.85">🗂️ Gestão de Processos</a>
-    <a href="termo-opcao-redecon.html" style="color:#fff;text-decoration:none;font-size:12px;opacity:.85">📝 Termo de Opção</a>
-    <div class="arc"></div>
-    <h1>Painel de Checklist<small>Redecon Consórcios · HS Consórcios</small></h1>
-  </div>
-  <div class="toolbar">
-    <button class="btn btn-ghost" onclick="salvarProcesso()">💾 Salvar processo</button>
-    <button class="btn btn-ghost" onclick="document.getElementById('carregar_arq').click()">📂 Carregar</button>
-    <input type="file" id="carregar_arq" accept=".json" style="display:none" onchange="carregarProcesso(this)">
-    <button class="btn btn-ghost" onclick="limparTudo()">Limpar</button>
-    <button class="btn btn-coral" onclick="window.print()">Imprimir / Salvar PDF</button>
-    <div id="checklist-userbox"></div>
-  </div>
-</header>
-
 <nav class="tabs">
   <button data-t="proc" onclick="abrirTab('proc')">🗂 Processos</button>
   <button data-t="pre" onclick="abrirTab('pre')">1 · Pré-análise</button>
   <button data-t="neg" onclick="abrirTab('neg')">2 · Negativas</button>
   <button data-t="perg" onclick="abrirTab('perg')">3 · Perguntas</button>
   <button data-t="chk" class="on" onclick="abrirTab('chk')">4 · Checklist</button>
+  <button data-t="termo" class="hide" onclick="abrirTab('termo')">5 · Termo de Opção</button>
   <span id="proc_badge" style="margin-left:auto;align-self:center;color:#f0806c;font-size:13px;font-weight:700;padding-right:4px"></span>
+  <div class="tabs-acoes" id="acoes_chk">
+    <button class="btn btn-ghost" onclick="salvarProcesso()" title="Baixar o processo em .json">💾 Salvar</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('carregar_arq').click()" title="Abrir um processo .json">📂 Carregar</button>
+    <input type="file" id="carregar_arq" accept=".json" style="display:none" onchange="carregarProcesso(this)">
+    <button class="btn btn-ghost" onclick="limparTudo()">Limpar</button>
+    <button class="btn btn-coral" onclick="window.print()">Imprimir / PDF</button>
+  </div>
 </nav>
 
 <div id="tab_proc" class="page hide">
@@ -376,6 +376,8 @@
     <div class="pergbloco" id="perg_vend" contenteditable="true"></div>
   </div>
 </div>
+
+<div id="tab_termo" class="hide"><iframe id="termo_frame" title="Termo de Opção"></iframe></div>
 
 <main id="tab_chk">
 <!-- ============================================================ FORM -->
@@ -784,6 +786,8 @@ function onFormChange(){
   document.getElementById('v_cond_wrap').classList.toggle('hide', avulso || modo!=='veiculo');
   document.getElementById('sec_vend').classList.toggle('hide', !temVend);
   document.getElementById('i_termo_wrap').classList.toggle('hide', avulso || modo!=='imovel' || !utz.includes('aquisicao'));
+  const btnTermo = document.querySelector('nav.tabs button[data-t=termo]');
+  if(btnTermo && !btnTermo.classList.contains('on')) btnTermo.classList.toggle('hide', avulso || modo!=='imovel' || !utz.includes('aquisicao'));
   /* campos do avulso */
   const aParte = document.getElementById('a_parte').value;
   const aEc = document.getElementById('a_ec').value;
@@ -1666,8 +1670,24 @@ function abrirTermoOpcao(){
   Object.keys(d).forEach(k => { if(!d[k]) delete d[k]; });
   try{ localStorage.setItem('redecon_termo_prefill', JSON.stringify({ts:Date.now(), origem:(PROC_ATUAL || g('p_nome').value.trim() || ''), d})); }
   catch(e){ alert('Não foi possível passar os dados ao Termo neste navegador. Ele vai abrir em branco.'); }
-  window.open('termo-opcao-redecon.html', '_blank');
+  termoMostrarAba();
+  abrirTab('termo');
+  termoCarregar(true);
 }
+/* Aba 5 — o termo roda dentro do painel (iframe da mesma origem, usa o login do painel). */
+function termoMostrarAba(){ document.querySelector('nav.tabs button[data-t=termo]').classList.remove('hide'); }
+function termoCarregar(recarregar){
+  const fr = document.getElementById('termo_frame');
+  if(recarregar || !fr.getAttribute('src')) fr.src = 'termo-opcao-redecon.html?embed=1&t=' + Date.now();
+  termoAjustarAltura();
+}
+function termoAjustarAltura(){
+  const fr = document.getElementById('termo_frame');
+  if(!fr || document.getElementById('tab_termo').classList.contains('hide')) return;
+  const topo = fr.getBoundingClientRect().top + window.scrollY;
+  fr.style.height = Math.max(480, window.innerHeight - topo) + 'px';
+}
+window.addEventListener('resize', termoAjustarAltura);
 function mesmoNome(a,b){
   const A=normNome(a), B=normNome(b);
   if(!A.length || !B.length) return false;
@@ -1926,10 +1946,12 @@ function gerarVeiculo(){
 
 /* ===================== ABAS ===================== */
 function abrirTab(t){
-  ['proc','pre','neg','perg','chk'].forEach(x=>{
+  ['proc','pre','neg','perg','chk','termo'].forEach(x=>{
     document.getElementById('tab_'+x).classList.toggle('hide', x!==t);
     document.querySelector('nav.tabs button[data-t='+x+']').classList.toggle('on', x===t);
   });
+  document.getElementById('acoes_chk').classList.toggle('hide', t==='termo');
+  if(t==='termo'){ termoMostrarAba(); termoCarregar(false); }
   if(t==='neg'){ const dp=document.getElementById('neg_data_padrao'); if(dp && !dp.value) dp.value=NEG_DATA_PADRAO; negRender(); }
   if(t==='perg') gerarPerguntas();
   if(t==='proc') procRender();
@@ -2923,6 +2945,7 @@ function limparTudo(){
   onFormChange();
 }
 onFormChange();
+if(location.hash === '#termo'){ termoMostrarAba(); abrirTab('termo'); }
 document.getElementById('form').addEventListener('input', procAutoSave);
 document.getElementById('form').addEventListener('change', procAutoSave);
 document.getElementById('form').addEventListener('change', atualizarHintRenda);

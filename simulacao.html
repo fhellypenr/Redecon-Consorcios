@@ -10,7 +10,7 @@
 body{font-family:'Segoe UI',Arial,sans-serif;background:#e8ecf2;color:#222;font-size:13px}
 
 /* SIDEBAR */
-#sidebar{position:fixed;left:0;top:0;width:310px;height:100vh;background:#1a2e4a;color:#fff;padding:14px 16px;overflow-y:auto;z-index:100}
+#sidebar{position:fixed;left:0;top:60px;width:310px;height:calc(100vh - 60px);background:#1a2e4a;color:#fff;padding:14px 16px;overflow-y:auto;z-index:100}
 #sidebar h2{font-size:11px;color:#e63329;margin-bottom:10px;letter-spacing:1px;text-transform:uppercase}
 #sidebar label{font-size:10px;color:#99aabb;display:block;margin-top:8px;margin-bottom:2px}
 #sidebar input,#sidebar select{width:100%;padding:6px 8px;border:1px solid #2e4870;background:#1e3655;color:#fff;border-radius:4px;font-size:12px}
@@ -281,7 +281,7 @@ body.auth-pending > *:not(#auth-overlay){visibility:hidden!important}
 </style>
 </head>
 <body class="auth-pending">
-<div class="redecon-central-nav"><a href="index.html">← Início</a></div>
+<script src="topbar-redecon.js" data-pagina="simulacoes" data-titulo="Simulação de Contemplação"></script>
 
 <button id="fab-calc" onclick="toggleMobile(false)">✏️ Dados</button>
 <button id="fab-back" onclick="toggleMobile(true)" style="display:none">📊 Resultado</button>
@@ -903,8 +903,12 @@ carregarGruposCSV();
 </script>
 
 <script type="module">
-  import { requireAuth } from './auth.js';
-  requireAuth().then(()=>document.body.classList.remove('auth-pending'));
+  import { requireAuth, userBadgeHTML } from './auth.js';
+  requireAuth().then(user=>{
+    document.body.classList.remove('auth-pending');
+    const box = document.getElementById('rc-userbox');
+    if(box) box.innerHTML = userBadgeHTML(user);
+  });
 </script>
 </body>
 </html>

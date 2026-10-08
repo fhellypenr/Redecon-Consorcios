@@ -71,7 +71,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
 .app-shell{display:flex;min-height:100vh}
-.sidebar{width:196px;flex-shrink:0;background:var(--sidebar-bg);padding:20px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar{width:196px;flex-shrink:0;background:var(--sidebar-bg);padding:20px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto}
+.sidebar-brand,.sidebar-user{display:none!important}
 .sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 8px 22px;color:#fff;font-size:14px;font-weight:600}
 .sidebar-sec{color:#B4B4B8;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:6px}
 .sidebar-link{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:#D4D4D8;font-size:13px;text-decoration:none;cursor:pointer;transition:background .15s;font-family:inherit;background:none;border:none;width:100%;text-align:left}
@@ -439,12 +440,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
 </style>
 </head>
 <body>
+<script src="topbar-redecon.js" data-pagina="processos" data-titulo="Gestão de Processos"></script>
 <script type="module">
-  import { requireAuth } from './auth.js';
+  import { requireAuth, userBadgeHTML } from './auth.js';
   requireAuth().then(user=>{
     window._authUser = user;
-    const box = document.getElementById('sidebar-userbox');
-    if(box) box.innerHTML = '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+user.email+'</span><button onclick="window._redeconLogout()">Sair</button>';
+    const box = document.getElementById('rc-userbox');
+    if(box) box.innerHTML = userBadgeHTML(user);
     if(window._bootAposAuth) window._bootAposAuth();
   });
 </script>

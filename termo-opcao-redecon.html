@@ -2,6 +2,8 @@
 <html lang="pt-BR">
 <head>
 <link rel="icon" type="image/png" href="img/favicon.png">
+<script>/* O Termo de Opção funciona dentro do Painel de Checklist (aba 5), que cuida do login. */
+if(window.top === window.self) location.replace('painel-checklist-redecon.html#termo');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Termo de Opção | Redecon Consórcios</title>
@@ -14,19 +16,19 @@
   body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
 
   /* ============ TOPO ============ */
-  header.app{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  header.app{background:#fff;color:var(--ink);border-bottom:1px solid var(--line);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
   header.app .brand{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   header.app .brand a{color:#fff;text-decoration:none;font-size:12px;opacity:.85}
   header.app .brand a.on{opacity:1;font-weight:700}
   header.app .arc{width:30px;height:30px;border-radius:50%;border:5px solid var(--coral);border-left-color:transparent;border-bottom-color:transparent;transform:rotate(-45deg)}
   header.app h1{font-size:18px;font-weight:700}
-  header.app h1 small{display:block;font-size:11.5px;font-weight:400;color:#b9b9c2}
+  header.app h1 small{display:block;font-size:11.5px;font-weight:400;color:var(--muted)}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .btn{border:0;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer}
   .btn-coral{background:var(--coral);color:#fff}
   .btn-coral:hover{background:#a92300}
-  .btn-ghost{background:transparent;color:#fff;border:1px solid #3a3a46}
-  .btn-ghost:hover{border-color:var(--coral2);color:var(--coral2)}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--coral);color:var(--coral)}
 
   main{display:grid;grid-template-columns:470px 1fr;min-height:calc(100vh - 62px)}
   @media(max-width:1100px){main{grid-template-columns:1fr}}
@@ -122,27 +124,14 @@
 </head>
 <body>
 
-<script type="module">
-  import { requireAuth, userBadgeHTML } from './auth.js';
-  requireAuth().then(user=>{
-    const box = document.getElementById('userbox');
-    if(box) box.innerHTML = userBadgeHTML(user);
-  });
-</script>
 
 <header class="app">
   <div class="brand">
-    <a href="index.html">🏠 Central</a>
-    <a href="painel-checklist-redecon.html">📋 Checklist</a>
-    <a href="redecon_processos.html">🗂️ Gestão de Processos</a>
-    <a href="termo-opcao-redecon.html" class="on">📝 Termo de Opção</a>
-    <div class="arc"></div>
-    <h1>Termo de Opção<small>Redecon Consórcios · modelos HS Consórcios</small></h1>
+    <h1>Termo de Opção<small>Modelos HS Consórcios · os dados não são salvos na nuvem</small></h1>
   </div>
   <div class="toolbar">
     <button class="btn btn-ghost" onclick="apagarDados()">🗑 Apagar dados</button>
     <button class="btn btn-coral" onclick="gerarPDF()">🖨 Gerar PDF</button>
-    <div id="userbox"></div>
   </div>
 </header>
 
@@ -662,10 +651,13 @@ function gerarPDF(){
   const av = conferir(d);
   if(av.length && !confirm('Há ' + av.length + ' ponto(s) para conferir:\n\n• ' + av.join('\n• ') + '\n\nGerar o PDF mesmo assim?')) return;
   const nome = d['c.tipo'] === 'pf' ? d['c.nome1'] : d['c.razao'];
-  const tituloOrig = document.title;
-  document.title = 'Termo de Opção - ' + (nome || 'cliente').replace(/[\\/:*?"<>|]/g, '');
+  const tituloOrig = document.title, novo = 'Termo de Opção - ' + (nome || 'cliente').replace(/[\\/:*?"<>|]/g, '');
+  let pai = null, tituloPai = '';
+  try{ if(window.parent !== window){ pai = window.parent.document; tituloPai = pai.title; pai.title = novo; } }catch(e){ pai = null; }
+  document.title = novo;
   window.print();
   document.title = tituloOrig;
+  if(pai) pai.title = tituloPai;
 }
 
 /* ===================== EVENTOS ===================== */
