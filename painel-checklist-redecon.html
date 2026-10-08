@@ -1349,7 +1349,7 @@ function gerar(){
     const cardsR = PJ_RENDA[document.getElementById('pj_regime').value].map(d=>({t:d[0],d:d[1],pessoa:pjNome}));
     if(!temDevedorSolidario()) html += slideCards('Comprovação de renda da empresa', pjNome, cardsR);
 
-    const socios = [...document.querySelectorAll('#pj_socios .subcard')];
+    const socios = [...document.querySelectorAll('#pj_socios .subcard')].filter(s=>!ehDevedorOuConjuge(s.querySelector('.f_nome').value));
     if(socios.length){
       const cardsS = [];
       socios.forEach(s=>{
@@ -1603,6 +1603,32 @@ function gerar(){
   try{ document.getElementById('slides').scrollIntoView({behavior:'smooth'}); }catch(e){}
 }
 
+/* ====== MESMA PESSOA EM DOIS PAPÉIS (ex.: sócio que também é devedor solidário) ======
+   Compara nomes ignorando acentos/maiúsculas; "Fábio" casa com "Fábio Silva" (mesmo primeiro nome e
+   todas as palavras do nome mais curto contidas no mais longo). */
+function normNome(n){ return (n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(Boolean); }
+function mesmoNome(a,b){
+  const A=normNome(a), B=normNome(b);
+  if(!A.length || !B.length) return false;
+  const curto = A.length<=B.length ? A : B, longo = curto===A ? B : A;
+  return curto[0]===longo[0] && curto.every(t=>longo.includes(t));
+}
+/* nomes que já recebem documentos pessoais na tela do devedor solidário (devedor + cônjuge) */
+function nomesNaTelaDevedor(){
+  const out=[];
+  document.querySelectorAll('#devs .subcard').forEach(dv=>{
+    const n=(dv.querySelector('.f_nome').value||'').trim(); if(n) out.push(n);
+    const ec=dv.querySelector('.f_ec').value;
+    const cj=(dv.querySelector('.f_cjnome')?.value||'').trim();
+    if(cj && (ec==='casado'||ec==='solteiro_ue')) out.push(cj);
+  });
+  return out;
+}
+function ehDevedorOuConjuge(nome){ return nomesNaTelaDevedor().some(x=>mesmoNome(x,nome)); }
+function ehSocioPJ(nome){
+  if((chipVals('c_tipo')[0]||'pf')!=='pj') return false;
+  return [...document.querySelectorAll('#pj_socios .subcard')].some(s=>mesmoNome(s.querySelector('.f_nome').value,nome));
+}
 /* Com devedor solidário cadastrado, a renda é comprovada só pelos devedores — o consorciado (PF ou PJ) não envia renda. */
 function temDevedorSolidario(){ return document.querySelectorAll('#devs .subcard').length > 0; }
 function devSlides(dv, modo){
@@ -1628,7 +1654,8 @@ function devSlides(dv, modo){
       cardsD.push({t:T.dados[0], d:T.dados[1], pessoa:rotCj});
     }
   }
-  let h = slideCards('Devedor solidário — Documentos pessoais', rotComp, cardsD);
+  const tambemSocio = [n, temCj?cjN:''].filter(Boolean).some(ehSocioPJ);
+  let h = slideCards('Devedor solidário — Documentos pessoais', rotComp + (tambemSocio ? ' · também sócio(s) da empresa' : ''), cardsD);
   const fontes = [...dv.querySelectorAll('.f_rendas .chip.on')].map(c=>c.dataset.v);
   const emp = dv.querySelector('.f_empregime')?.value||'simples';
   const cardsR = fontes.length ? docsRenda(fontes, emp).map(d=>({t:d[0],d:d[1],pessoa:rot})) : [];
@@ -1779,7 +1806,7 @@ function gerarVeiculo(){
     cardsE.push({t:'Dados da empresa', d:'Informar telefone e e-mail da PJ.', pessoa:pjNome});
     html += slideCards('Documentos da empresa', pjNome + ' — empresa com no mínimo 1 ano de abertura', cardsE);
     if(!temDevedorSolidario()) html += slideCards('Comprovação de renda da empresa', pjNome, PJ_RENDA[document.getElementById('pj_regime').value].map(d=>({t:d[0],d:d[1],pessoa:pjNome})));
-    const socios = [...document.querySelectorAll('#pj_socios .subcard')];
+    const socios = [...document.querySelectorAll('#pj_socios .subcard')].filter(s=>!ehDevedorOuConjuge(s.querySelector('.f_nome').value));
     if(socios.length){
       const cardsS = [];
       socios.forEach(s=>{
@@ -1965,9 +1992,15 @@ function negRender(){
   w.innerHTML=h;
   negAtualizarResumo();
 }
-function negJaExiste(nome){ return NEG.pessoas.some(p=>p.nome.trim().toLowerCase()===nome.trim().toLowerCase()); }
+function negJaExiste(nome){ return NEG.pessoas.some(p=>mesmoNome(p.nome, nome)); }
 function negPuxarPartes(){
-  const add=(nome,parte)=>{ if(nome && !negJaExiste(nome)) NEG.pessoas.push({nome,cpf:'',nasc:'',parte,cert:{}}); };
+  const add=(nome,parte)=>{
+    if(!nome) return;
+    const ja=NEG.pessoas.find(p=>mesmoNome(p.nome, nome));
+    if(!ja){ NEG.pessoas.push({nome,cpf:'',nasc:'',parte,cert:{}}); return; }
+    if(parte && !(ja.parte||'').toLowerCase().includes(parte.toLowerCase())) ja.parte = ja.parte ? ja.parte+' e '+parte.charAt(0).toLowerCase()+parte.slice(1) : parte;
+    if(normNome(nome).length > normNome(ja.nome).length) ja.nome = nome;
+  };
   const g=id=>document.getElementById(id);
   if((chipVals('c_tipo')[0]||'pf')==='pf'){
     add(g('c_nome').value.trim(), 'Consorciado');
@@ -1977,7 +2010,11 @@ function negPuxarPartes(){
     add(g('pj_nome').value.trim(), 'Consorciado (PJ)');
     document.querySelectorAll('#pj_socios .subcard').forEach(s=>add(s.querySelector('.f_nome').value.trim(),'Sócio'));
   }
-  document.querySelectorAll('#devs .subcard').forEach(s=>add(s.querySelector('.f_nome').value.trim(),'Devedor solidário'));
+  document.querySelectorAll('#devs .subcard').forEach(s=>{
+    add(s.querySelector('.f_nome').value.trim(),'Devedor solidário');
+    const ec=s.querySelector('.f_ec').value, cj=(s.querySelector('.f_cjnome')?.value||'').trim();
+    if(cj && (ec==='casado'||ec==='solteiro_ue')) add(cj,'Cônjuge do devedor solidário');
+  });
   document.querySelectorAll('#vends .subcard').forEach(v=>{
     if(v.querySelector('.f_tipo').value==='pf'){
       add(v.querySelector('.f_nome').value.trim(),'Vendedor');
