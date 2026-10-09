@@ -395,7 +395,7 @@ function valoresPDF(d){
     vBairro: d.bairro, vCidade: d.cidade, vUF: d.uf, vCEP: MASK.cep(d.cep),
     vDDD_Telefone: dddT, vTelefone: tel, vDDD_Celular: dddC, vCelular: cel, vEmail: d.email,
     vVL_Morte: saldo == null ? '' : brlFmt(saldo), vVL_Invalidez: saldo == null ? '' : brlFmt(saldo),
-    vVL_Morte2: '', vVL_Invalidez2: pr == null ? '' : brlFmt(pr),
+    vVL_Morte2: pr == null ? '' : brlFmt(pr), vVL_Invalidez2: pr == null ? '' : brlFmt(pr),
     vDeclaro: 'X', vLocal: d.local, vData: dataBR(d.data),
   };
   if(d.outras) v['Inclusão editável'] = d.outras;
