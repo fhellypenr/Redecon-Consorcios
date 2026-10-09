@@ -65,6 +65,8 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#d
   .rasc-linha select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
   .rasc-info{font-size:11.5px;color:var(--ok);font-weight:600;margin-bottom:6px}
   .hide{display:none !important}
+  .bem-fixo{font-size:13px;background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 11px}
+  .bem-fixo a{color:var(--coral);font-size:12px;margin-left:6px;cursor:pointer;text-decoration:underline}
 
   #previa{padding:18px 22px;overflow:auto;max-height:calc(100vh - 62px);display:flex;flex-direction:column;gap:10px}
   @media(max-width:1100px){#previa{max-height:none}}
@@ -101,6 +103,7 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#d
     <div class="g">
       <div class="field"><label>Tipo de bem</label>
         <div class="chips" id="bem"><span class="chip on" data-v="imovel">Imóvel</span><span class="chip" data-v="veiculo">Veículo</span></div>
+        <div class="bem-fixo hide" id="bem_fixo"></div>
       </div>
       <div class="field s3"><label>Início da vigência</label><input type="date" data-k="vig"><div class="hint">Data do preenchimento.</div></div>
       <div class="field s3"><label>Prazo da obrigação (meses)</label><input type="text" inputmode="numeric" data-k="prazo" data-m="int" placeholder="Prazo restante"><div class="hint">Meses que faltam do consórcio.</div></div>
@@ -230,9 +233,16 @@ function setChip(id, v){ document.querySelectorAll('#' + id + ' .chip').forEach(
 
 /* ===================== ESTADO / RASCUNHOS ===================== */
 const STORE_KEY = 'redecon_dps_rascunhos', ULTIMO_KEY = 'redecon_dps_ultimo';
-let RASC_ID = '', RASC_PROC = '';
+let RASC_ID = '', RASC_PROC = '', BEM_FIXO = false;
+/* tipo de bem vindo do processo do checklist: fica travado (dá para destravar no link) */
+function mostrarBem(){
+  const b = BEM[chipVal('bem') || 'imovel'];
+  $('#bem').classList.toggle('hide', BEM_FIXO);
+  $('#bem_fixo').classList.toggle('hide', !BEM_FIXO);
+  $('#bem_fixo').innerHTML = '<b>' + b.nome + '</b> — definido pelo processo<a onclick="BEM_FIXO=false;mostrarBem();atualizar()">alterar</a>';
+}
 function coletar(){
-  const o = { bem: chipVal('bem') || 'imovel', sexo: chipVal('sexo'), _respOk: $('#resp_ok').checked };
+  const o = { bem: chipVal('bem') || 'imovel', sexo: chipVal('sexo'), _respOk: $('#resp_ok').checked, _bemFixo: BEM_FIXO };
   PERGS.forEach(p => o['q' + p.n] = chipVal('q' + p.n));
   document.querySelectorAll('[data-k]').forEach(el => { o[el.dataset.k] = el.value.trim(); });
   return o;
@@ -256,10 +266,10 @@ function salvarRascunho(){
 function limparCampos(){
   document.querySelectorAll('[data-k]').forEach(el => { el.value = ''; el.classList.remove('bad'); });
   $('#resp_ok').checked = false;
-  setChip('bem', 'imovel'); setChip('sexo', ''); PERGS.forEach(p => setChip('q' + p.n, ''));
+  setChip('bem', 'imovel'); setChip('sexo', ''); PERGS.forEach(p => setChip('q' + p.n, '')); BEM_FIXO = false;
 }
 function aplicarDados(o){
-  setChip('bem', o.bem || 'imovel'); setChip('sexo', o.sexo || '');
+  setChip('bem', o.bem || 'imovel'); setChip('sexo', o.sexo || ''); BEM_FIXO = !!o._bemFixo;
   PERGS.forEach(p => setChip('q' + p.n, o['q' + p.n] || ''));
   document.querySelectorAll('[data-k]').forEach(el => { if(o[el.dataset.k] != null) el.value = o[el.dataset.k]; });
   $('#resp_ok').checked = !!o._respOk;
@@ -423,6 +433,7 @@ async function montarPDF(d){
 
 /* ===================== TELA ===================== */
 function aplicarVisibilidade(d){
+  mostrarBem();
   PERGS.forEach(p => {
     const mostra = d['q' + p.n] === p.explicaQuando;
     $('#qx' + p.n).classList.toggle('hide', !mostra);
@@ -507,7 +518,7 @@ function aplicarPrefill(){
   const d = pk.d;
   const id = pk.origem ? 'p:' + pk.origem : 'a:' + Date.now();
   const existia = abrirRascunho(id, pk.origem || '');
-  if(!existia && d.bem) setChip('bem', d.bem);
+  if(d.bem){ setChip('bem', d.bem); BEM_FIXO = true; }
   const usados = [];
   /* PF: completa com o consorciado do Termo de Opção do mesmo processo (endereço e contato), se existir */
   let doTermo = [];

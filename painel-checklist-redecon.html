@@ -1700,6 +1700,12 @@ function normNome(n){ return (n||'').normalize('NFD').replace(/[\u0300-\u036f]/g
    Passa só o que o checklist já tem (tipos, nomes, grupo/cota, CPF/CNPJ das Negativas e dados do imóvel).
    A entrega usa uma chave temporária no navegador, apagada pelo Termo assim que ele lê. */
 function abrirTermoOpcao(){
+  if(!termoGravarPrefill(false)) return;
+  termoMostrarAba();
+  abrirTab('termo', true);
+  termoCarregar(true);
+}
+function termoGravarPrefill(silencioso){
   const g = id => document.getElementById(id);
   const docDe = nome => { if(!nome) return ''; const p = NEG.pessoas.find(x => mesmoNome(x.nome, nome)); return p ? (p.cpf || '') : ''; };
   const temCj = ec => ec==='casado' || ec==='solteiro_ue';
@@ -1716,7 +1722,7 @@ function abrirTermoOpcao(){
     d['c.cnpj'] = docDe(d['c.razao']);
   }
   const vends = [...document.querySelectorAll('#vends .subcard')];
-  if(vends.length > 1 && !confirm('Este processo tem '+vends.length+' vendedores. Os 4 modelos do Termo têm um bloco de vendedor (vendedor + cônjuge) — para mais vendedores, o modelo deve ser solicitado à HS.\n\nAbrir o Termo com o primeiro vendedor mesmo assim?')) return;
+  if(vends.length > 1 && !silencioso && !confirm('Este processo tem '+vends.length+' vendedores. Os 4 modelos do Termo têm um bloco de vendedor (vendedor + cônjuge) — para mais vendedores, o modelo deve ser solicitado à HS.\n\nAbrir o Termo com o primeiro vendedor mesmo assim?')) return false;
   const v = vends[0];
   if(v){
     const vTipo = v.querySelector('.f_tipo').value;
@@ -1748,16 +1754,14 @@ function abrirTermoOpcao(){
   d['i.ri'] = g('i_termo_ri').value.trim();
   Object.keys(d).forEach(k => { if(!d[k]) delete d[k]; });
   try{ localStorage.setItem('redecon_termo_prefill', JSON.stringify({ts:Date.now(), origem:(PROC_ATUAL || g('p_nome').value.trim() || ''), d})); }
-  catch(e){ alert('Não foi possível passar os dados ao Termo neste navegador. Ele vai abrir em branco.'); }
-  termoMostrarAba();
-  abrirTab('termo');
-  termoCarregar(true);
+  catch(e){ if(!silencioso) alert('Não foi possível passar os dados ao Termo neste navegador. Ele vai abrir em branco.'); }
+  return true;
 }
 /* Aba 5 — o termo roda dentro do painel (iframe da mesma origem, usa o login do painel). */
 function termoMostrarAba(){ document.querySelector('nav.tabs button[data-t=termo]').classList.remove('hide'); }
 function termoCarregar(recarregar){
   const fr = document.getElementById('termo_frame');
-  if(recarregar || !fr.getAttribute('src')) fr.src = 'termo-opcao-redecon.html?embed=1&t=' + Date.now();
+  if(recarregar || !fr.getAttribute('src')){ fr.src = 'termo-opcao-redecon.html?embed=1&t=' + Date.now(); fr.dataset.proc = PROC_ATUAL || ''; }
   termoAjustarAltura();
 }
 function termoAjustarAltura(){
@@ -1772,11 +1776,18 @@ window.addEventListener('resize', termoAjustarAltura);
    Passa ao formulário da DPS só o que o checklist já tem: tipo de bem, grupo/cota e o proponente
    (PF: consorciado · PJ: 1º sócio) com CPF e nascimento das Negativas. Chave temporária, apagada ao ler. */
 function abrirDPS(){
+  if(!dpsGravarPrefill(false)) return;
+  dpsMostrarAba();
+  abrirTab('dps', true);
+  dpsCarregar(true);
+}
+/* grava a chave temporária com os dados do processo; silencioso = ao abrir a aba 6 direto */
+function dpsGravarPrefill(silencioso){
   const g = id => document.getElementById(id);
   const pes = nome => (nome && NEG.pessoas.find(x => mesmoNome(x.nome, nome))) || {};
   const EC_DPS = {solteiro:'solteiro', solteiro_ue:'uniao', casado:'casado', divorciado:'divorciado', viuvo:'viuvo'};
   const d = { bem: chipVals('modo')[0] || 'imovel', grupo: g('p_grupo').value.trim(), cota: g('p_cota').value.trim() };
-  if(!dpsDisponivel()){ alert('Esta empresa não optou pelo seguro prestamista, então não há DPS (vai o Termo de exclusão).\n\nSe a empresa indicar um sócio para o seguro, mude “Seguro prestamista” para “Optar” no cadastro da PJ.'); return; }
+  if(!dpsDisponivel()){ if(!silencioso) alert('Esta empresa não optou pelo seguro prestamista, então não há DPS (vai o Termo de exclusão).\n\nSe a empresa indicar um sócio para o seguro, mude “Seguro prestamista” para “Optar” no cadastro da PJ.'); return false; }
   if((chipVals('c_tipo')[0] || 'pf') === 'pf'){
     d.nome = g('c_nome').value.trim() || g('p_nome').value.trim();
     d.ec = EC_DPS[g('c_ec').value] || '';
@@ -1794,10 +1805,8 @@ function abrirDPS(){
   if(dc){ if(dc.email) d.email = dc.email; const t = (dc.tel||'').replace(/\D/g,''); if(t.length===11) d.cel = dc.tel; else if(t.length===10) d.tel = dc.tel; }
   Object.keys(d).forEach(k => { if(!d[k]) delete d[k]; });
   try{ localStorage.setItem('redecon_dps_prefill', JSON.stringify({ts:Date.now(), origem:(PROC_ATUAL || g('p_nome').value.trim() || ''), d})); }
-  catch(e){ alert('Não foi possível passar os dados à DPS neste navegador. Ela vai abrir em branco.'); }
-  dpsMostrarAba();
-  abrirTab('dps');
-  dpsCarregar(true);
+  catch(e){ if(!silencioso) alert('Não foi possível passar os dados à DPS neste navegador. Ela vai abrir em branco.'); }
+  return true;
 }
 /* DPS só existe para PF ou PJ que optou pelo seguro (Termo de indicação de sócio + DPS do sócio). */
 function dpsDisponivel(){
@@ -1815,7 +1824,7 @@ function dpsSociosSync(){
 function dpsMostrarAba(){ document.querySelector('nav.tabs button[data-t=dps]').classList.remove('hide'); }
 function dpsCarregar(recarregar){
   const fr = document.getElementById('dps_frame');
-  if(recarregar || !fr.getAttribute('src')) fr.src = 'dps-redecon.html?embed=1&t=' + Date.now();
+  if(recarregar || !fr.getAttribute('src')){ fr.src = 'dps-redecon.html?embed=1&t=' + Date.now(); fr.dataset.proc = PROC_ATUAL || ''; }
   dpsAjustarAltura();
 }
 function dpsAjustarAltura(){
@@ -2083,14 +2092,22 @@ function gerarVeiculo(){
 }
 
 /* ===================== ABAS ===================== */
-function abrirTab(t){
+function abrirTab(t, jaPreparado){
   ['proc','pre','neg','perg','chk','termo','dps'].forEach(x=>{
     document.getElementById('tab_'+x).classList.toggle('hide', x!==t);
     document.querySelector('nav.tabs button[data-t='+x+']').classList.toggle('on', x===t);
   });
   document.getElementById('acoes_chk').classList.toggle('hide', t==='termo' || t==='dps');
-  if(t==='termo'){ termoMostrarAba(); termoCarregar(false); }
-  if(t==='dps'){ dpsMostrarAba(); dpsCarregar(false); }
+  if(t==='termo' && !jaPreparado){
+    termoMostrarAba();
+    const fr = document.getElementById('termo_frame');
+    if(PROC_ATUAL && fr.dataset.proc !== PROC_ATUAL && termoGravarPrefill(true)) termoCarregar(true); else termoCarregar(false);
+  }
+  if(t==='dps' && !jaPreparado){
+    dpsMostrarAba();
+    const fr = document.getElementById('dps_frame');
+    if(PROC_ATUAL && fr.dataset.proc !== PROC_ATUAL && dpsGravarPrefill(true)) dpsCarregar(true); else dpsCarregar(false);
+  }
   if(t==='neg'){ const dp=document.getElementById('neg_data_padrao'); if(dp && !dp.value) dp.value=NEG_DATA_PADRAO; negRender(); }
   if(t==='perg') gerarPerguntas();
   if(t==='proc') procRender();
@@ -3174,21 +3191,28 @@ function confAtualizar(){
 }
 function pendAbrir(){
   const nome = (document.getElementById('p_nome').value||'').trim().split(/\s+/)[0] || '[Nome]';
-  const erros = [], pends = [];
-  confDocs().forEach(c=>{
-    const t = (c.querySelector('h4 span[contenteditable]')||{}).textContent.trim();
-    const pCard = ((c.querySelector('.pessoa')||{}).textContent||'').trim();
-    const obs = ((CONF[c.dataset.ck]||{}).obs||'').trim();
-    const us = confUnidades(c);
-    const multi = us.length > 1;
-    const er = us.filter(u=>u.s==='erro'), pe = us.filter(u=>u.s!=='ok' && u.s!=='erro');
-    er.forEach(u=>erros.push('• ' + t + ' (' + (multi ? u.nome : pCard) + ')' + (u.m.trim() ? ': ' + u.m.trim() : '') + (obs ? ' — ' + obs : '')));
-    if(pe.length) pends.push('• ' + t + ((multi ? pe.map(u=>u.nome).join(' e ') : pCard) ? ' (' + (multi ? pe.map(u=>u.nome).join(' e ') : pCard) + ')' : '') + (obs ? ' — ' + obs : ''));
+  const partes = [];   /* uma parte por tela do checklist: título + pessoa da tela */
+  document.querySelectorAll('#slides .slide').forEach(sl=>{
+    const docs = [...sl.querySelectorAll('.doc')].filter(c=>!c.classList.contains('off') && c.dataset.ck && c.querySelector('.conf'));
+    if(!docs.length) return;
+    const tit = ((sl.querySelector('h3.titulo')||{}).textContent||'').trim();
+    const sub = ((sl.querySelector('.sub')||{}).textContent||'').trim();
+    const itens = [];
+    docs.forEach(c=>{
+      const t = (c.querySelector('h4 span[contenteditable]')||{}).textContent.trim();
+      const pCard = ((c.querySelector('.pessoa')||{}).textContent||'').trim();
+      const obs = ((CONF[c.dataset.ck]||{}).obs||'').trim();
+      const us = confUnidades(c), multi = us.length > 1;
+      const quem = n => (n && confNorm(n) !== confNorm(sub)) ? ' (' + n + ')' : '';
+      us.filter(u=>u.s==='erro').forEach(u=>itens.push('• ' + t + quem(multi ? u.nome : pCard) + ' — reenviar' + (u.m.trim() ? ': ' + u.m.trim() : '') + (obs ? ' (' + obs + ')' : '')));
+      const pe = us.filter(u=>u.s!=='ok' && u.s!=='erro');
+      if(pe.length) itens.push('• ' + t + quem(multi ? pe.map(u=>u.nome).join(' e ') : pCard) + (obs ? ' — ' + obs : ''));
+    });
+    if(itens.length) partes.push('*' + tit + (sub ? ' — ' + sub : '') + '*\n' + itens.join('\n'));
   });
-  let t = 'Olá, ' + nome + '! Tudo bem?\n\nConferimos os documentos enviados até agora. Para darmos andamento ao processo, ainda precisamos do seguinte:\n';
-  if(erros.length) t += '\n⚠️ Precisam ser reenviados:\n' + erros.join('\n') + '\n';
-  if(pends.length) t += '\n📄 Ainda não recebidos:\n' + pends.join('\n') + '\n';
-  t += '\nAssim que enviar, fazemos a conferência e seguimos com o processo. Qualquer dúvida, estamos à disposição.';
+  let t = 'Olá, ' + nome + '! Tudo bem?\n\nConferimos os documentos enviados até agora. Para darmos andamento ao processo, ainda precisamos do seguinte:\n\n'
+    + partes.join('\n\n')
+    + '\n\nOs itens marcados com “reenviar” chegaram, mas precisam ser enviados novamente pelo motivo indicado. ⚠️\n\nAssim que enviar, fazemos a conferência e seguimos com o processo. Qualquer dúvida, estamos à disposição. 😊';
   document.getElementById('pend_txt').value = t;
   document.getElementById('pendModalBackdrop').classList.add('open');
 }
@@ -3391,7 +3415,7 @@ procBadge(); procRender();
 <div id="pendModalBackdrop" onclick="if(event.target===this)pendFechar()">
   <div id="pendModal" role="dialog" aria-modal="true" aria-label="Mensagem de pendências">
     <h3>📋 Mensagem de pendências</h3>
-    <p class="hint">Montada com os documentos marcados como “Com problema” (com o motivo) e os que ainda estão pendentes. Revise antes de enviar.</p>
+    <p class="hint">Separada por parte do checklist (títulos em *negrito* no WhatsApp): o que falta e o que precisa ser reenviado, com o motivo. Revise antes de enviar.</p>
     <textarea id="pend_txt"></textarea>
     <div class="acoes">
       <button class="btn btn-light" onclick="pendFechar()">Fechar</button>
