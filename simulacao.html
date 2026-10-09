@@ -465,15 +465,25 @@ function fmt(v){
 
 // ===== ON GRUPO =====
 // ===== FIDELIDADES DO GRUPO =====
-// Grupos normais: Fid. 1/2/3 = 6/12/18 meses (planilha: colunas Fid1/Fid2/Fid3).
-// Grupos "fid-nova" (1500/900): Fid. 1/2/3/4 = 6/12/18/24 meses. Nesses grupos as colunas Fid1/Fid2/Fid3
-// da planilha valem para 12/18/24 meses e a Fid. 1 (6 meses) vem de "fid1=NN" na coluna Observações.
-const FID_MESES = [6, 12, 18, 24];
-const FID_PCTS  = [50, 35, 15, 7];
+// Fid. 1/2/3/4 = 6/12/18/24 meses, ~50/35/15/7% (regra confirmada em 07/10/2026).
+// A planilha é lida pelo CABEÇALHO: toda coluna "Fidelidade N" vira a Fidelidade N do simulador.
+// Fidelidade nova (5, 6...): meses e % vêm do cabeçalho, ex.: "Fidelidade 5 (30 meses, 5%)".
+// Formato antigo dos grupos "fid-nova" (1500/900, sem valor na Fid. 4): colunas 1/2/3 = 12/18/24 meses
+// e a Fid. 1 (6 meses) vem de "fid1=NN" na Observação ou do código. Mantido só para a transição.
+const FID_PADRAO = {1:{meses:6, pct:50}, 2:{meses:12, pct:35}, 3:{meses:18, pct:15}, 4:{meses:24, pct:7}};
+let FID_CFG = {}; // lido do cabeçalho da planilha; sobrepõe o padrão quando informado
+function fidCfg(n){
+  const c = FID_CFG[n] || {}, p = FID_PADRAO[n] || {};
+  return {meses: c.meses != null ? c.meses : (p.meses != null ? p.meses : null),
+          pct:   c.pct   != null ? c.pct   : (p.pct   != null ? p.pct   : null)};
+}
 function fidelidadesDoGrupo(d){
   if(!d) return [];
-  const vals = d.fidNova ? [d.fid6||null, d.fid1, d.fid2, d.fid3] : [d.fid1, d.fid2, d.fid3];
-  return vals.map((v,i)=>({idx:i+1, meses:FID_MESES[i], pct:FID_PCTS[i], parcelas:v||null}));
+  let vals;
+  if (d.fids) vals = d.fids;                                        // planilha (pelo cabeçalho)
+  else if (d.fidNova) vals = [d.fid6||null, d.fid1, d.fid2, d.fid3]; // grupos embutidos, formato antigo
+  else vals = [d.fid1, d.fid2, d.fid3];
+  return vals.map((v,i)=>{ const c = fidCfg(i+1); return {idx:i+1, meses:c.meses, pct:c.pct, parcelas:v||null}; });
 }
 
 function onGrupo(){
@@ -484,7 +494,7 @@ function onGrupo(){
   const d = GRUPOS[g];
   const bem = d.bem==='imovel'?'Imóvel':'Automóvel';
   const lim = d.limitado?d.limitado+' parc.':'—';
-  const fids = fidelidadesDoGrupo(d).map(f=>'Fid.'+f.idx+' ('+f.meses+'m): <strong>'+(f.parcelas?f.parcelas+' parc.':'—')+'</strong>').join(' · ');
+  const fids = fidelidadesDoGrupo(d).map(f=>'Fid.'+f.idx+(f.meses?' ('+f.meses+'m)':'')+': <strong>'+(f.parcelas?f.parcelas+' parc.':'—')+'</strong>').join(' · ');
   el.style.display='block';
   el.innerHTML = '<strong>'+bem+'</strong> · Prazo: <strong>'+d.prazo+'m</strong>'+(d.especial?' · Especial':'')+(d.fidNova?' · Fidelidade nova':'')+'<br>'
     +'Limitado: <strong>'+lim+'</strong><br>'+fids;
@@ -596,7 +606,7 @@ function calcular(){
 
   // Narrativa conforme foco
   const temLL = lanceLivreParcelas > 0;
-  const narrativa = FOCOS[foco] && FOCOS[foco].narrativa ? FOCOS[foco].narrativa([d.limitado].concat(fidelidadesDoGrupo(d).map(f=>f.parcelas)), temLL) : '';
+  const narrativa = FOCOS[foco] && FOCOS[foco].narrativa ? FOCOS[foco].narrativa([d.limitado].concat(fidelidadesDoGrupo(d).map(f=>f.parcelas)), temLL, fidelidadesDoGrupo(d)) : '';
   document.getElementById('p-narrativa').innerHTML = narrativa ? `<div class="narrativa-box">${narrativa}</div>` : '';
 
   // Coleta dados de cada modalidade
@@ -634,7 +644,7 @@ function calcular(){
       modalidades.push({
         nome: 'Fidelidade ' + idx, chance: pct, lance: c.lanceVal, parcelas: n,
         credito: c.creditoContemplado, parcela: c.parcela, doBolso: c.doBolso,
-        embutido: lanceEmbutido, meses: c.prazoRestLance, condicao: meses + ' parcelas consecutivas em dia',
+        embutido: lanceEmbutido, meses: c.prazoRestLance, condicao: meses ? meses + ' parcelas consecutivas em dia' : 'Parcelas consecutivas em dia',
         tipo: 'fid' + idx, foco: foco === 'fidelidades'
       });
     }
@@ -665,7 +675,7 @@ function calcular(){
   const cards = modalidades.map(m => {
     const isFoco = (foco === 'fidelidades' && m.tipo.startsWith('fid'));
     const focoClass = isFoco ? ' card-foco' : '';
-    const chanceHTML = m.chance !== null ? `<div class="mod-chance">~${m.chance}% concorrência</div>` : '<div class="mod-chance">Oferta livre</div>';
+    const chanceHTML = m.chance !== null ? `<div class="mod-chance">~${m.chance}% concorrência</div>` : (m.tipo === 'livre' ? '<div class="mod-chance">Oferta livre</div>' : '');
     const condicaoHTML = m.condicao ? `<div class="mod-condicao-txt">${m.condicao}</div>` : '';
     const embutidoInfo = (m.lance !== null && m.doBolso > 0 && m.embutido > 0)
       ? `<div class="cel-sub cel-embutido">Embutido: ${fmt(m.embutido)}</div>`
@@ -787,23 +797,35 @@ function toggleMobile(showSidebar){
 }
 
 // ===== OBSERVAÇÕES POR MODALIDADE =====
-const OBS_MODS = [
-  ['sorteio','Sorteio'],
-  ['limitado','Lance Limitado'],
-  ['fid1','Fidelidade 1'],
-  ['fid2','Fidelidade 2'],
-  ['fid3','Fidelidade 3'],
-  ['fid4','Fidelidade 4'],
-  ['livre','Lance Livre']
-];
+// Fidelidades: no mínimo até a 4; cresce sozinho se a planilha tiver Fidelidade 5, 6...
+function obsModsAtuais(){
+  let max = 4;
+  Object.keys(GRUPOS).forEach(k => { const n = fidelidadesDoGrupo(GRUPOS[k]).length; if (n > max) max = n; });
+  const fids = [];
+  for (let i = 1; i <= max; i++) fids.push(['fid'+i, 'Fidelidade '+i]);
+  return [['sorteio','Sorteio'], ['limitado','Lance Limitado']].concat(fids, [['livre','Lance Livre']]);
+}
+let OBS_MODS = obsModsAtuais();
 
-function renderObsLista(){
-  const box = document.getElementById('obs-lista');
-  box.innerHTML = OBS_MODS.map(([tipo, nome]) => `
+function obsItemHTML(tipo, nome){
+  return `
     <div class="obs-item" id="obs-item-${tipo}">
       <label class="obs-toggle"><input type="checkbox" id="obs-chk-${tipo}" onchange="onObsToggle('${tipo}')"> ${nome}</label>
       <textarea id="obs-txt-${tipo}" rows="3" maxlength="300" style="display:none" oninput="obsLive()" placeholder="Ex: Lance máximo já ofertado. Em agosto houve 43 ofertas empatadas; desempate pela cota mais próxima do sorteio."></textarea>
-    </div>`).join('');
+    </div>`;
+}
+
+// Monta a lista na ordem certa, reaproveitando os itens que já existem (não perde o que foi digitado)
+function renderObsLista(){
+  OBS_MODS = obsModsAtuais();
+  const box = document.getElementById('obs-lista');
+  const existentes = {};
+  Array.prototype.forEach.call(box.children, el => { existentes[el.id] = el; });
+  OBS_MODS.forEach(([tipo, nome]) => {
+    let el = existentes['obs-item-'+tipo];
+    if (!el) { const tmp = document.createElement('div'); tmp.innerHTML = obsItemHTML(tipo, nome).trim(); el = tmp.firstElementChild; }
+    box.appendChild(el);
+  });
 }
 
 function onObsToggle(tipo){
@@ -827,9 +849,13 @@ function atualizarObsDisponiveis(){
   const g = parseInt(document.getElementById('f-grupo').value);
   const d = g && GRUPOS[g] ? GRUPOS[g] : null;
   const disp = {sorteio:true, livre:true,
-    limitado: d ? !!d.limitado : true,
-    fid1: true, fid2: true, fid3: true, fid4: d ? !!d.fidNova : true};
-  if(d){ const fs=fidelidadesDoGrupo(d); [1,2,3,4].forEach(i=>{ const f=fs[i-1]; disp['fid'+i] = !!(f && f.parcelas); }); }
+    limitado: d ? !!d.limitado : true};
+  const fs = d ? fidelidadesDoGrupo(d) : [];
+  OBS_MODS.forEach(([tipo]) => {
+    if (tipo.indexOf('fid') !== 0) return;
+    const f = fs[parseInt(tipo.slice(3)) - 1];
+    disp[tipo] = d ? !!(f && f.parcelas) : true;
+  });
   OBS_MODS.forEach(([tipo]) => {
     const item = document.getElementById('obs-item-'+tipo);
     if(item) item.style.display = disp[tipo] ? 'block' : 'none';
@@ -859,7 +885,13 @@ const FOCOS = {
   },
   fidelidades: {
     desc: 'Destaque para fidelidades — evolução das chances conforme pagamento em dia.',
-    narrativa: () => `<strong>Pague em dia e acelere sua contemplação!</strong> — As fidelidades reduzem drasticamente a concorrência. Fidelidade 1 já cai para ~50%, Fidelidade 2 para ~35% e Fidelidade 3 para apenas ~15% do grupo (nos grupos com Fidelidade 4, ~7%). Disciplina financeira é o melhor lance!`
+    narrativa: (mods, temLL, fids) => {
+      // Grupo com fidelidade além da 4: lista as do próprio grupo (com % conhecido). Demais: texto padrão.
+      const extra = (fids||[]).filter(f => f.idx > 4 && f.parcelas);
+      if (!extra.length) return `<strong>Pague em dia e acelere sua contemplação!</strong> — As fidelidades reduzem drasticamente a concorrência. Fidelidade 1 já cai para ~50%, Fidelidade 2 para ~35% e Fidelidade 3 para apenas ~15% do grupo (nos grupos com Fidelidade 4, ~7%). Disciplina financeira é o melhor lance!`;
+      const lista = fids.filter(f => f.parcelas && f.pct != null).map(f => 'Fidelidade ' + f.idx + ' ~' + String(f.pct).replace('.', ',') + '%');
+      return '<strong>Pague em dia e acelere sua contemplação!</strong> — As fidelidades reduzem drasticamente a concorrência' + (lista.length ? ': ' + lista.join(' · ') : '') + '. Disciplina financeira é o melhor lance!';
+    }
   },
   lance_livre: {
     desc: 'Foco total no lance livre — crédito e valores em destaque.',
@@ -875,44 +907,105 @@ function onFoco(){
 // ===== CARREGAR GRUPOS DO GOOGLE SHEETS =====
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBbaSmVk2XAjxjjYyAMl5s_ZTan6Wb6sso9HDsKgu5BssXJtKKl5ywsO3HFYnQNw/pub?gid=1823012895&single=true&output=csv";
 
+// Leitor de CSV que respeita aspas (Observação com vírgula não desalinha as colunas)
+function parseCSV(text){
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch !== '\r') cell += ch;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.map(r => r.map(c => c.trim()));
+}
+function semAcento(t){ return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); }
+
+// Posição de cada coluna pelo NOME do cabeçalho (a ordem das colunas deixa de importar).
+// Fidelidades: qualquer coluna "Fidelidade N" / "Fid N". Meses e % opcionais no próprio cabeçalho:
+// "Fidelidade 5 (30 meses, 5%)".
+function mapearCabecalho(cab){
+  const m = {fids:{}};
+  cab.forEach((h, i) => {
+    const t = semAcento(h);
+    const f = t.match(/^fid(?:elidade)?\.?\s*(\d+)(.*)$/);
+    if (f) {
+      const resto = f[2];
+      const mm = resto.match(/(\d+)\s*m(?:es|eses)?\b/);
+      const pp = resto.match(/(\d+(?:[.,]\d+)?)\s*%/);
+      m.fids[parseInt(f[1])] = {col:i, meses: mm ? parseInt(mm[1]) : null, pct: pp ? parseFloat(pp[1].replace(',', '.')) : null};
+      return;
+    }
+    if (t.indexOf('grupo') === 0) m.grupo = i;
+    else if (t.indexOf('bem') === 0) m.bem = i;
+    else if (t.indexOf('prazo') === 0) m.prazo = i;
+    else if (t.indexOf('limitado') === 0) m.limitado = i;
+    else if (t.indexOf('especial') === 0) m.especial = i;
+    else if (t.indexOf('recurso') === 0) m.recurso = i;
+    else if (t.indexOf('ativo') === 0) m.ativo = i;
+    else if (t.indexOf('observ') === 0) m.obs = i;
+  });
+  return m;
+}
+
 async function carregarGruposCSV() {
+  const statusEl = document.getElementById('csv-status');
   try {
     const resp = await fetch(CSV_URL);
     if (!resp.ok) throw new Error('Falha ao carregar planilha');
-    const text = await resp.text();
-    const lines = text.trim().split('\n');
-    // Skip rows 1 (title), 2 (subtitle), 3 (header) — data starts at row 4 (index 3)
+    const rows = parseCSV(await resp.text());
+    const hi = rows.findIndex(r => semAcento(r[0]) === 'grupo');
+    if (hi < 0) throw new Error('Cabeçalho não encontrado');
+    const map = mapearCabecalho(rows[hi]);
+    if (map.grupo == null || map.bem == null || map.prazo == null) throw new Error('Colunas obrigatórias não encontradas');
+
+    const nums = Object.keys(map.fids).map(Number).sort((a,b) => a-b);
+    const maxN = nums.length ? nums[nums.length-1] : 0;
+    FID_CFG = {};
+    nums.forEach(n => { FID_CFG[n] = {meses: map.fids[n].meses, pct: map.fids[n].pct}; });
+    const cel = (r, i) => (i == null ? '' : (r[i] || ''));
+    const num = (r, i) => parseInt(cel(r, i)) || null;
+
     let novos = 0;
-    for (let i = 3; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g,''));
-      const grupo = cols[0];
-      const ativo = (cols[9]||'').toLowerCase();
+    for (let i = hi + 1; i < rows.length; i++) {
+      const r = rows[i];
+      const grupo = cel(r, map.grupo);
       if (!grupo || isNaN(parseInt(grupo))) continue;
-      if (ativo === 'não' || ativo === 'nao') continue;
-      const bemRaw = (cols[1]||'').toLowerCase(); const bem = (bemRaw.includes('auto') || bemRaw.includes('autom')) ? 'auto' : 'imovel';
-      const prazo = parseInt(cols[2])||0;
-      const limitado = parseInt(cols[3])||null;
-      const fid1 = parseInt(cols[4])||null;
-      const fid2 = parseInt(cols[5])||null;
-      const fid3 = parseInt(cols[6])||null;
-      const especial = (cols[7]||'').toLowerCase().includes('sim');
-      const recurso = (cols[8]||'').toLowerCase().includes('sim');
-      const obs = (cols[10]||'').toLowerCase();
-      const fidNova = obs.includes('fid-nova');
-      const mFid6 = obs.match(/fid1\s*=\s*(\d+)/);
-      const fid6 = mFid6 ? parseInt(mFid6[1]) : ((GRUPOS[grupo] && GRUPOS[grupo].fid6) || null); // sem fid1=NN na planilha, mantém o valor do código
+      if (semAcento(cel(r, map.ativo)) === 'nao') continue;
+      const bem = semAcento(cel(r, map.bem)).includes('auto') ? 'auto' : 'imovel';
+      const prazo = num(r, map.prazo) || 0;
+      const limitado = num(r, map.limitado);
+      let fids = [];
+      for (let n = 1; n <= maxN; n++) fids.push(map.fids[n] ? num(r, map.fids[n].col) : null);
+      const especial = semAcento(cel(r, map.especial)).includes('sim');
+      const recurso = semAcento(cel(r, map.recurso)).includes('sim');
+      const obs = semAcento(cel(r, map.obs));
+      let fidNova = false, fid6 = null;
+      if (obs.includes('fid-nova') && !fids.slice(3).some(v => v)) {
+        // Formato antigo (1500/900 sem a coluna Fid. 4 preenchida): colunas 1/2/3 = 12/18/24 meses
+        const mFid6 = obs.match(/fid1\s*=\s*(\d+)/);
+        fid6 = mFid6 ? parseInt(mFid6[1]) : ((GRUPOS[grupo] && GRUPOS[grupo].fid6) || null);
+        fids = [fid6, fids[0]||null, fids[1]||null, fids[2]||null];
+        fidNova = true;
+      }
+      while (fids.length > 3 && !fids[fids.length-1]) fids.pop(); // não mostra Fid. 4+ vazia
       if (!GRUPOS[grupo]) novos++;
-      GRUPOS[grupo] = {bem, prazo, limitado, fid1, fid2, fid3, fid6, especial, recurso_proprio: recurso, fidNova};
+      GRUPOS[grupo] = {bem, prazo, limitado, fids, fid6, especial, recurso_proprio: recurso, fidNova};
     }
-    const statusEl = document.getElementById('csv-status');
+    renderObsLista();
+    onGrupo();
+
+    const semMeses = nums.filter(n => fidCfg(n).meses == null);
     if (statusEl) {
-      statusEl.textContent = novos > 0
-        ? `✅ ${novos} novos grupos carregados da planilha`
-        : '✅ Planilha sincronizada';
-      statusEl.style.color = '#1f9d55';
+      statusEl.textContent = (novos > 0 ? `✅ ${novos} novos grupos carregados da planilha` : '✅ Planilha sincronizada')
+        + (semMeses.length ? ` · ⚠️ Fidelidade ${semMeses.join(', ')} sem meses no cabeçalho` : '');
+      statusEl.style.color = semMeses.length ? '#a86b00' : '#1f9d55';
     }
   } catch(e) {
-    const statusEl = document.getElementById('csv-status');
     if (statusEl) {
       statusEl.textContent = 'Usando grupos locais (planilha indisponível)';
       statusEl.style.color = '#a86b00';
