@@ -516,7 +516,10 @@ const MODELOS = {
 };
 
 /* ===================== MONTAGEM DO DOCUMENTO ===================== */
-function F(v, grow, base){ return '<span class="fl" data-g="' + (grow || 1) + '" style="min-width:' + (base || '10mm') + '">' + (v ? E(v) : '&nbsp;') + '</span>'; }
+/* Tudo o que é preenchido sai em CAIXA ALTA no documento (padrão Redecon, 09/10/2026), exceto e-mail (FE). O formulário mantém o que foi digitado. */
+function UP(v){ return String(v == null ? '' : v).toLocaleUpperCase('pt-BR'); }
+function F(v, grow, base, manter){ return '<span class="fl" data-g="' + (grow || 1) + '" style="min-width:' + (base || '10mm') + '">' + (v ? E(manter ? v : UP(v)) : '&nbsp;') + '</span>'; }
+function FE(v, grow, base){ return F(v, grow, base, true); }
 function L(t, cls){ return '<span class="lb' + (cls ? ' ' + cls : '') + '">' + t + '</span>'; }
 /* Linha do formulário: cada "rótulo + campo" vira um par que não se separa.
    Se o conteúdo não cabe na linha, o par inteiro desce para a linha de baixo (em vez de quebrar o texto em pedaços). */
@@ -533,7 +536,7 @@ function R(){
   return '<div class="rw">' + out + '</div>';
 }
 const TRACO = '<span class="il tr">– – – – – –</span>';
-function IL(v, w){ return '<span class="il' + (w ? ' w' : '') + (v ? '' : ' e') + '">' + (v ? E(v) : '&nbsp;') + '</span>'; }
+function IL(v, w){ return '<span class="il' + (w ? ' w' : '') + (v ? '' : ' e') + '">' + (v ? E(UP(v)) : '&nbsp;') + '</span>'; }
 function marca(on){ return on ? '( X )' : '(&nbsp;&nbsp;&nbsp;)'; }
 
 function enderecoPF(d, p){
@@ -547,7 +550,7 @@ function enderecoPJ(d, p){
 function docsPF(d, p, rotEmail){
   return R(L('CPF:'), F(d[p+'.cpf1'], 2), L('e CPF'), F(d[p+'.cpf2'], 2), L('&nbsp;RG:'), F(d[p+'.rg1'], 2), L('e RG'), F(d[p+'.rg2'], 2))
        + R(L('PROFISSÃO:'), F(d[p+'.prof1'], 1), L('e'), F(d[p+'.prof2'], 1))
-       + R(L(rotEmail), F(d[p+'.email1'], 1), L('e'), F(d[p+'.email2'], 1))
+       + R(L(rotEmail), FE(d[p+'.email1'], 1), L('e'), FE(d[p+'.email2'], 1))
        + R(L('Nº TEL. COM DDD:'), F(d[p+'.tel1'], 1), L('e'), F(d[p+'.tel2'], 1));
 }
 
@@ -564,7 +567,7 @@ function boxComprador(d){
     + R(L('CONSORCIADO(S)/PROMITENTE(S) COMPRADOR(ES):', 'big')) + R(F(d['c.razao']))
     + R(L('GRUPO(s)/COTA(s):'), F(d['c.grupo']))
     + enderecoPJ(d, 'c')
-    + R(L('CNPJ:'), F(d['c.cnpj'], 2), L('EMAIL:'), F(d['c.emailpj'], 3))
+    + R(L('CNPJ:'), F(d['c.cnpj'], 2), L('EMAIL:'), FE(d['c.emailpj'], 3))
     + '</div>';
 }
 function boxVendedor(d, m){
@@ -588,7 +591,7 @@ function boxVendedor(d, m){
     : R(L('PROMITENTE(S) VENDEDOR(ES):', 'big'), F(d['v.razao']));
   return '<div class="box">' + nomeLinha
     + enderecoPJ(d, 'v')
-    + R(L('CNPJ:'), F(d['v.cnpj'], 2), L('EMAIL:'), F(d['v.emailpj'], 3))
+    + R(L('CNPJ:'), F(d['v.cnpj'], 2), L('EMAIL:'), FE(d['v.emailpj'], 3))
     + R(L('Nº TEL. COM DDD:'), F(d['v.telpj'], 1), '<span style="flex:2"></span>')
     + R(L('DADOS DE CONTA BANCÁRIA EM NOME DO VENDEDOR:'))
     + R(L('Banco:'), F(d['v.banco'], 2), L('Agência:'), F(d['v.ag'], 1), L('Conta Corrente n.º:'), F(d['v.conta'], 1.6))
@@ -602,7 +605,7 @@ function boxImovel(d, m){
     ? 'R$&nbsp;' + IL(n(pro)) + ' (' + IL(e(pro), true) + ') (extenso).'
     : 'R$&nbsp;' + IL(pro ? pro.num + ' (' + pro.ext : '', true) + ') (extenso).';  /* modelo PJ→PF: o original não tem o "(" antes do extenso */
   return '<div class="box">'
-    + (d['i.desc'] ? '<div class="imovel">' + L('IMÓVEL:') + ' <span class="txt">' + E(d['i.desc']) + '</span></div>'
+    + (d['i.desc'] ? '<div class="imovel">' + L('IMÓVEL:') + ' <span class="txt">' + E(UP(d['i.desc'])) + '</span></div>'
                    : R(L('IMÓVEL:', 'big'), F('')) + R(F('')) + R(F('')))
     + '<p class="vl n"><b>VALOR TOTAL DA TRANSAÇÃO: R$</b>&nbsp;' + IL(n(tot)) + ' (' + IL(e(tot), true) + ') (extenso), sendo que serão pagos ao vendedor com recursos relativos à carta de crédito, através de transferência bancária na conta acima, o valor de R$&nbsp;' + IL(n(car)) + ' (' + IL(e(car), true) + ') (extenso) e em recursos próprios o valor de ' + proprioTxt + '</p>'
     + '<p class="vl">Caso seja Apto/sala comercial e box, informar qual o valor individual do Box R$&nbsp;' + (d['i.box'] ? IL(MASK.brl(d['i.box'])) : TRACO) + '<br>e valor individual do Apto/Sala R$&nbsp;' + (d['i.apto'] ? IL(MASK.brl(d['i.apto'])) : TRACO) + ' cuja soma é o valor total acima descrito.</p>'

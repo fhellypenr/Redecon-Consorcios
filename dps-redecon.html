@@ -425,7 +425,8 @@ async function montarPDF(d){
   const longos = [];
   for(const [k, val] of Object.entries(valoresPDF(d))){
     let f; try{ f = form.getTextField(k); }catch(e){ throw new Error('O formulário não tem o campo "' + k + '" — a versão do PDF mudou?'); }
-    const txt = String(val || '').replace(/[^\x20-\x7E -ÿ–—‘’“”•€]/g, '');
+    /* CAIXA ALTA em tudo o que é preenchido (padrão Redecon, 09/10/2026), exceto o e-mail */
+    const bruto = String(val || ''), txt = (k === 'vEmail' ? bruto : bruto.toLocaleUpperCase('pt-BR')).replace(/[^\x20-\x7E -ÿ–—‘’“”•€]/g, '');
     f.setText(txt);
     const base = k.startsWith('vSim') || k.startsWith('vNão') || ['vSexo_M', 'vSexo_F', 'quadrado', 'vDeclaro'].includes(k) ? 8 : 10;
     const larg = f.acroField.getWidgets()[0].getRectangle().width - 4;
