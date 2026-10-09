@@ -827,6 +827,9 @@ window._iniciarCentral = function(B){
       linhas[0].textContent = brl(fc); linhas[1].textContent = '− ' + brl(multa); linhas[2].textContent = brl(fc - multa);
     };
     bem.addEventListener('input', calc); pct.addEventListener('input', calc);
+    /* padrão de valores 286.796,41 ao sair do campo / colar */
+    const padBem = () => { const n = numBR(bem.value); if(bem.value.trim() && n >= 0) bem.value = n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); calc(); };
+    bem.addEventListener('blur', padBem); bem.addEventListener('paste', () => setTimeout(padBem, 0));
   }
   function openMsg(id){
     const m = msgById(id); if(!m) return;

@@ -438,6 +438,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
   .rel-card{box-shadow:none;border:none}
 }
 </style>
+<script src="moeda-br.js"></script>
 </head>
 <body>
 <script src="topbar-redecon.js" data-pagina="processos" data-titulo="Gestão de Processos"></script>
@@ -1115,7 +1116,7 @@ async function processarNovoDaQuery(){
   let subtipo = params.get('subtipo') || (tipo==='Imóvel' ? 'Aquisição' : 'Compra');
   if(!SUBTIPOS[tipo].includes(subtipo)) subtipo = SUBTIPOS[tipo][0];
   const grupo = params.get('grupo') || '';
-  const credito = params.get('credito') || '';
+  const credito = MoedaBR.normalizar(params.get('credito') || '');
 
   const emIframe = (window.parent !== window);
   const forcar = params.get('forcar') === '1';
@@ -1699,7 +1700,7 @@ function renderDetalhe(){
         +'</div>'
         +'<div class="campos-grid campos-2" style="margin-bottom:8px">'
         +'<div class="campo-group"><label>Data</label><input type="text" value="'+(lib.data||'')+'" placeholder="DD/MM/AAAA" '+disLib+' onchange="pSel.liberacoes['+li+'].data=this.value;salvar()"></div>'
-        +'<div class="campo-group"><label>Valor (R$)</label><input type="text" value="'+(lib.valor||'')+'" placeholder="ex: 50.000,00" '+disLib+' onchange="pSel.liberacoes['+li+'].valor=this.value;salvar()"></div>'
+        +'<div class="campo-group"><label>Valor (R$)</label><input type="text" data-moeda inputmode="decimal" value="'+MoedaBR.normalizar(lib.valor)+'" placeholder="Ex.: 50.000,00" '+disLib+' onchange="this.value=MoedaBR.normalizar(this.value);pSel.liberacoes['+li+'].valor=this.value;salvar()"></div>'
         +'</div>'
         +'<div class="campo-group"><label>Comentário</label><input type="text" value="'+(lib.comentario||'')+'" placeholder="Ex: Solicitado após vistoria de 30%" '+disLib+' onchange="pSel.liberacoes['+li+'].comentario=this.value;salvar()"></div>'
         +'</div>';
@@ -1709,7 +1710,7 @@ function renderDetalhe(){
       +'<button class="add-comment-btn" style="margin-top:4px" onclick="adicionarLiberacao()"><i class="ti ti-plus" style="font-size:11px"></i> adicionar liberação</button>'
       +'</div>';
   } else {
-    creditoWrap='<div class="credito-wrap"><label><i class="ti ti-coin" style="font-size:13px;vertical-align:-2px"></i> Crédito liberado (R$)</label><input type="text" value="'+(p.credito||'')+'" placeholder="Valor exato pago ao vendedor" '+(p.concluido?'disabled':'')+' onchange="pSel.credito=this.value;salvar()"></div>';
+    creditoWrap='<div class="credito-wrap"><label><i class="ti ti-coin" style="font-size:13px;vertical-align:-2px"></i> Crédito liberado (R$)</label><input type="text" data-moeda inputmode="decimal" value="'+MoedaBR.normalizar(p.credito)+'" placeholder="Ex.: 250.000,00 (valor exato pago ao vendedor)" '+(p.concluido?'disabled':'')+' onchange="this.value=MoedaBR.normalizar(this.value);pSel.credito=this.value;salvar()"></div>';
   }
 
   const transferenciaWrap=p.subtipo==='Transferência com bem entregue'?`<div style="background:var(--blue-light);border:1px solid var(--blue-border);border-radius:var(--radius);padding:.875rem 1.125rem;margin-bottom:1.25rem"><label style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">↔ Transferência de → para</label><input type="text" value="${p.transferencia||''}" placeholder="ex: Nome atual → Nome do novo titular" style="width:100%;font-size:13px;padding:7px 10px;border-radius:var(--border-radius-sm,6px);border:1px solid var(--blue-border);background:#fff;color:var(--text);font-family:inherit" ${p.concluido?'disabled':''} onchange="pSel.transferencia=this.value;salvar()"></div>`:'';
@@ -1742,7 +1743,7 @@ function abrirEstatisticas(btn){
 
 function parseMoeda(s){
   if(!s)return 0;
-  return parseFloat(s.replace(/[^\d,]/g,'').replace(',','.'))||0;
+  return MoedaBR.parse(s)||0;
 }
 
 function mediaValores(arr){
@@ -1781,7 +1782,7 @@ const EST_TRECHOS_VEICULO=[
 ];
 
 function estFmtR(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function estFmtMi(v){return v>=1e6?'R$ '+(v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' mi':estFmtR(v)}
+function estFmtMi(v){return estFmtR(v)} /* padrão único: valor cheio 1.250.000,00 (sem abreviar "mi") */
 function estFmtCompacto(v){
   if(v>=1e6) return (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})+' mi';
   if(v>=1e3) return (v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil';
@@ -2003,7 +2004,7 @@ function renderEstatisticas(){
   const credIm=imConc.filter(estTemCredito).map(estCreditoProcesso),credVe=veConc.filter(estTemCredito).map(estCreditoProcesso);
   const totalIm=credIm.reduce((a,b)=>a+b,0),totalVe=credVe.reduce((a,b)=>a+b,0),totalGeral=totalIm+totalVe;
   const nCred=credIm.length+credVe.length;
-  const ticket=(tot,n)=>n?estFmtR(Math.round(tot/n)):'—';
+  const ticket=(tot,n)=>n?estFmtR(tot/n):'—';
 
   // ---- Série mensal
   const serie=estSerieMensal(concluidos);
@@ -2142,7 +2143,7 @@ function renderCampos(et,idx){
       return '<div class="reembolso-item">'
         +'<div class="campos-grid campos-2">'
         +'<div class="campo-group"><label>Descrição</label><input type="text" value="'+(r.descricao||'')+'" placeholder="ITBI, Emolumentos..." '+dis+' onchange="pSel.etapas['+idx+'].reembolsos['+ri+'].descricao=this.value;salvar()"></div>'
-        +'<div class="campo-group"><label>Valor (R$)</label><input type="text" value="'+(r.valor||'')+'" placeholder="ex: 1.500,00" '+dis+' onchange="pSel.etapas['+idx+'].reembolsos['+ri+'].valor=this.value;salvar()"></div>'
+        +'<div class="campo-group"><label>Valor (R$)</label><input type="text" data-moeda inputmode="decimal" value="'+MoedaBR.normalizar(r.valor)+'" placeholder="Ex.: 1.500,00" '+dis+' onchange="this.value=MoedaBR.normalizar(this.value);pSel.etapas['+idx+'].reembolsos['+ri+'].valor=this.value;salvar()"></div>'
         +'</div>'
         +(ri>0?'<button class="link-btn link-btn-red" style="margin-top:8px" onclick="removerReembolso('+idx+','+ri+')"><i class="ti ti-x" style="font-size:11px"></i> remover</button>':'')
         +'</div>';
@@ -2366,14 +2367,14 @@ function renderReembolsoRelatorio(p){
   if(!etRe||!etRe.reembolsos||!etRe.reembolsos.some(r=>r.descricao||r.valor)) return '';
   const ordens=['1º','2º','3º','4º','5º'];
   const total=etRe.reembolsos.filter(r=>r.valor).reduce((s,r)=>{
-    const n=parseFloat((r.valor||'0').replace(/[^\d,]/g,'').replace(',','.'));
+    const n=MoedaBR.parse(r.valor)||0;
     return s+(isNaN(n)?0:n);
   },0);
   let html='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">';
   html+=etRe.reembolsos.filter(r=>r.descricao||r.valor).map((r,i)=>
-    '<div class="rel-row"><div class="rel-row-label">'+(ordens[i]||((i+1)+'º'))+' reembolso — '+(r.descricao||'—')+'</div><div class="rel-row-val">'+(r.valor?'R$ '+r.valor:'—')+'</div></div>'
+    '<div class="rel-row"><div class="rel-row-label">'+(ordens[i]||((i+1)+'º'))+' reembolso — '+(r.descricao||'—')+'</div><div class="rel-row-val">'+(r.valor?MoedaBR.rs(r.valor):'—')+'</div></div>'
   ).join('');
-  if(total>0) html+='<div class="rel-row" style="font-weight:600"><div class="rel-row-label">Total reembolsado</div><div class="rel-row-val">R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+  if(total>0) html+='<div class="rel-row" style="font-weight:600"><div class="rel-row-label">Total reembolsado</div><div class="rel-row-val">'+MoedaBR.rs(total)+'</div></div>';
   html+='</div>';
   return html;
 }
@@ -2384,14 +2385,14 @@ function renderCreditoRelatorio(p){
     if(!validas.length) return '';
     const ordens=['1ª','2ª','3ª','4ª','5ª','6ª'];
     const total=p.liberacoes.filter(l=>l.valor).reduce((s,l)=>{
-      const n=parseFloat((l.valor||'0').replace(/[^\d,]/g,'').replace(',','.'));
+      const n=MoedaBR.parse(l.valor)||0;
       return s+(isNaN(n)?0:n);
     },0);
-    let html=validas.map((l,i)=>'<div class="rel-row"><div class="rel-row-label">'+(ordens[i]||((i+1)+'ª'))+' liberação'+(l.data?' · '+l.data:'')+'</div><div class="rel-row-val">'+(l.valor?'R$ '+l.valor:'—')+(l.comentario?' — '+l.comentario:'')+'</div></div>').join('');
-    if(total>0) html+='<div class="rel-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px"><div class="rel-row-label">Total liberado</div><div class="rel-row-val">R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+    let html=validas.map((l,i)=>'<div class="rel-row"><div class="rel-row-label">'+(ordens[i]||((i+1)+'ª'))+' liberação'+(l.data?' · '+l.data:'')+'</div><div class="rel-row-val">'+(l.valor?MoedaBR.rs(l.valor):'—')+(l.comentario?' — '+l.comentario:'')+'</div></div>').join('');
+    if(total>0) html+='<div class="rel-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px"><div class="rel-row-label">Total liberado</div><div class="rel-row-val">'+MoedaBR.rs(total)+'</div></div>';
     return html;
   }
-  return p.credito?'<div class="rel-row"><div class="rel-row-label">Crédito liberado</div><div class="rel-row-val">R$ '+p.credito+'</div></div>':'';
+  return p.credito?'<div class="rel-row"><div class="rel-row-label">Crédito liberado</div><div class="rel-row-val">'+MoedaBR.rs(p.credito)+'</div></div>':'';
 }
 function renderRelatorio(){
   const p=pSel;

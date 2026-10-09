@@ -7,30 +7,50 @@
 <title>Simulação de Contemplação – Redecon</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#e8ecf2;color:#222;font-size:13px}
+body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:#f4f4f4;color:#222;font-size:13px}
 
-/* SIDEBAR */
-#sidebar{position:fixed;left:0;top:60px;width:310px;height:calc(100vh - 60px);background:#1a2e4a;color:#fff;padding:14px 16px;overflow-y:auto;z-index:100}
-#sidebar h2{font-size:11px;color:#e63329;margin-bottom:10px;letter-spacing:1px;text-transform:uppercase}
-#sidebar label{font-size:10px;color:#99aabb;display:block;margin-top:8px;margin-bottom:2px}
-#sidebar input,#sidebar select{width:100%;padding:6px 8px;border:1px solid #2e4870;background:#1e3655;color:#fff;border-radius:4px;font-size:12px}
-#sidebar input:focus,#sidebar select:focus{outline:none;border-color:#e63329}
-#sidebar input::placeholder{color:#556}
-.divider{border:none;border-top:1px solid #2e4870;margin:10px 0}
-.sec-label{font-size:10px;color:#e63329;text-transform:uppercase;letter-spacing:.8px;margin-top:10px;margin-bottom:4px;font-weight:700}
-.nota{font-size:9.5px;color:#667788;margin-top:4px;line-height:1.5}
-.grupo-info{background:#0f1e30;border-radius:4px;padding:8px;margin-top:6px;font-size:10px;line-height:1.8;color:#aabbd0;display:none}
-.grupo-info strong{color:#e63329}
-#btn-calcular{margin-top:12px;width:100%;padding:11px;background:#e63329;color:#fff;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
-#btn-calcular:hover{background:#c0261f}
-#btn-imprimir{margin-top:6px;width:100%;padding:9px;background:#1e3655;color:#fff;border:1px solid #2e4870;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}
-.inline-2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.tipo-btn{display:flex;gap:6px;margin:4px 0}
-.tipo-btn button{flex:1;padding:6px;border:2px solid #2e4870;background:transparent;color:#99aabb;font-size:11px;font-weight:700;border-radius:4px;cursor:pointer;transition:all .2s}
-.tipo-btn button.ativo{background:#e63329;border-color:#e63329;color:#fff}
+/* PAINEL DE PREENCHIMENTO — mesmo padrão visual do Checklist / DPS */
+:root{--sb-navy:#15151d;--sb-coral:#c73b2e;--sb-coral2:#f0806c;--sb-ink:#1a1a1f;--sb-muted:#6b6b74;--sb-line:#e3e3e8;--sb-bg:#f4f4f4;--sb-ok:#1f9d55}
+#sidebar{position:fixed;left:0;top:60px;width:420px;height:calc(100vh - 60px);background:#fff;color:var(--sb-ink);border-right:1px solid var(--sb-line);padding:20px 20px 0;overflow-y:auto;z-index:100;font-size:14px}
+#sidebar .sb-head{margin-bottom:14px}
+#sidebar .sb-head h1{font-size:18px;font-weight:800;color:var(--sb-ink);line-height:1.2}
+#sidebar .sb-head p{font-size:12.5px;color:var(--sb-muted);margin-top:3px;line-height:1.45}
+#sidebar .sec{border:1px solid var(--sb-line);border-radius:12px;margin-bottom:14px;overflow:hidden;background:#fff}
+#sidebar .sec>h2,#sidebar .sec>summary{background:var(--sb-navy);color:#fff;font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:11px 14px;display:flex;align-items:center;gap:8px;margin:0}
+#sidebar .sec>summary{cursor:pointer;list-style:none}
+#sidebar .sec>summary::-webkit-details-marker{display:none}
+#sidebar .sec>summary::after{content:'+';margin-left:auto;font-size:16px;font-weight:700;color:#c9cad1}
+#sidebar details.sec[open]>summary::after{content:'−'}
+#sidebar .sec .dot{width:8px;height:8px;border-radius:50%;background:var(--sb-coral);flex-shrink:0}
+#sidebar .sec .opc{margin-left:6px;font-size:10.5px;font-weight:600;color:#c9cad1;letter-spacing:.3px;text-transform:none}
+#sidebar .sec .body{padding:14px}
+#sidebar .field{margin-bottom:12px}
+#sidebar .field:last-child{margin-bottom:0}
+#sidebar label{display:block;font-size:12px;font-weight:600;color:var(--sb-muted);margin-bottom:5px;letter-spacing:.3px}
+#sidebar input[type=text],#sidebar input[type=number],#sidebar select,#sidebar textarea{width:100%;padding:9px 11px;border:1px solid var(--sb-line);border-radius:8px;font-size:14px;background:#fff;color:var(--sb-ink);font-family:inherit}
+#sidebar input::placeholder,#sidebar textarea::placeholder{color:#a3a3ad}
+#sidebar input:focus,#sidebar select:focus,#sidebar textarea:focus{outline:2px solid var(--sb-coral2);border-color:var(--sb-coral)}
+#sidebar input[data-moeda],#sidebar input[data-pct]{font-variant-numeric:tabular-nums}
+#sidebar textarea{font-size:13.5px;line-height:1.4;resize:vertical;margin-top:6px}
+#sidebar .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#sidebar .hint{font-size:12px;color:var(--sb-muted);margin-top:5px;line-height:1.45}
+#sidebar .grupo-info{background:var(--sb-bg);border:1px solid var(--sb-line);border-radius:8px;padding:9px 11px;margin-top:4px;font-size:12.5px;line-height:1.7;color:#44444c;display:none}
+#sidebar .grupo-info strong{color:var(--sb-ink)}
+#sidebar .switch{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:400;color:var(--sb-ink);cursor:pointer;padding:4px 0;margin:0;letter-spacing:0}
+#sidebar .switch input{width:17px;height:17px;accent-color:var(--sb-coral);cursor:pointer;flex-shrink:0}
+#sidebar .obs-item{border-top:1px solid var(--sb-line);padding:6px 0}
+#sidebar .obs-item:first-child{border-top:0;padding-top:0}
+#sidebar .obs-toggle{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:400;color:var(--sb-ink);cursor:pointer;padding:3px 0;margin:0;letter-spacing:0}
+#sidebar .obs-toggle input{width:17px;height:17px;accent-color:var(--sb-coral);cursor:pointer;flex-shrink:0}
+#sidebar .genwrap{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--sb-line);margin:4px -20px 0;padding:12px 20px 14px;box-shadow:0 -6px 14px rgba(0,0,0,.05)}
+#sidebar .genwrap .hint{margin:0 0 8px}
+#btn-calcular{width:100%;padding:14px;background:var(--sb-coral);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit}
+#btn-calcular:hover{background:#d13f22}
+#btn-imprimir{margin-top:8px;width:100%;padding:11px;background:#fff;color:var(--sb-ink);border:1px solid var(--sb-line);border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+#btn-imprimir:hover{border-color:var(--sb-coral)}
 
 /* RESULTADO */
-#resultado-wrap{margin-left:310px;padding:20px;min-height:100vh}
+#resultado-wrap{margin-left:420px;padding:20px;min-height:100vh;background:#f4f4f4}
 
 /* PÁGINA */
 .pagina{background:#fff;width:210mm;min-height:297mm;padding:10mm 12mm;box-shadow:0 4px 30px rgba(0,0,0,.15);display:flex;flex-direction:column;gap:8px;margin:0 auto}
@@ -150,11 +170,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#e8ecf2;color:#222;font-
 #placeholder svg{opacity:.3}
 
 /* MOBILE */
-#fab-calc{display:none;position:fixed;bottom:20px;right:20px;z-index:200;background:#e63329;color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(230,51,41,.4);cursor:pointer}
-#fab-back{display:none;position:fixed;bottom:20px;left:20px;z-index:200;background:#1a2e4a;color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:13px;font-weight:700;cursor:pointer}
+#fab-calc{display:none;position:fixed;bottom:20px;right:20px;z-index:200;background:#c73b2e;color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(230,51,41,.4);cursor:pointer}
+#fab-back{display:none;position:fixed;bottom:20px;left:20px;z-index:200;background:#15151d;color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:13px;font-weight:700;cursor:pointer}
 @media(max-width:768px){
   #fab-calc,#fab-back{display:block}
-  #sidebar{width:100%;transform:translateX(0);transition:transform .3s ease}
+  #sidebar{width:100%;padding:16px 14px 0;transform:translateX(0);transition:transform .3s ease}
+  #sidebar .genwrap{position:static;box-shadow:none;margin:4px -14px 0;padding:12px 14px 84px}
   #sidebar.hidden{transform:translateX(-100%)}
   #resultado-wrap{margin-left:0;padding:0;display:none}
   #resultado-wrap.visible{display:block}
@@ -218,11 +239,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#e8ecf2;color:#222;font-
 .mod-obs{grid-column:1/-1;margin-top:9px;padding:6px 10px;background:#f6f8fa;border-left:3px solid #e63329;border-radius:0 4px 4px 0;font-size:10px;color:#3a4452;line-height:1.5;text-align:left;display:flex;gap:6px;align-items:flex-start}
 .mod-obs-rot{font-weight:700;color:#1e3460;white-space:nowrap;flex-shrink:0}
 .mod-obs-txt{flex:1;min-width:0;white-space:pre-line}
-#sidebar textarea{width:100%;padding:6px 8px;border:1px solid #2e4870;background:#1e3655;color:#fff;border-radius:4px;font-size:11.5px;font-family:inherit;line-height:1.4;resize:vertical;margin-top:4px}
-#sidebar textarea:focus{outline:none;border-color:#e63329}
-#sidebar textarea::placeholder{color:#6f7f94}
-#sidebar .obs-toggle{display:flex;align-items:center;gap:6px;margin-top:6px;margin-bottom:0;font-size:10.5px;color:#c7d2e0;cursor:pointer}
-#sidebar .obs-toggle input{width:auto;accent-color:#e63329}
 
 @media print{
   body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0;padding:0}
@@ -279,6 +295,7 @@ body.auth-pending > *:not(#auth-overlay){visibility:hidden!important}
 .redecon-central-nav a:hover{border-color:#e63329;color:#e63329}
 @media print{.redecon-central-nav{display:none!important}}
 </style>
+<script src="moeda-br.js"></script>
 </head>
 <body class="auth-pending">
 <script src="topbar-redecon.js" data-pagina="simulacoes" data-titulo="Simulação de Contemplação"></script>
@@ -287,93 +304,102 @@ body.auth-pending > *:not(#auth-overlay){visibility:hidden!important}
 <button id="fab-back" onclick="toggleMobile(true)" style="display:none">📊 Resultado</button>
 
 <div id="sidebar">
-  <h2>🔢 Simulação de Contemplação</h2>
-
-  <div class="sec-label">Dados do Consultor</div>
-  <label>Nome (assinatura)</label>
-  <input id="f-consultor" value="Redecon Consórcios" placeholder="Ex: Fhellype Novello Resner">
-  <label>Instagram</label>
-  <input id="f-insta" value="@redeconconsorcios" placeholder="Ex: @fhellypenr">
-  <label>Telefone</label>
-  <input id="f-tel" value="46 3025-3227" placeholder="Ex: 46 99935-4939">
-  <label>E-mail</label>
-  <input id="f-email" value="rede.con@hotmail.com" placeholder="Ex: fhellypenr@gmail.com">
-
-
-  <div class="divider"></div>
-  <div class="sec-label">Dados do Cliente</div>
-  <label>Nome do Cliente</label>
-  <input id="f-nome" placeholder="Ex: Fhellype Resner">
-  <div class="inline-2">
-    <div><label>Grupo</label><input id="f-grupo" type="number" placeholder="Ex: 1135" oninput="onGrupo()"></div>
-    <div><label>Cota</label><input id="f-cota" placeholder="Ex: 0042"></div>
+  <div class="sb-head">
+    <h1>Simulação de Contemplação</h1>
+    <p>Preencha os dados da cota. Valores no padrão <b>150.000,00</b> — pode colar com ou sem R$, o campo ajusta sozinho.</p>
   </div>
 
-  <div id="grupo-info" class="grupo-info"></div>
-
-  <div class="divider"></div>
-  <div class="sec-label">Dados Financeiros</div>
-  <label>Crédito (R$)</label>
-  <input id="f-credito" type="number" placeholder="Ex: 150000">
-  <label>Andamento do grupo (meses já ocorridos)</label>
-  <input id="f-andamento" type="number" placeholder="Ex: 15" oninput="onAndamento()">
-  <label>Percentual já pago (%)</label>
-  <input id="f-pct-pago" type="number" placeholder="Ex: 2.795" step="0.001">
-  <label>Termos aditivos (R$)</label>
-  <input id="f-aditivos" type="number" placeholder="0" value="0">
-
-  <div class="divider"></div>
-  <div class="sec-label">Referência da Simulação</div>
-  <div class="inline-2">
-    <div><label>Mês</label>
-      <select id="f-mes">
-        <option value="1">Janeiro</option><option value="2">Fevereiro</option>
-        <option value="3">Março</option><option value="4">Abril</option>
-        <option value="5">Maio</option><option value="6">Junho</option>
-        <option value="7">Julho</option><option value="8">Agosto</option>
-        <option value="9">Setembro</option><option value="10">Outubro</option>
-        <option value="11">Novembro</option><option value="12">Dezembro</option>
-      </select>
+  <div class="sec">
+    <h2><span class="dot"></span>Cliente e cota</h2>
+    <div class="body">
+      <div class="field"><label for="f-nome">Nome do cliente</label><input id="f-nome" type="text" placeholder="Ex.: João da Silva"></div>
+      <div class="row">
+        <div class="field"><label for="f-grupo">Grupo</label><input id="f-grupo" type="number" inputmode="numeric" placeholder="Ex.: 1135" oninput="onGrupo()"></div>
+        <div class="field"><label for="f-cota">Cota</label><input id="f-cota" type="text" placeholder="Ex.: 0042"></div>
+      </div>
+      <div id="grupo-info" class="grupo-info"></div>
     </div>
-    <div><label>Ano</label><input id="f-ano" type="number" placeholder="2026" value="2026"></div>
   </div>
 
-  <div class="divider"></div>
-  <div class="sec-label">Foco da Simulação</div>
-  <select id="f-foco" onchange="onFoco()">
-    <option value="todas">Todas as opções disponíveis</option>
-    <option value="fidelidades">Foco nas Fidelidades</option>
-    <option value="lance_livre">Foco no Lance Livre</option>
-  </select>
-  <div id="foco-desc" class="nota" style="margin-top:5px;color:#aabbd0"></div>
+  <div class="sec">
+    <h2><span class="dot"></span>Valores da cota</h2>
+    <div class="body">
+      <div class="field"><label for="f-credito">Crédito (R$)</label><input id="f-credito" type="text" data-moeda inputmode="decimal" autocomplete="off" placeholder="Ex.: 150.000,00"></div>
+      <div class="row">
+        <div class="field"><label for="f-andamento">Andamento (meses)</label><input id="f-andamento" type="number" inputmode="numeric" placeholder="Ex.: 15" oninput="onAndamento()"></div>
+        <div class="field"><label for="f-pct-pago">% já pago</label><input id="f-pct-pago" type="text" data-pct="3" inputmode="decimal" autocomplete="off" placeholder="Ex.: 2,795"></div>
+      </div>
+      <div class="field"><label for="f-aditivos">Termos aditivos (R$)</label><input id="f-aditivos" type="text" data-moeda inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+    </div>
+  </div>
 
-  <div class="divider"></div>
-  <div class="sec-label">Lance Livre (opcional)</div>
-  <label>Parcelas ofertadas</label>
-  <input id="f-lance-livre" type="number" placeholder="0" value="0">
-  <label class="toggle-label" style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:10px;color:#99aabb;cursor:pointer">
-    <input type="checkbox" id="chk-embutido-ll" checked style="width:auto;accent-color:#e63329">
-    Usar lance embutido (30%)
-  </label>
+  <div class="sec">
+    <h2><span class="dot"></span>Referência e foco</h2>
+    <div class="body">
+      <div class="row">
+        <div class="field"><label for="f-mes">Mês</label>
+          <select id="f-mes">
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+        </div>
+        <div class="field"><label for="f-ano">Ano</label><input id="f-ano" type="number" inputmode="numeric" placeholder="2026" value="2026"></div>
+      </div>
+      <div class="field"><label for="f-foco">Foco da simulação</label>
+        <select id="f-foco" onchange="onFoco()">
+          <option value="todas">Todas as opções disponíveis</option>
+          <option value="fidelidades">Foco nas Fidelidades</option>
+          <option value="lance_livre">Foco no Lance Livre</option>
+        </select>
+        <div id="foco-desc" class="hint"></div>
+      </div>
+    </div>
+  </div>
 
-  <div class="divider"></div>
-  <div class="sec-label">Observações nas modalidades (opcional)</div>
-  <p class="nota" style="margin-top:0">Ative a modalidade e escreva. O texto aparece junto dela na simulação.</p>
-  <div id="obs-lista"></div>
-  <label class="obs-toggle" style="margin-top:10px">
-    <input type="checkbox" id="chk-nota-lances" checked onchange="obsLive()"> Incluir nota sobre como ofertamos os lances
-  </label>
+  <div class="sec">
+    <h2><span class="dot"></span>Lance livre<span class="opc">(opcional)</span></h2>
+    <div class="body">
+      <div class="field"><label for="f-lance-livre">Parcelas ofertadas</label><input id="f-lance-livre" type="number" inputmode="numeric" placeholder="0" value="0"></div>
+      <label class="switch"><input type="checkbox" id="chk-embutido-ll" checked> Usar lance embutido (30%)</label>
+    </div>
+  </div>
 
-  <div class="divider"></div>
-  <div id="csv-status" class="nota" style="color:#aabbd0;margin-bottom:4px">⏳ Sincronizando planilha de grupos...</div>
-  <button id="btn-calcular" onclick="calcular()">📊 Calcular Simulação</button>
-  <button id="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
-  <p class="nota" style="margin-top:6px">Selecione "Salvar como PDF" e desative cabeçalhos/rodapés.</p>
+  <div class="sec">
+    <h2><span class="dot"></span>Observações<span class="opc">(opcional)</span></h2>
+    <div class="body">
+      <div class="hint" style="margin:0 0 10px">Ative a modalidade e escreva. O texto aparece junto dela na simulação.</div>
+      <div id="obs-lista"></div>
+      <label class="switch" style="margin-top:8px;border-top:1px solid var(--sb-line);padding-top:10px"><input type="checkbox" id="chk-nota-lances" checked onchange="obsLive()"> Incluir nota sobre como ofertamos os lances</label>
+    </div>
+  </div>
+
+  <details class="sec">
+    <summary><span class="dot"></span>Dados do consultor (rodapé)</summary>
+    <div class="body">
+      <div class="field"><label for="f-consultor">Nome (assinatura)</label><input id="f-consultor" type="text" value="Redecon Consórcios" placeholder="Ex.: Nome do consultor"></div>
+      <div class="field"><label for="f-insta">Instagram</label><input id="f-insta" type="text" value="@redeconconsorcios" placeholder="Ex.: @redeconconsorcios"></div>
+      <div class="row">
+        <div class="field"><label for="f-tel">Telefone</label><input id="f-tel" type="text" value="46 3025-3227" placeholder="Ex.: 46 3025-3227"></div>
+        <div class="field"><label for="f-email">E-mail</label><input id="f-email" type="text" value="rede.con@hotmail.com" placeholder="Ex.: rede.con@hotmail.com"></div>
+      </div>
+    </div>
+  </details>
+
+  <div class="genwrap">
+    <div id="csv-status" class="hint">⏳ Sincronizando planilha de grupos...</div>
+    <button id="btn-calcular" onclick="calcular()">Calcular simulação →</button>
+    <button id="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+    <div class="hint" style="margin-top:6px;text-align:center">No PDF: "Salvar como PDF" e desative cabeçalhos/rodapés.</div>
+  </div>
 </div>
 
 <div id="resultado-wrap">
   <div id="placeholder">
-    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#1a2e4a" stroke-width="1.5"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>
+    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#15151d" stroke-width="1.5"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>
     <p>Preencha os dados e clique em<br><strong>Calcular Simulação</strong></p>
   </div>
   <div class="pagina" id="pagina" style="display:none">
@@ -470,20 +496,20 @@ function onAndamento(){
   if(!g||!GRUPOS[g]||!and)return;
   const d = GRUPOS[g];
   const taxa = d.bem==='imovel'?0.23:0.16;
-  const credito = parseFloat(document.getElementById('f-credito').value)||0;
+  const credito = MoedaBR.parse(document.getElementById('f-credito').value)||0;
   if(!credito)return;
   const pctPP = (1+taxa)/d.prazo/2;
   const pctPago = pctPP*and*100;
-  document.getElementById('f-pct-pago').value = pctPago.toFixed(3);
+  document.getElementById('f-pct-pago').value = MoedaBR.fmtPct(pctPago, 3);
 }
 
 // ===== CALCULAR =====
 function calcular(){
   const g = parseInt(document.getElementById('f-grupo').value);
-  const credito = parseFloat(document.getElementById('f-credito').value)||0;
+  const credito = MoedaBR.parse(document.getElementById('f-credito').value)||0;
   const andamento = parseInt(document.getElementById('f-andamento').value)||0;
-  const pctPago = parseFloat(document.getElementById('f-pct-pago').value)||0;
-  const aditivos = parseFloat(document.getElementById('f-aditivos').value)||0;
+  const pctPago = MoedaBR.parsePct(document.getElementById('f-pct-pago').value)||0;
+  const aditivos = MoedaBR.parse(document.getElementById('f-aditivos').value)||0;
   const lanceLivreParcelas = parseInt(document.getElementById('f-lance-livre').value)||0;
   const usaEmbutidoLL = document.getElementById('chk-embutido-ll').checked;
   const mes = parseInt(document.getElementById('f-mes').value);
@@ -883,13 +909,13 @@ async function carregarGruposCSV() {
       statusEl.textContent = novos > 0
         ? `✅ ${novos} novos grupos carregados da planilha`
         : '✅ Planilha sincronizada';
-      statusEl.style.color = '#4caf50';
+      statusEl.style.color = '#1f9d55';
     }
   } catch(e) {
     const statusEl = document.getElementById('csv-status');
     if (statusEl) {
       statusEl.textContent = 'Usando grupos locais (planilha indisponível)';
-      statusEl.style.color = '#e6a817';
+      statusEl.style.color = '#a86b00';
     }
   }
 }

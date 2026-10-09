@@ -306,6 +306,7 @@
   #tipoModal .tipo-btn:hover{border-color:var(--coral2);background:#fff7f5}
   #tipoModal .tipo-cancelar{margin-top:16px;text-align:center;font-size:12px;color:#9a9aa4;cursor:pointer;text-decoration:underline}
 </style>
+<script src="moeda-br.js"></script>
 </head>
 <body>
 <script src="topbar-redecon.js" data-pagina="checklist" data-titulo="Painel de Checklist"></script>
@@ -547,7 +548,7 @@
         <div class="field" style="flex:1"><label>Grupo</label><input type="text" id="p_grupo" placeholder="Ex.: 1234"></div>
         <div class="field" style="flex:1"><label>Cota</label><input type="text" id="p_cota" placeholder="Ex.: 567"></div>
         <div class="field" style="flex:1"><label>Crédito em (data)</label><input type="text" id="p_data" placeholder="Ex.: 06/07/2026"></div>
-        <div class="field" style="flex:1"><label>Valor do crédito</label><input type="text" id="p_valor" placeholder="Ex.: R$ 250.000,00"></div>
+        <div class="field" style="flex:1"><label>Valor do crédito</label><input type="text" id="p_valor" data-moeda inputmode="decimal" placeholder="Ex.: 250.000,00"></div>
       </div>
       <div class="field" id="p_utz_wrap">
         <label>Tipo de utilização (pode combinar)</label>
@@ -569,13 +570,13 @@
     <h2><span class="dot"></span>Resumo financeiro (opcional)</h2>
     <div class="body">
       <div class="inline">
-        <div class="field" style="flex:1"><label>Parcela mensal (R$)</label><input type="text" id="f_parcela" placeholder="Ex.: 2.345,67"></div>
-        <div class="field" style="flex:1"><label>Seguro prestamista (R$)</label><input type="text" id="f_seguro" placeholder="Ex.: 129,40"></div>
+        <div class="field" style="flex:1"><label>Parcela mensal (R$)</label><input type="text" id="f_parcela" data-moeda inputmode="decimal" placeholder="Ex.: 2.345,67"></div>
+        <div class="field" style="flex:1"><label>Seguro prestamista (R$)</label><input type="text" id="f_seguro" data-moeda inputmode="decimal" placeholder="Ex.: 129,40"></div>
       </div>
-      <div class="field"><label>Renda mínima a comprovar (R$) — calculada: (parcela + seguro) × 3, ajustável</label><input type="text" id="f_renda" placeholder="Preenchida automaticamente"><div class="hint" id="f_renda_hint"></div></div>
+      <div class="field"><label>Renda mínima a comprovar (R$) — calculada: (parcela + seguro) × 3, ajustável</label><input type="text" id="f_renda" data-moeda inputmode="decimal" placeholder="Preenchida automaticamente"><div class="hint" id="f_renda_hint"></div></div>
       <div id="fin_bem_wrap">
-        <div class="field"><label id="f_fundo_label">Fundo comum (R$)</label><input type="text" id="f_fundo" placeholder="Ex.: 400.000,00"></div>
-        <div class="field"><label id="f_valbem_label">Valor mínimo do imóvel (R$) — calculado: igual ao fundo comum, ajustável</label><input type="text" id="f_valbem" placeholder="Preenchido automaticamente"></div>
+        <div class="field"><label id="f_fundo_label">Fundo comum (R$)</label><input type="text" id="f_fundo" data-moeda inputmode="decimal" placeholder="Ex.: 400.000,00"></div>
+        <div class="field"><label id="f_valbem_label">Valor mínimo do imóvel (R$) — calculado: igual ao fundo comum, ajustável</label><input type="text" id="f_valbem" data-moeda inputmode="decimal" placeholder="Preenchido automaticamente"></div>
       </div>
       <div class="hint">Deixe os campos vazios para não incluir a tela de resumo no checklist.</div>
     </div>
@@ -1375,7 +1376,7 @@ function gerar(){
   const grupoC = document.getElementById('p_grupo').value.trim();
   const cotaC = document.getElementById('p_cota').value.trim();
   const gcTxt = (grupoC||cotaC) ? `Grupo ${grupoC||'—'} — Cota ${cotaC||'—'}` : '';
-  const credTxt = (dataC||valorC) ? `Crédito${dataC?' em '+dataC:''}${valorC?' — '+valorC:''}` : '';
+  const credTxt = (dataC||valorC) ? `Crédito${dataC?' em '+dataC:''}${valorC?' — '+MoedaBR.rs(valorC):''}` : '';
   const creditoLinha = [gcTxt, credTxt].filter(Boolean).join(' · ');
   const tituloUtz = utz.map(u=>UTZ_LABEL[u]).join(' + ');
   const temVend = utz.includes('aquisicao') || utz.includes('quit_terceiro');
@@ -1986,7 +1987,7 @@ function gerarVeiculo(){
   const grupoC = document.getElementById('p_grupo').value.trim();
   const cotaC = document.getElementById('p_cota').value.trim();
   const gcTxt = (grupoC||cotaC) ? `Grupo ${grupoC||'—'} — Cota ${cotaC||'—'}` : '';
-  const credTxt = (dataC||valorC) ? `Crédito${dataC?' em '+dataC:''}${valorC?' — '+valorC:''}` : '';
+  const credTxt = (dataC||valorC) ? `Crédito${dataC?' em '+dataC:''}${valorC?' — '+MoedaBR.rs(valorC):''}` : '';
   const creditoLinha = [gcTxt, credTxt].filter(Boolean).join(' · ');
   const titulo = 'Aquisição de '+BEM_LABEL[bem];
 
@@ -2351,7 +2352,7 @@ function aplicarAnalise(){
   if(proc.grupo) g('p_grupo').value=proc.grupo;
   if(proc.cota) g('p_cota').value=proc.cota;
   if(proc.credito_data) g('p_data').value=proc.credito_data;
-  if(proc.credito_valor) g('p_valor').value=proc.credito_valor;
+  if(proc.credito_valor) g('p_valor').value=MoedaBR.normalizar(proc.credito_valor);
   if(proc.utilizacao){
     const vals=proc.utilizacao.split(/[,+;]/).map(x=>x.trim()).filter(x=>UTZ_LABEL[x]);
     if(vals.length){ setChips('p_utz', vals); resumo.push('Utilização: '+vals.map(v=>UTZ_LABEL[v]).join(' + ')); }
@@ -2792,7 +2793,7 @@ function atualizarMensagensEnvio(modo){
 }
 
 /* ===================== RESUMO FINANCEIRO ===================== */
-function brlParse(s){ s=(s||'').replace(/[^\d,.-]/g,''); if(!s) return 0; s=s.replace(/\./g,'').replace(',','.'); const n=parseFloat(s); return isNaN(n)?0:n; }
+function brlParse(s){ return MoedaBR.parse(s)||0; }
 function brlFmt(n){ return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function finRecalc(){
   const p=brlParse(document.getElementById('f_parcela').value);
@@ -2845,7 +2846,7 @@ function rendaFinbox(renda, devedores, comCj){
   const texto = devedores
     ? 'Exigência do Banco Central: renda líquida mínima de 3 vezes o valor da parcela mensal. Como o processo tem devedor solidário, a renda é comprovada '+(comCj?'pelo devedor solidário e cônjuge':'pelo devedor solidário')+': <b>'+devedores+'</b>. Se houver outros consórcios já contemplados e utilizados (imóvel, veículo, construção etc.) com parcelas em andamento, some elas também.'
     : 'Exigência do Banco Central: renda líquida mínima de 3 vezes o valor da parcela mensal. Pode ser composta com a renda do cônjuge. Se o cliente já tiver outros consórcios contemplados e utilizados (imóvel, veículo, construção etc.) com parcelas em andamento, some elas também.';
-  return '<div class="finbox"><h4>'+titulo+'</h4><div class="valor">R$ <span contenteditable="true">'+renda+'</span><span class="nota-extra" contenteditable="true">+ parcelas de outros consórcios já contemplados e utilizados</span></div><p contenteditable="true">'+texto+'</p></div>';
+  return '<div class="finbox"><h4>'+titulo+'</h4><div class="valor">R$ <span contenteditable="true">'+MoedaBR.normalizar(renda)+'</span><span class="nota-extra" contenteditable="true">+ parcelas de outros consórcios já contemplados e utilizados</span></div><p contenteditable="true">'+texto+'</p></div>';
 }
 function atualizarHintRenda(){
   const el=document.getElementById('f_renda_hint'); if(!el) return;
@@ -2884,7 +2885,7 @@ function slideResumoFin(modo, soRenda){
         txtBem += '</p><p class="destaque" contenteditable="true">Esse é o valor mínimo exigido (saldo devedor). Para liberação de 100% do seu crédito, que hoje é de R$ '+brlFmt(credN)+', o valor do veículo precisa ser igual ao valor do crédito.';
       }
     }
-    h+=`<div class="finbox"><h4>Valor mínimo ${bemLabel}</h4><div class="valor" contenteditable="true">R$ ${valbem}</div><p contenteditable="true">${txtBem}</p></div>`;
+    h+=`<div class="finbox"><h4>Valor mínimo ${bemLabel}</h4><div class="valor" contenteditable="true">R$ ${MoedaBR.normalizar(valbem)}</div><p contenteditable="true">${txtBem}</p></div>`;
   }
   h+='</div>';
   return h;
@@ -2898,7 +2899,7 @@ function criarProcessoNoAcompanhamento(modo, btnEl){
   const grupo = document.getElementById('p_grupo').value.trim();
   const cota = document.getElementById('p_cota').value.trim();
   const grupoCota = [grupo, cota].filter(Boolean).join(' / ');
-  const credito = document.getElementById('p_valor').value.trim();
+  const credito = MoedaBR.normalizar(document.getElementById('p_valor').value);
 
   let tipo, subtipo;
   if(modo==='imovel'){
@@ -3268,7 +3269,7 @@ function aplicarForm(o){
   const g=id=>document.getElementById(id);
   setChips('modo',[o.modo]); setChips('p_utz',o.p.utz); setChips('c_tipo',[o.c.tipo]); setChips('c_rendas',o.c.rendas);
   setChips('cj_rendas',o.cj.rendas); setChips('i_tipo',[o.i.tipo]); setChips('v_cond',[o.v.cond]);
-  g('p_nome').value=o.p.nome; g('p_grupo').value=o.p.grupo||''; g('p_cota').value=o.p.cota||''; g('p_data').value=o.p.data; g('p_valor').value=o.p.valor;
+  g('p_nome').value=o.p.nome; g('p_grupo').value=o.p.grupo||''; g('p_cota').value=o.p.cota||''; g('p_data').value=o.p.data; g('p_valor').value=MoedaBR.normalizar(o.p.valor);
   g('c_nome').value=o.c.nome; g('c_ec').value=o.c.ec; g('c_regime').value=o.c.regime; g('c_pre77').checked=o.c.pre77; g('c_emp_regime').value=o.c.empRegime;
   g('cj_nome').value=o.cj.nome; g('cj_renda_on').checked=o.cj.rendaOn; g('cj_emp_regime').value=o.cj.empRegime;
   g('pj_nome').value=o.pj.nome; g('pj_regime').value=o.pj.regime; g('pj_seguro').value=o.pj.seguro;
@@ -3298,7 +3299,7 @@ function aplicarForm(o){
   g('i_origem_wrap').classList.toggle('hide', !o.i.aberta1);
   g('v_bem').value=o.v.bem; g('v_vendpj').checked=o.v.vendpj; g('v_id').value=o.v.id;
   g('v_temproc').checked=!!o.v.temproc; document.getElementById('v_proc_wrap').classList.toggle('hide', !o.v.temproc); g('v_procnome').value=o.v.procnome||'';
-  if(o.fin){ g('f_parcela').value=o.fin.parcela||''; g('f_seguro').value=o.fin.seguro||''; g('f_renda').value=o.fin.renda||''; g('f_fundo').value=o.fin.fundo||''; g('f_valbem').value=o.fin.valbem||''; }
+  if(o.fin){ const N=MoedaBR.normalizar; g('f_parcela').value=N(o.fin.parcela); g('f_seguro').value=N(o.fin.seguro); g('f_renda').value=N(o.fin.renda); g('f_fundo').value=N(o.fin.fundo); g('f_valbem').value=N(o.fin.valbem); }
   if(o.neg && Array.isArray(o.neg.pessoas)) NEG = o.neg;
   CONF = (o.conf && typeof o.conf==='object') ? o.conf : {};
   document.querySelectorAll('#slides .doc').forEach(c=>{ if(c.querySelector('.conf')){ c.classList.toggle('off', !!(CONF[c.dataset.ck]||{}).off); confPintar(c); } });
