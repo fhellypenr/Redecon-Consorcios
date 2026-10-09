@@ -2,7 +2,7 @@
    (ponto separa milhar, vírgula separa centavos, sempre 2 casas)
 
    Aceita qualquer forma que costuma ser colada ou digitada e converte certo:
-     "500.000,00"  "R$ 500.000,00"  "500000"  "500000,5"  "500000.00"  "500.000"  "500,000.00"
+     "500.000,00"  "R$ 500.000,00"  "500000"  "500000,5"  "500000.00"  "500.000"  "500,000.00"  "500,000"
    Todos viram 500000 → exibidos como "500.000,00".
 
    Uso nas páginas:
@@ -28,6 +28,9 @@
     var ultVirg = s.lastIndexOf(','), ultPonto = s.lastIndexOf('.');
     if(ultVirg >= 0 && ultPonto > ultVirg){
       /* formato americano: 500,000.00 */
+      s = s.replace(/,/g, '');
+    } else if(ultVirg >= 0 && ultPonto < 0 && /^\d{1,3}(,\d{3})+$/.test(s)){
+      /* só vírgulas em grupos de 3: "500,000" / "1,250,000" = milhar (dinheiro nunca tem 3 casas) */
       s = s.replace(/,/g, '');
     } else if(ultVirg >= 0){
       /* formato brasileiro: 500.000,00 (a última vírgula é o decimal) */

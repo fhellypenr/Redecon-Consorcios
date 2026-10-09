@@ -380,6 +380,7 @@ svg{display:block}
 .base-aviso input{flex:1 1 260px;min-width:0;padding:10px 12px;border:1px solid var(--border-strong);border-radius:9px;font-family:Consolas,monospace;font-size:13px}
 .base-aviso small{display:block;margin-top:8px;color:var(--accent-dark);font-size:12.5px;min-height:16px}
 </style>
+<script src="moeda-br.js"></script>
 </head>
 <body class="auth-pending">
 <div class="app">
@@ -809,6 +810,8 @@ window._iniciarCentral = function(B){
     const n = parseFloat(t); return isFinite(n) ? n : NaN;                      // 2.3752 fica decimal
   };
   const brl = n => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+  /* valor em R$: leitura única do sistema (aceita 286796.41, 286,796.41, R$ 286.796,41); percentual segue numBR (4 casas) */
+  const numBem = v => { const n = window.MoedaBR ? MoedaBR.parse(v) : numBR(v); return n == null ? NaN : n; };
   function calcDevolucaoHTML(){
     return '<div class="detail-section"><h3>Calculadora</h3><div class="calc">'
       + '<label for="cdBem">Bem de referência atual (R$)</label><input id="cdBem" inputmode="decimal" placeholder="Ex.: 286.796,41">'
@@ -820,7 +823,7 @@ window._iniciarCentral = function(B){
     const bem = document.getElementById('cdBem'), pct = document.getElementById('cdPct'), res = document.getElementById('cdRes');
     if(!bem || !pct || !res) return;
     const calc = () => {
-      const b = numBR(bem.value), p = numBR(pct.value);
+      const b = numBem(bem.value), p = numBR(pct.value);
       const linhas = res.querySelectorAll('div span:last-child');
       if(!(b > 0) || !(p > 0) || p > 100){ linhas.forEach(x => x.textContent = '—'); return; }
       const fc = b * p / 100, multa = fc * 0.35;
@@ -828,7 +831,7 @@ window._iniciarCentral = function(B){
     };
     bem.addEventListener('input', calc); pct.addEventListener('input', calc);
     /* padrão de valores 286.796,41 ao sair do campo / colar */
-    const padBem = () => { const n = numBR(bem.value); if(bem.value.trim() && n >= 0) bem.value = n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); calc(); };
+    const padBem = () => { const n = numBem(bem.value); if(bem.value.trim() && n >= 0) bem.value = n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); calc(); };
     bem.addEventListener('blur', padBem); bem.addEventListener('paste', () => setTimeout(padBem, 0));
   }
   function openMsg(id){
