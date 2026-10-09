@@ -637,7 +637,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
 <script>
 const SUBTIPOS={
   'Imóvel':['Aquisição','Construção','Reforma','Ampliação','Reembolso','Quitação de financiamento','Quitação de financiamento + compra','Substituição de garantia','Transferência com bem entregue'],
-  'Veículo':['Compra','Substituição de garantia','Transferência com bem entregue']
+  'Veículo':['Compra','Reembolso','Substituição de garantia','Transferência com bem entregue']
 };
 const ETAPAS_IMOVEL=[
   {nome:'Checklist de documentos',tipo:'intervalo',msg:''},
@@ -673,6 +673,18 @@ const ETAPAS_VEICULO=[
   {nome:'Pgto crédito',tipo:'unico',msg:'Boa tarde, [Nome]! Tudo certo?\nO pagamento de R$ [valor], referente à compra do [veículo], está programado para [data], com previsão de crédito na conta do vendedor entre 15h e 17h.\nPor favor, nos confirme assim que o valor for creditado ou caso note qualquer divergência.\nA Redecon segue à disposição para o que precisar. 🙌🏻'},
   {nome:'Reembolso de taxas',tipo:'reembolso',msg:'Boa tarde, [Nome]!\nO pagamento de R$ [valor], referente ao reembolso de [especificar: gravame / taxa de transferência], está programado para [data], com previsão de crédito na sua conta entre 15h e 17h. \nQualquer dúvida, é só chamar! 😊'}
 ];
+
+/* Reembolso de aquisição (veículo): mesmas etapas da compra; muda o texto de quem recebe e a liberação (só com transferência concluída). */
+const ETAPAS_REEMBOLSO_VEICULO = ETAPAS_VEICULO.map(e=>{
+  const n = Object.assign({}, e);
+  if(e.nome==='Assinatura + Docs'){
+    const i = e.msg.indexOf('📌 ETAPA 4');
+    n.msg = e.msg.slice(0, i) + '📌 ETAPA 4 — REEMBOLSO\nO reembolso é pago a você somente após a inclusão do gravame e a transferência do veículo concluída no DETRAN, em seu nome. ⚠️\nAguarde nossa autorização por e-mail para concluir a vistoria e transferência.';
+  }
+  if(e.nome==='Inclusão gravame') n.msg = 'Olá, [Nome]! O gravame foi incluído no veículo. ✅\nAgora é preciso concluir a transferência do veículo para o seu nome no DETRAN.\nAssim que estiver concluída, nos envie o CRLV digital em seu nome e, se ainda não enviou, o comprovante de pagamento ao vendedor. Com isso, solicitamos a liberação do reembolso.';
+  if(e.nome==='Pgto crédito') n.msg = 'Boa tarde, [Nome]! Tudo certo?\nO reembolso de R$ [valor], referente à compra do [veículo], está programado para [data], com previsão de crédito na sua conta entre 15h e 17h.\nPor favor, nos confirme assim que o valor for creditado ou caso note qualquer divergência.\nA Redecon segue à disposição para o que precisar. 🙌🏻';
+  return n;
+});
 
 let processos=[],pSel=null,modalComEtapaIdx=null,modalComIdx=null,editandoComentario=false,_anoFiltro='todos',_listaFiltroAtual='todos',_etapasAbertas=new Set();
 
@@ -852,6 +864,7 @@ let TEMPLATES_OVERRIDE = {};
 function _templateChave(tipo, subtipo){ return tipo+'::'+subtipo; }
 function _templateBase(tipo, subtipo){
   if(tipo==='Imóvel') return subtipo==='Quitação de financiamento + compra' ? ETAPAS_QUITACAO_COMPRA : ETAPAS_IMOVEL;
+  if(subtipo==='Reembolso') return ETAPAS_REEMBOLSO_VEICULO;
   return subtipo==='Substituição de garantia' ? ETAPAS_SUBST_GARANTIA_VEICULO : ETAPAS_VEICULO;
 }
 function obterTemplate(tipo, subtipo){

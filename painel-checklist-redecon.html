@@ -444,6 +444,12 @@
           <span class="chip" data-v="novo">0km / Novo</span>
         </div>
         <div class="hint">Define a referência do valor mínimo: usado → saldo devedor · 0km → fundo comum.</div>
+        <label style="margin-top:12px">Utilização do crédito</label>
+        <div class="chips" id="v_utz">
+          <span class="chip on" data-v="aquisicao">Aquisição</span>
+          <span class="chip" data-v="reembolso">Reembolso de aquisição</span>
+        </div>
+        <div class="hint" id="v_utz_hint"></div>
       </div>
       <div class="chips" id="emissao" style="margin-top:10px">
         <span class="chip on" data-v="completo">Processo completo</span>
@@ -819,7 +825,7 @@ function chipsInit(id, single){
   });
 }
 function chipVals(id){ return [...document.querySelectorAll('#'+id+' .chip.on')].map(c=>c.dataset.v); }
-chipsInit('p_utz'); chipsInit('c_tipo', true); chipsInit('c_rendas'); chipsInit('cj_rendas'); chipsInit('i_tipo', true); chipsInit('modo', true); chipsInit('v_cond', true); chipsInit('emissao', true); chipsInit('a_rendas'); chipsInit('a_cjrendas');
+chipsInit('p_utz'); chipsInit('c_tipo', true); chipsInit('c_rendas'); chipsInit('cj_rendas'); chipsInit('i_tipo', true); chipsInit('modo', true); chipsInit('v_cond', true); chipsInit('v_utz', true); chipsInit('emissao', true); chipsInit('a_rendas'); chipsInit('a_cjrendas');
 
 const ECs = {solteiro:'Solteiro(a)',solteiro_ue:'Solteiro(a) c/ união estável',casado:'Casado(a)',divorciado:'Divorciado(a)',viuvo:'Viúvo(a)'};
 const UTZ_LABEL = {aquisicao:'Aquisição de Imóvel',construcao:'Construção',ampliacao:'Ampliação',reforma:'Reforma',quit_propria:'Quitação de Financiamento',quit_terceiro:'Quitação de Financiamento de Terceiro',reembolso:'Reembolso de Aquisição'};
@@ -839,6 +845,16 @@ function onFormChange(){
   document.getElementById('sec_imovel').classList.toggle('hide', avulso || modo!=='imovel');
   document.getElementById('sec_veic').classList.toggle('hide', avulso || modo!=='veiculo');
   document.getElementById('v_cond_wrap').classList.toggle('hide', avulso || modo!=='veiculo');
+  {
+    const vUtz = chipVals('v_utz')[0]||'aquisicao', vBem = document.getElementById('v_bem').value, vCond = chipVals('v_cond')[0]||'usado';
+    let h = '';
+    if(vUtz==='reembolso'){
+      h = 'Reembolso: compra com data posterior à contemplação e cota em nome do cliente. O consorciado paga o vendedor (antes ou durante o processo) e o crédito é liberado a ele só com a transferência concluída no DETRAN.';
+      if(vBem==='agricola'||vBem==='nautico') h += ' ⚠ Reembolso de agrícola/náutico não está mapeado — confirmar com a HS (o checklist não gera).';
+      else if(vCond==='novo') h += ' ⚠ Reembolso de 0km ainda não confirmado com a HS — validar antes de enviar.';
+    }
+    document.getElementById('v_utz_hint').textContent = h;
+  }
   document.getElementById('sec_vend').classList.toggle('hide', !temVend);
   document.getElementById('i_termo_wrap').classList.toggle('hide', avulso || modo!=='imovel' || !utz.includes('aquisicao'));
   const btnTermo = document.querySelector('nav.tabs button[data-t=termo]');
@@ -990,6 +1006,7 @@ const T = {
   escUE: ['Escritura pública de união estável','Arquivo autenticado digitalmente, solicitado no Tabelionato onde foi lavrada a união estável.'],
   pacto: ['Pacto antenupcial','Certidão atualizada do registro no Livro 3 do Registro de Imóveis onde foi registrado o pacto. Via eletrônica ou desmaterializada.'],
   bancarios: ['Dados bancários','Foto do cartão, print da conta ou talão de cheque constando: nome, banco, agência e número da conta. Se conta conjunta, informar o titular.'],
+  bancariosReemb: ['Dados bancários','Foto do cartão, print da conta ou talão de cheque constando: nome, banco, agência e número da conta. A conta deve estar em nome do consorciado — o reembolso é pago a ele.'],
 };
 const RENDA = {
   clt: [
@@ -1112,6 +1129,30 @@ function veicCustas(bem, cond){
   }
   return c;
 }
+/* Reembolso de aquisição (veículo) — regra HS: e-mail Contemplação de Veículos 08/10/2026 + confirmação interna 09/10/2026.
+   0km: ainda não confirmado com a HS (aviso no formulário). Agrícola/náutico: não mapeado, não gera. */
+function veicDocsReembolso(cond){
+  if(cond==='novo') return [
+    ['Nota fiscal','Nota fiscal do veículo 0km em nome do consorciado, com data posterior à contemplação.'],
+    ['Comprovante de pagamento ao fornecedor','Comprovante do pagamento feito pelo consorciado com recursos próprios. Se ainda não pagou, enviar assim que realizar o pagamento.'],
+    ['Fotos do veículo','3 fotos — frente, traseira e chassi.'],
+    ['Dados do vendedor','Informar telefone (com WhatsApp) e e-mail.'],
+  ];
+  return [
+    ['Documento do veículo','ATPV (ou DUT) constando o nome do vendedor. Se o veículo já foi transferido, enviar o CRLV digital em nome do consorciado (arquivo exportado do aplicativo, não pode ser foto). A data da compra precisa ser posterior à contemplação.'],
+    ['Comprovante de pagamento ao vendedor','Comprovante do pagamento feito pelo consorciado ao vendedor, com recursos próprios. Se ainda não pagou, enviar assim que realizar o pagamento.'],
+    ['Fotos do veículo','4 fotos — frente e traseira com a placa legível — e das duas laterais.'],
+    ['Valor da negociação','Informar o valor de compra e venda, igual ao que consta no documento do veículo e no comprovante de pagamento.'],
+    ['Dados do vendedor','Informar telefone (com WhatsApp), profissão e e-mail.'],
+    ['Procuração','Caso o veículo tenha procuração, encaminhar uma cópia desmaterializada (autenticada digitalmente).'],
+  ];
+}
+function veicPagamentoReembolso(cond){
+  const c = [['Compra após a contemplação','A compra precisa ter data posterior à contemplação, com a cota em nome do consorciado, e o pagamento ao vendedor comprovado.']];
+  if(cond==='novo') c.push(['Emplacamento e gravame','O reembolso é pago ao consorciado após o veículo emplacado em seu nome e o gravame incluído.']);
+  else c.push(['Transferência concluída','O reembolso é pago ao consorciado somente após a transferência do veículo para o seu nome concluída no DETRAN e o gravame incluído. Não é aceito o comunicado de venda.']);
+  return c;
+}
 function veicPagamento(bem, cond){
   if(bem==='agricola'&&cond==='usado') return [['Condição de pagamento','O pagamento ao vendedor será realizado somente após a conclusão do registro no Cartório de Registro de Títulos e Documentos, a emissão da Certidão Positiva de Penhor e o RENAGRO em nome do consorciado.']];
   if(bem==='nautico'&&cond==='usado') return [['Condição de pagamento','O pagamento ao vendedor será realizado somente após o TIE em nome do consorciado e a alienação fiduciária registrada em nome da HS ADM de Consórcios LTDA — CNPJ 73.516.106/0001-16.']];
@@ -1129,6 +1170,7 @@ function docsPessoaisVeic(ec, opts={}){
   else if(ec==='viuvo'){ d.push(T.casObito); }
   d.push(T.cnh, T.residencia);
   if(opts.dps) d.push(T.dps);
+  if(opts.bancarios) d.push(T.bancariosReemb);
   d.push(T.dados);
   return d;
 }
@@ -1991,7 +2033,9 @@ function gerarVeiculo(){
   const gcTxt = (grupoC||cotaC) ? `Grupo ${grupoC||'—'} — Cota ${cotaC||'—'}` : '';
   const credTxt = (dataC||valorC) ? `Crédito${dataC?' em '+dataC:''}${valorC?' — '+MoedaBR.rs(valorC):''}` : '';
   const creditoLinha = [gcTxt, credTxt].filter(Boolean).join(' · ');
-  const titulo = 'Aquisição de '+BEM_LABEL[bem];
+  const reemb = (chipVals('v_utz')[0]||'aquisicao')==='reembolso';
+  if(reemb && (bem==='agricola'||bem==='nautico')){ alert('Reembolso de '+BEM_LABEL[bem]+' ainda não está mapeado com a HS — o checklist não gera esse caso.\n\nConfirme com a HS os documentos e a forma de pagamento antes.'); return; }
+  const titulo = (reemb?'Reembolso de aquisição de ':'Aquisição de ')+BEM_LABEL[bem];
 
   let html = '';
 
@@ -2003,7 +2047,7 @@ function gerarVeiculo(){
   if(cTipo==='pf'){
     const cNome = document.getElementById('c_nome').value.trim() || nomeCapa;
     const ec = document.getElementById('c_ec').value;
-    const cardsC = docsPessoaisVeic(ec, {dps:true}).map(d=>({t:d[0], d:d[1], pessoa:cNome}));
+    const cardsC = docsPessoaisVeic(ec, {dps:true, bancarios:reemb}).map(d=>({t:d[0], d:d[1], pessoa:cNome}));
     const temCj = (ec==='casado'||ec==='solteiro_ue');
     const cjNome = temCj ? (document.getElementById('cj_nome').value.trim()||'[Cônjuge]') : '';
     if(temCj){
@@ -2033,6 +2077,7 @@ function gerarVeiculo(){
     }
     cardsE.push({t:'Certidão simplificada da Junta Comercial', d:'Atualizada — validade de 30 dias.', pessoa:pjNome});
     cardsE.push({t:'Contrato Social ou Consolidação', d:'Com as alterações posteriores, se houver. Via eletrônica ou desmaterializada.', pessoa:pjNome});
+    if(reemb) cardsE.push({t:T.bancarios[0], d:'Foto do cartão, print da conta ou talão de cheque constando: nome da empresa, banco, agência e nº da conta. A conta deve estar em nome da empresa consorciada — o reembolso é pago a ela.', pessoa:pjNome});
     cardsE.push({t:'Dados da empresa', d:'Informar telefone e e-mail da PJ.', pessoa:pjNome});
     html += slideCards('Documentos da empresa', pjNome + ' — empresa com no mínimo 1 ano de abertura', cardsE);
     if(!temDevedorSolidario()) html += slideCards('Comprovação de renda da empresa', pjNome, PJ_RENDA[document.getElementById('pj_regime').value].map(d=>({t:d[0],d:d[1],pessoa:pjNome})));
@@ -2059,7 +2104,7 @@ function gerarVeiculo(){
   html += '<div id="bl_vend">';
   html += slideCapa('Orientação para uso de crédito', titulo, 'Veículo e vendedor', cond==='novo'?'Fornecedor':'', '');
   const vId = document.getElementById('v_id').value.trim();
-  let docs = VEIC_DOCS[veicKey(bem, cond)].map(d=>({t:d[0], d:d[1]}));
+  let docs = (reemb ? veicDocsReembolso(cond) : VEIC_DOCS[veicKey(bem, cond)]).map(d=>({t:d[0], d:d[1]}));
   if(document.getElementById('v_vendpj').checked){
     docs.forEach(c=>{ if(c.t==='Dados do vendedor') c.d += '\nComo o vendedor é Pessoa Jurídica, informar também o nome completo e o CPF do sócio administrador.'; });
   }
@@ -2068,10 +2113,11 @@ function gerarVeiculo(){
     docs = docs.filter(c=>c.t!=='Procuração');
     docs.push({t:'Procuração', d:'Cópia desmaterializada (autenticada digitalmente). Os poderes da procuração serão analisados pela administradora.', pessoa:pN});
     docs.push({t:'CNH digital', d:T.cnh[1], pessoa:pN});
-    docs.push({t:'Dados do procurador', d:'Informar telefone (com WhatsApp) e e-mail. O pagamento será realizado ao proprietário do veículo.', pessoa:pN});
+    docs.push({t:'Dados do procurador', d:reemb ? 'Informar telefone (com WhatsApp) e e-mail.' : 'Informar telefone (com WhatsApp) e e-mail. O pagamento será realizado ao proprietário do veículo.', pessoa:pN});
   }
-  html += slideCards('Documentos do veículo e vendedor', vId, docs);
-  html += slideCustas(veicPagamento(bem, cond), 'Informações do processo', 'O pagamento ao vendedor somente será realizado mediante:');
+  html += slideCards(reemb ? 'Documentos do veículo — reembolso' : 'Documentos do veículo e vendedor', vId, docs);
+  html += reemb ? slideCustas(veicPagamentoReembolso(cond), 'Informações do processo', 'O reembolso ao consorciado somente será realizado mediante:')
+                : slideCustas(veicPagamento(bem, cond), 'Informações do processo', 'O pagamento ao vendedor somente será realizado mediante:');
   html += slideFinal();
   html += '</div>';
 
@@ -2461,6 +2507,7 @@ function limparFormSilencioso(){
   document.querySelector('#modo .chip[data-v=imovel]').classList.add('on');
   document.querySelector('#emissao .chip[data-v=completo]').classList.add('on');
   document.querySelector('#v_cond .chip[data-v=usado]').classList.add('on');
+  document.querySelector('#v_utz .chip[data-v=aquisicao]').classList.add('on');
   ['pj_socios','devs','vends','anus','slides'].forEach(id=>document.getElementById(id).innerHTML='');
   document.getElementById('pre_texto').value='';
   document.getElementById('pre_resumo').style.display='none';
@@ -2915,7 +2962,7 @@ function criarProcessoNoAcompanhamento(modo, btnEl){
     }
   } else {
     tipo = 'Veículo';
-    subtipo = 'Compra';
+    subtipo = (chipVals('v_utz')[0]==='reembolso') ? 'Reembolso' : 'Compra';
   }
 
   const btn = btnEl || null;
@@ -3256,7 +3303,7 @@ function coletarForm(){
     i:{tipo:chipVals('i_tipo')[0]||'urbano', id:g('i_id').value, cond:g('i_cond').value, condnome:g('i_condnome').value, aptobox:g('i_aptobox').checked, garagem:g('i_garagem').checked,
        menos1:g('i_menos1').checked, aberta1:g('i_aberta1').checked, origem:g('i_origem').value, obs:g('i_obs').value,
        termoDesc:g('i_termo_desc').value, termoMat:g('i_termo_mat').value, termoLv:g('i_termo_lv').value, termoFls:g('i_termo_fls').value, termoRi:g('i_termo_ri').value},
-    v:{bem:g('v_bem').value, cond:chipVals('v_cond')[0]||'usado', vendpj:g('v_vendpj').checked, temproc:g('v_temproc').checked, procnome:g('v_procnome').value, id:g('v_id').value},
+    v:{bem:g('v_bem').value, cond:chipVals('v_cond')[0]||'usado', utz:chipVals('v_utz')[0]||'aquisicao', vendpj:g('v_vendpj').checked, temproc:g('v_temproc').checked, procnome:g('v_procnome').value, id:g('v_id').value},
     fin:{parcela:g('f_parcela').value, seguro:g('f_seguro').value, renda:g('f_renda').value, fundo:g('f_fundo').value, valbem:g('f_valbem').value},
     neg: NEG,
     conf: CONF,
@@ -3270,7 +3317,7 @@ function setChips(id, vals){
 function aplicarForm(o){
   const g=id=>document.getElementById(id);
   setChips('modo',[o.modo]); setChips('p_utz',o.p.utz); setChips('c_tipo',[o.c.tipo]); setChips('c_rendas',o.c.rendas);
-  setChips('cj_rendas',o.cj.rendas); setChips('i_tipo',[o.i.tipo]); setChips('v_cond',[o.v.cond]);
+  setChips('cj_rendas',o.cj.rendas); setChips('i_tipo',[o.i.tipo]); setChips('v_cond',[o.v.cond]); setChips('v_utz',[(o.v&&o.v.utz)||'aquisicao']);
   g('p_nome').value=o.p.nome; g('p_grupo').value=o.p.grupo||''; g('p_cota').value=o.p.cota||''; g('p_data').value=o.p.data; g('p_valor').value=MoedaBR.normalizar(o.p.valor);
   g('c_nome').value=o.c.nome; g('c_ec').value=o.c.ec; g('c_regime').value=o.c.regime; g('c_pre77').checked=o.c.pre77; g('c_emp_regime').value=o.c.empRegime;
   g('cj_nome').value=o.cj.nome; g('cj_renda_on').checked=o.cj.rendaOn; g('cj_emp_regime').value=o.cj.empRegime;
