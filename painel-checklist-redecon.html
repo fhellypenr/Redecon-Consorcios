@@ -1267,6 +1267,7 @@ async function carregarDocTemplates(){
 function toggleLargura(id){
   const el = document.getElementById(id);
   el.classList.toggle('wide');
+  procAutoSave();
 }
 function custaHTML(t, dsc){
   return `<div class="custa" id="cd${++CARDSEQ}">
@@ -1280,6 +1281,7 @@ function custaHTML(t, dsc){
 }
 function tgl(id){
   const el = document.getElementById(id); el.classList.toggle('off');
+  if(!el.dataset.ck) procAutoSave();   /* custas: o 👁 fica nos ajustes do checklist */
   if(el.dataset.ck){ /* "não se aplica" fica salvo com a conferência do processo */
     const k = el.dataset.ck, r = CONF[k] || {s:''};
     if(el.classList.contains('off')) r.off = true; else delete r.off;
@@ -1288,13 +1290,16 @@ function tgl(id){
   }
   confAtualizar();
 }
-function del(id){ if(confirm('Excluir este card?')){ document.getElementById(id).remove(); confAtualizar(); } }
+function del(id){ if(confirm('Excluir este card?')){ document.getElementById(id).remove(); confAtualizar(); ajBotaoRestaurar(ajColetar()); procAutoSave(); } }
 function addCustom(btn){
   btn.insertAdjacentHTML('beforebegin', cardHTML('', 'Novo documento', 'Descreva aqui a orientação.'));
-  confDecorar();
+  ajMarcarNovo(btn.previousElementSibling);
+  confDecorar(); confAtualizar(); procAutoSave();
 }
 function addCustomCusta(btn){
   btn.insertAdjacentHTML('beforebegin', custaHTML('Nova custa', 'Descreva aqui a orientação.'));
+  ajMarcarNovo(btn.previousElementSibling);
+  procAutoSave();
 }
 
 function mergeCards(cards){
@@ -1410,6 +1415,7 @@ function slideFinal(){
 }
 
 function gerar(){
+  AJ = ajColetar();   /* guarda os ajustes feitos direto no checklist antes de montar de novo */
   if((chipVals('emissao')[0]||'completo')==='avulso') return gerarAvulso();
   if((chipVals('modo')[0]||'imovel')==='veiculo') return gerarVeiculo();
   const utz = chipVals('p_utz');
@@ -1732,7 +1738,7 @@ function gerar(){
   document.getElementById('vazio').style.display='none';
   document.getElementById('slides').innerHTML = html;
   atualizarMensagensEnvio('imovel');
-  decorateSlides();
+  ajPosGerar();
   procAutoSave();
   try{ document.getElementById('slides').scrollIntoView({behavior:'smooth'}); }catch(e){}
 }
@@ -2017,7 +2023,7 @@ function gerarAvulso(){
   document.getElementById('vazio').style.display='none';
   document.getElementById('slides').innerHTML = html;
   atualizarMensagensEnvio('avulso');
-  decorateSlides();
+  ajPosGerar();
   procAutoSave();
   try{ document.getElementById('slides').scrollIntoView({behavior:'smooth'}); }catch(e){}
 }
@@ -2135,7 +2141,7 @@ function gerarVeiculo(){
   document.getElementById('vazio').style.display='none';
   document.getElementById('slides').innerHTML = html;
   atualizarMensagensEnvio('veiculo');
-  decorateSlides();
+  ajPosGerar();
   procAutoSave();
   try{ document.getElementById('slides').scrollIntoView({behavior:'smooth'}); }catch(e){}
 }
@@ -2513,6 +2519,7 @@ function limparFormSilencioso(){
   document.getElementById('pre_resumo').style.display='none';
   NEG = {pessoas:[]};
   CONF = {};
+  AJ = ajVazio(); AJ_ORIG = null;
   document.getElementById('vazio').style.display='block';
   onFormChange();
 }
@@ -3019,18 +3026,152 @@ function decorateSlides(){
     const b=document.createElement('button');
     b.className='sl-toggle';
     b.title='Manter ou tirar esta tela do PDF (dá para voltar atrás)';
-    b.textContent='Incluir ✓';
-    b.onclick=()=>{ s.classList.toggle('excl'); b.textContent = s.classList.contains('excl')?'Excluída ✕':'Incluir ✓'; };
+    b.textContent = s.classList.contains('excl') ? 'Excluída ✕' : 'Incluir ✓';
+    b.onclick=()=>{ s.classList.toggle('excl'); b.textContent = s.classList.contains('excl')?'Excluída ✕':'Incluir ✓'; procAutoSave(); };
     const del=document.createElement('button');
     del.className='sl-del';
     del.title='Apagar esta tela inteira';
     del.textContent='🗑 Excluir tela';
-    del.onclick=()=>{ if(confirm('Excluir esta tela inteira do checklist?')){ s.remove(); procAutoSave(); } };
+    del.onclick=()=>{ if(confirm('Excluir esta tela inteira do checklist?')){ s.remove(); confAtualizar(); ajBotaoRestaurar(ajColetar()); procAutoSave(); } };
     box.appendChild(b); box.appendChild(del);
     s.appendChild(box);
   });
   confDecorar();
 }
+
+/* ===================== AJUSTES FEITOS DIRETO NO CHECKLIST =====================
+   O checklist é montado a partir do formulário. Tudo o que se muda direto nele (card excluído ✕,
+   tela excluída 🗑 ou tirada do PDF, texto editado, card adicionado, largura ⇔, 👁 das custas)
+   fica salvo no processo como AJUSTES (o.aj) e é reaplicado toda vez que o checklist é montado
+   — ao reabrir o processo e ao clicar em Gerar de novo.
+   Grava só a diferença (não a tela inteira): a tela tem ~220 KB e todos os processos ficam num único
+   documento da nuvem (limite de 1 MB).
+   Texto editado só volta se o texto original daquele ponto não mudou; se o formulário mudou o texto
+   (ex.: nome trocado), vale o formulário. Exclusões valem mesmo depois de gerar de novo. */
+let AJ = ajVazio();
+let AJ_ORIG = null;   /* como o checklist saiu da geração, antes dos ajustes (só em memória) */
+function ajVazio(){ return {del:[], sl:{}, tx:{}, w:{}, off:[], add:[]}; }
+function ajNorm(o){ const v = ajVazio(); if(o && typeof o === 'object') for(const k in v) if(o[k] != null) v[k] = o[k]; return v; }
+function ajHash(t){ let h = 5381; t = String(t||''); for(let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + '.' + t.length; }
+const ajTxt = el => ((el && el.textContent) || '').trim();
+function ajChaveSlide(s){
+  const t = s.querySelector('h3.titulo') || s.querySelector('h2'), sub = s.querySelector('.sub') || s.querySelector('.nome');
+  return confNorm(ajTxt(t)) + '|' + confNorm(ajTxt(sub)) + '|' + (s.querySelector('.doc') ? 'd' : s.querySelector('.custa') ? 'c' : 'x');
+}
+function ajCards(raiz){ return [...raiz.querySelectorAll('.doc,.custa')]; }
+function ajEditaveis(raiz){ return [...raiz.querySelectorAll('[contenteditable]')].filter(e=>!e.closest('.conf')); }
+/* dá uma chave estável a cada tela, card e texto editável recém-gerados e guarda o original */
+function ajMarcar(){
+  const slides = document.getElementById('slides');
+  const orig = {sl:{}, cards:{}, tx:{}, w:{}, tela:{}};
+  const vs = {}, vd = {}, vc = {};
+  slides.querySelectorAll('.slide').forEach(s=>{
+    let k = ajChaveSlide(s); vs[k] = (vs[k]||0) + 1; if(vs[k] > 1) k += '#' + vs[k];
+    s.dataset.sk = k; orig.sl[k] = 1;
+    let ie = 0;
+    ajEditaveis(s).forEach(e=>{ if(e.closest('.doc,.custa')) return; e.dataset.ek = k + '>' + (ie++); orig.tx[e.dataset.ek] = ajHash(e.innerHTML); });
+  });
+  ajCards(slides).forEach(c=>{
+    let k;
+    if(c.classList.contains('doc')){ k = confChaveDe(c); vd[k] = (vd[k]||0) + 1; if(vd[k] > 1) k += '#' + vd[k]; c.dataset.ck = k; }  /* mesma chave da conferência */
+    else { k = 'custa:' + confNorm(ajTxt(c.querySelector('h4 span[contenteditable]'))); vc[k] = (vc[k]||0) + 1; if(vc[k] > 1) k += '#' + vc[k]; }
+    c.dataset.ak = k; orig.cards[k] = 1; orig.w[k] = c.classList.contains('wide') ? 1 : 0;
+    const sc = c.closest('.slide'); orig.tela[k] = sc ? sc.dataset.sk : '';
+    ajEditaveis(c).forEach((e,i)=>{ e.dataset.ek = k + '>' + i; orig.tx[e.dataset.ek] = ajHash(e.innerHTML); });
+  });
+  AJ_ORIG = orig;
+}
+/* card criado pelo "+ Adicionar": chave própria (também vale para a conferência) */
+function ajMarcarNovo(c){
+  if(!c) return;
+  const k = 'novo:' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  c.dataset.add = '1'; c.dataset.ak = k; if(c.classList.contains('doc')) c.dataset.ck = k;
+}
+/* lê a tela e devolve os ajustes (diferença entre o que está na tela e o que foi gerado) */
+function ajColetar(){
+  const prev = ajNorm(AJ);
+  const slides = document.getElementById('slides');
+  if(!AJ_ORIG || !slides || !slides.querySelector('.slide')) return prev;
+  const O = AJ_ORIG, out = ajVazio();
+  const naTela = {}; ajCards(slides).forEach(c=>{ if(c.dataset.ak) naTela[c.dataset.ak] = c; });
+  /* excluídos: os que foram gerados e não estão mais + exclusões antigas de cards que não foram gerados agora */
+  prev.del.forEach(k=>{ if(!O.cards[k]) out.del.push(k); });
+  Object.keys(O.cards).forEach(k=>{ if(!naTela[k]) out.del.push(k); });
+  const telas = {}; slides.querySelectorAll('.slide').forEach(s=>{ if(s.dataset.sk) telas[s.dataset.sk] = s; });
+  for(const k in prev.sl) if(!O.sl[k]) out.sl[k] = prev.sl[k];
+  Object.keys(O.sl).forEach(k=>{ const s = telas[k]; if(!s) out.sl[k] = 'x'; else if(s.classList.contains('excl')) out.sl[k] = 'e'; });
+  for(const k in prev.tx) if(!(k in O.tx)) out.tx[k] = prev.tx[k];
+  slides.querySelectorAll('[data-ek]').forEach(e=>{ const k = e.dataset.ek; if(k in O.tx && ajHash(e.innerHTML) !== O.tx[k]) out.tx[k] = {o:O.tx[k], v:e.innerHTML}; });
+  for(const k in prev.w) if(!(k in O.w)) out.w[k] = prev.w[k];
+  Object.keys(O.w).forEach(k=>{ const c = naTela[k]; if(c && (c.classList.contains('wide') ? 1 : 0) !== O.w[k]) out.w[k] = c.classList.contains('wide') ? 1 : 0; });
+  ajCards(slides).forEach(c=>{ if(c.classList.contains('custa') && c.classList.contains('off') && c.dataset.ak) out.off.push(c.dataset.ak); });
+  ajCards(slides).forEach(c=>{
+    if(c.dataset.add !== '1') return;
+    const s = c.closest('.slide'); if(!s) return;
+    const ehCusta = c.classList.contains('custa'), grid = c.parentElement;
+    const botoes = ajBotoesAdd(s, ehCusta);
+    const pos = Math.max(0, botoes.findIndex(b=>b.parentElement === grid));
+    const pe = c.querySelector('.pessoa');
+    out.add.push({k:c.dataset.ak, tipo:c.classList.contains('custa') ? 'c' : 'd', sk:s.dataset.sk || '', pos,
+      t:(c.querySelector('h4 span[contenteditable]')||{}).innerHTML || '', p: pe ? pe.innerHTML : null, d:(c.querySelector('p[contenteditable]')||{}).innerHTML || '',
+      w:c.classList.contains('wide') ? 1 : 0, off:c.classList.contains('off') ? 1 : 0});
+  });
+  return out;
+}
+/* reaplica os ajustes salvos na tela recém-gerada */
+function ajAplicar(){
+  const A = ajNorm(AJ), slides = document.getElementById('slides');
+  const telas = {}; slides.querySelectorAll('.slide').forEach(s=>telas[s.dataset.sk] = s);
+  for(const k in A.sl){ const s = telas[k]; if(!s) continue; if(A.sl[k] === 'x') s.remove(); else if(A.sl[k] === 'e') s.classList.add('excl'); }
+  const del = new Set(A.del), off = new Set(A.off);
+  ajCards(slides).forEach(c=>{
+    const k = c.dataset.ak; if(!k) return;
+    if(del.has(k)){ c.remove(); return; }
+    if(k in A.w) c.classList.toggle('wide', !!A.w[k]);
+    if(off.has(k)) c.classList.add('off');
+  });
+  slides.querySelectorAll('[data-ek]').forEach(e=>{ const r = A.tx[e.dataset.ek]; if(r && r.o === ajHash(e.innerHTML)) e.innerHTML = r.v; });
+  A.add.forEach(a=>{
+    const s = telas[a.sk] && telas[a.sk].isConnected ? telas[a.sk] : null; if(!s) return;
+    const botoes = ajBotoesAdd(s, a.tipo === 'c');
+    const btn = botoes[a.pos] || botoes[botoes.length-1]; if(!btn) return;
+    btn.insertAdjacentHTML('beforebegin', a.tipo === 'c' ? custaHTML('', '') : cardHTML(a.p != null ? 'x' : '', '', ''));
+    const c = btn.previousElementSibling;
+    c.dataset.add = '1'; c.dataset.ak = a.k; if(a.tipo !== 'c') c.dataset.ck = a.k;
+    const t = c.querySelector('h4 span[contenteditable]'); if(t) t.innerHTML = a.t;
+    const pe = c.querySelector('.pessoa'); if(pe) pe.innerHTML = a.p || '';
+    const d = c.querySelector('p[contenteditable]'); if(d) d.innerHTML = a.d;
+    c.classList.toggle('wide', !!a.w); if(a.off) c.classList.add('off');
+  });
+  ajBotaoRestaurar(A);
+}
+function ajBotoesAdd(s, custa){ return [...s.querySelectorAll('.addcard')].filter(b=>/Custa/.test(b.getAttribute('onclick')||'') === !!custa); }
+function ajBotaoRestaurar(A){
+  const pb = document.querySelector('#slides .printbar'); if(!pb) return;
+  let b = document.getElementById('aj_restaurar');
+  /* conta telas excluídas + cards excluídos fora dessas telas */
+  const telasX = AJ_ORIG ? Object.keys(A.sl).filter(k=>A.sl[k] === 'x' && AJ_ORIG.sl[k]) : [];
+  const n = AJ_ORIG ? (telasX.length + A.del.filter(k=>AJ_ORIG.cards[k] && !telasX.includes(AJ_ORIG.tela[k])).length) : 0;
+  if(!n){ if(b) b.remove(); return; }
+  if(!b){ b = document.createElement('button'); b.id = 'aj_restaurar'; b.className = 'btn btn-light'; b.onclick = ajRestaurarExcluidos; pb.prepend(b); }
+  b.textContent = '↺ Restaurar excluídos (' + n + ')';
+  b.title = 'Traz de volta os cards e telas que você excluiu neste checklist';
+}
+function ajRestaurarExcluidos(){
+  const A = ajColetar();
+  if(!confirm('Trazer de volta os cards e telas excluídos deste checklist? Textos editados e cards adicionados continuam como estão.')) return;
+  A.del = []; for(const k in A.sl) if(A.sl[k] === 'x') delete A.sl[k];
+  AJ = A; AJ_ORIG = null;   /* gerar() lê AJ sem recalcular a partir da tela */
+  gerar();
+}
+/* chamada pelas três gerações logo depois de montar a tela */
+function ajPosGerar(){
+  ajMarcar();
+  ajAplicar();
+  decorateSlides();
+  confAtualizar();
+}
+document.getElementById('slides').addEventListener('input', e=>{ if(e.target.closest && e.target.closest('[contenteditable]')) procAutoSave(); });
 
 /* ===================== CONFERÊNCIA DOS DOCUMENTOS RECEBIDOS =====================
    Cada card de documento (.doc) ganha status (pendente / OK / com problema + motivo) e observação.
@@ -3278,6 +3419,7 @@ function selTodas(incluir){
     s.classList.toggle('excl', !incluir);
     const b=s.querySelector('.sl-toggle'); if(b) b.textContent = incluir?'Incluir ✓':'Excluída ✕';
   });
+  procAutoSave();
 }
 
 /* ====== SALVAR / CARREGAR PROCESSO ====== */
@@ -3286,6 +3428,10 @@ function coletarForm(){
   return {
     versao:1,
     modo: chipVals('modo')[0]||'imovel',
+    emissao: chipVals('emissao')[0]||'completo',
+    a:{cliente:g('a_cliente').value, grupo:g('a_grupo').value, cota:g('a_cota').value, parte:g('a_parte').value, nome:g('a_nome').value, ec:g('a_ec').value,
+       cjnome:g('a_cjnome').value, regime:g('a_regime').value, rendas:chipVals('a_rendas'), empRegime:g('a_emp_regime').value,
+       cjRendaOn:g('a_cjrenda_on').checked, cjRendas:chipVals('a_cjrendas'), cjEmp:g('a_cjemp_regime').value},
     p:{nome:g('p_nome').value, grupo:g('p_grupo').value, cota:g('p_cota').value, data:g('p_data').value, valor:g('p_valor').value, utz:chipVals('p_utz')},
     c:{tipo:chipVals('c_tipo')[0]||'pf', nome:g('c_nome').value, ec:g('c_ec').value, regime:g('c_regime').value, pre77:g('c_pre77').checked, rendas:chipVals('c_rendas'), empRegime:g('c_emp_regime').value},
     cj:{nome:g('cj_nome').value, rendaOn:g('cj_renda_on').checked, rendas:chipVals('cj_rendas'), empRegime:g('cj_emp_regime').value},
@@ -3307,6 +3453,7 @@ function coletarForm(){
     fin:{parcela:g('f_parcela').value, seguro:g('f_seguro').value, renda:g('f_renda').value, fundo:g('f_fundo').value, valbem:g('f_valbem').value},
     neg: NEG,
     conf: CONF,
+    aj: ajColetar(),
     gerado: !!document.querySelector('#slides .slide'),
     preTexto: g('pre_texto').value,
   };
@@ -3316,7 +3463,11 @@ function setChips(id, vals){
 }
 function aplicarForm(o){
   const g=id=>document.getElementById(id);
-  setChips('modo',[o.modo]); setChips('p_utz',o.p.utz); setChips('c_tipo',[o.c.tipo]); setChips('c_rendas',o.c.rendas);
+  setChips('modo',[o.modo]); setChips('emissao',[o.emissao||'completo']); setChips('p_utz',o.p.utz);
+  if(o.a){ const a=o.a, sv=(id,v)=>{ if(v!=null && v!=='') g(id).value=v; };   /* checklist avulso */
+    g('a_cliente').value=a.cliente||''; g('a_grupo').value=a.grupo||''; g('a_cota').value=a.cota||''; sv('a_parte',a.parte); g('a_nome').value=a.nome||''; sv('a_ec',a.ec);
+    g('a_cjnome').value=a.cjnome||''; sv('a_regime',a.regime); setChips('a_rendas',a.rendas||[]); sv('a_emp_regime',a.empRegime);
+    g('a_cjrenda_on').checked=!!a.cjRendaOn; setChips('a_cjrendas',a.cjRendas||[]); sv('a_cjemp_regime',a.cjEmp); } setChips('c_tipo',[o.c.tipo]); setChips('c_rendas',o.c.rendas);
   setChips('cj_rendas',o.cj.rendas); setChips('i_tipo',[o.i.tipo]); setChips('v_cond',[o.v.cond]); setChips('v_utz',[(o.v&&o.v.utz)||'aquisicao']);
   g('p_nome').value=o.p.nome; g('p_grupo').value=o.p.grupo||''; g('p_cota').value=o.p.cota||''; g('p_data').value=o.p.data; g('p_valor').value=MoedaBR.normalizar(o.p.valor);
   g('c_nome').value=o.c.nome; g('c_ec').value=o.c.ec; g('c_regime').value=o.c.regime; g('c_pre77').checked=o.c.pre77; g('c_emp_regime').value=o.c.empRegime;
@@ -3351,6 +3502,7 @@ function aplicarForm(o){
   if(o.fin){ const N=MoedaBR.normalizar; g('f_parcela').value=N(o.fin.parcela); g('f_seguro').value=N(o.fin.seguro); g('f_renda').value=N(o.fin.renda); g('f_fundo').value=N(o.fin.fundo); g('f_valbem').value=N(o.fin.valbem); }
   if(o.neg && Array.isArray(o.neg.pessoas)) NEG = o.neg;
   CONF = (o.conf && typeof o.conf==='object') ? o.conf : {};
+  AJ = ajNorm(o.aj); AJ_ORIG = null;
   document.querySelectorAll('#slides .doc').forEach(c=>{ if(c.querySelector('.conf')){ c.classList.toggle('off', !!(CONF[c.dataset.ck]||{}).off); confPintar(c); } });
   if(document.getElementById('confbar')) confAtualizar();
   if(typeof o.preTexto==='string') g('pre_texto').value=o.preTexto;
@@ -3401,6 +3553,7 @@ function limparTudo(){
   document.getElementById('vends').innerHTML='';
   document.getElementById('anus').innerHTML='';
   document.getElementById('slides').innerHTML='';
+  AJ = ajVazio(); AJ_ORIG = null;
   document.getElementById('vazio').style.display='block';
   onFormChange();
 }
@@ -3457,7 +3610,11 @@ procBadge(); procRender();
     procRender();
     if(PROC_ATUAL){
       const all = procsAll();
-      if(all[PROC_ATUAL]) aplicarForm(all[PROC_ATUAL]);
+      if(all[PROC_ATUAL]){
+        aplicarForm(all[PROC_ATUAL]);
+        /* checklist já gerado: monta de novo com a versão da nuvem (ajustes manuais e padrões de texto) */
+        if(all[PROC_ATUAL].gerado && document.querySelector('#slides .slide')) gerar();
+      }
     }
   };
 </script>
