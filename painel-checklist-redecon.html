@@ -184,6 +184,14 @@
   .doc.conf-ok .strip{background:#1f9d55}
   .doc.conf-erro .strip{background:#d97706}
   .doc.off .conf{display:none}
+  .doc.conf-parcial .strip{background:linear-gradient(90deg,#1f9d55 50%,#c9ccd6 50%)}
+  .conf-todos{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .conf-p{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;display:flex;flex-direction:column;gap:5px}
+  .conf-p.ok{border-color:#bfe3cb;background:#f3fbf6}
+  .conf-p.erro{border-color:#f3cf9a;background:#fffaf0}
+  .conf-pl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .conf-pn{font-size:12px;font-weight:700;color:var(--ink);flex:1 1 90px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .conf-p .conf-st button{padding:3px 8px;font-size:11px}
   .confbar{max-width:960px;margin:0 auto 18px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .confbar .cb-txt{flex:1;min-width:240px;font-size:13px;line-height:1.5}
   .confbar .cb-txt b{font-size:14px}
@@ -1224,7 +1232,7 @@ function tgl(id){
   if(el.dataset.ck){ /* "não se aplica" fica salvo com a conferência do processo */
     const k = el.dataset.ck, r = CONF[k] || {s:''};
     if(el.classList.contains('off')) r.off = true; else delete r.off;
-    CONF[k] = r; if(!r.s && !r.m && !r.obs && !r.off) delete CONF[k];
+    CONF[k] = r; if(confLimpo(r)) delete CONF[k];
     procAutoSave();
   }
   confAtualizar();
@@ -2939,12 +2947,24 @@ function decorateSlides(){
    Fica salvo com o processo (CONF → coletarForm/aplicarForm), ligado ao nome do documento + pessoa.
    Só aparece na tela (no-print). Cards desligados (👁) saem da conta. */
 let CONF = {};
-const confNorm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const confNorm = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const confEsc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function confChaveDe(card){
   const t = (card.querySelector('h4 span[contenteditable]')||{}).textContent || '';
   const p = (card.querySelector('.pessoa')||{}).textContent || '';
   return confNorm(t) + '|' + confNorm(p);
 }
+/* Card com mais de uma pessoa ("Fulano e Ciclana", "Sócios: A e B"): conferência por pessoa. */
+const CONF_DOC_DO_CASAL = /^(certid[aã]o de casamento|escritura p[uú]blica de uni[aã]o est[aá]vel|pacto antenupcial)/i; /* um documento só para o casal */
+function confPessoas(card){
+  const titulo = ((card.querySelector('h4 span[contenteditable]')||{}).textContent || '').trim();
+  if(CONF_DOC_DO_CASAL.test(titulo)) return [];
+  let p = ((card.querySelector('.pessoa')||{}).textContent || '').trim();
+  p = p.replace(/^(Sócios|Anuentes|Vendedores|Devedores solidários|Cônjuges)\s*:\s*/i, '');
+  const nomes = p.split(/\s+e\s+|\s*,\s*/).map(x=>x.replace(/^(Sócio|Sócia|Anuente)\s*:\s*/i,'').trim()).filter(Boolean);
+  return nomes.length > 1 ? nomes : [];
+}
+const CONF_BTNS = '<button type="button" data-s="" title="Ainda não recebido">⏳ Pendente</button><button type="button" data-s="ok" title="Recebido e conferido">✅ OK</button><button type="button" data-s="erro" title="Recebido com problema (informar o motivo)">⚠️ Problema</button>';
 function confDecorar(){
   const vistos = {};
   document.querySelectorAll('#slides .doc').forEach(card=>{
@@ -2956,45 +2976,103 @@ function confDecorar(){
     } else vistos[card.dataset.ck] = (vistos[card.dataset.ck]||0) + 1;
     if(card.querySelector('.conf')) return;
     if((CONF[card.dataset.ck]||{}).off) card.classList.add('off');
+    const nomes = confPessoas(card);
     const box = document.createElement('div');
     box.className = 'conf no-print';
-    box.innerHTML = '<div class="conf-st"><button type="button" data-s="" title="Ainda não recebido">⏳ Pendente</button><button type="button" data-s="ok" title="Recebido e conferido">✅ OK</button><button type="button" data-s="erro" title="Recebido com problema (informar o motivo)">⚠️ Problema</button></div>'
-      + '<input class="conf-m hide" placeholder="Motivo do problema (obrigatório) — ex.: vencida, falta o verso">'
-      + '<input class="conf-obs" placeholder="Observação (opcional)">'
-      + '<div class="conf-em"></div>';
+    if(nomes.length){
+      box.innerHTML = '<div class="conf-todos"><span>Todos:</span><div class="conf-st conf-geral">' + CONF_BTNS + '</div></div>'
+        + nomes.map((n,i)=>'<div class="conf-p" data-i="'+i+'"><div class="conf-pl"><span class="conf-pn" title="'+confEsc(n)+'">'+confEsc(n)+'</span><div class="conf-st">'+CONF_BTNS+'</div></div>'
+          + '<input class="conf-m hide" placeholder="Motivo — '+confEsc(n)+' (obrigatório)"></div>').join('')
+        + '<input class="conf-obs" placeholder="Observação (opcional)"><div class="conf-em"></div>';
+      box.dataset.nomes = JSON.stringify(nomes);
+      box.querySelectorAll('.conf-geral button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s, null)));
+      box.querySelectorAll('.conf-p').forEach(row=>{
+        const nome = nomes[+row.dataset.i];
+        row.querySelectorAll('.conf-st button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s, nome)));
+        row.querySelector('.conf-m').addEventListener('input', e=>confTexto(card, 'm', e.target.value, nome));
+      });
+    } else {
+      box.innerHTML = '<div class="conf-st">' + CONF_BTNS + '</div>'
+        + '<input class="conf-m hide" placeholder="Motivo do problema (obrigatório) — ex.: vencida, falta o verso">'
+        + '<input class="conf-obs" placeholder="Observação (opcional)"><div class="conf-em"></div>';
+      box.querySelectorAll('.conf-st button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s, null)));
+      box.querySelector('.conf-m').addEventListener('input', e=>confTexto(card, 'm', e.target.value, null));
+    }
+    box.querySelector('.conf-obs').addEventListener('input', e=>confTexto(card, 'obs', e.target.value, null));
     card.appendChild(box);
-    box.querySelectorAll('.conf-st button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s)));
-    box.querySelector('.conf-m').addEventListener('input', e=>confTexto(card, 'm', e.target.value));
-    box.querySelector('.conf-obs').addEventListener('input', e=>confTexto(card, 'obs', e.target.value));
     confPintar(card);
   });
   confAtualizar();
 }
+function confNomesDe(card){ const b = card.querySelector('.conf'); try{ return b && b.dataset.nomes ? JSON.parse(b.dataset.nomes) : []; }catch(e){ return []; } }
+/* unidades conferidas do card: uma por pessoa (ou o card inteiro) → [{nome, s, m}] */
+function confUnidades(card){
+  const r = CONF[card.dataset.ck] || {}, nomes = confNomesDe(card);
+  if(!nomes.length) return [{nome:'', s:r.s||'', m:r.m||''}];
+  const P = r.p || {};
+  return nomes.map(n=>({nome:n, s:(P[n]||{}).s||'', m:(P[n]||{}).m||''}));
+}
+function confStatusCard(card){
+  const u = confUnidades(card);
+  if(u.every(x=>x.s==='ok')) return 'ok';
+  if(u.some(x=>x.s==='erro')) return 'erro';
+  if(u.some(x=>x.s==='ok')) return 'parcial';
+  return '';
+}
 function confPintar(card){
-  const r = CONF[card.dataset.ck] || {}, st = r.s || '', box = card.querySelector('.conf'); if(!box) return;
-  box.querySelectorAll('.conf-st button').forEach(b=>b.classList.toggle('on', b.dataset.s===st));
-  const m = box.querySelector('.conf-m');
-  m.classList.toggle('hide', st!=='erro'); m.value = r.m || ''; m.classList.toggle('bad', st==='erro' && !(r.m||'').trim());
+  const r = CONF[card.dataset.ck] || {}, box = card.querySelector('.conf'); if(!box) return;
+  const nomes = confNomesDe(card), st = confStatusCard(card);
+  if(nomes.length){
+    const P = r.p || {};
+    box.querySelectorAll('.conf-p').forEach(row=>{
+      const n = nomes[+row.dataset.i], q = P[n] || {}, s = q.s || '';
+      row.querySelectorAll('.conf-st button').forEach(b=>b.classList.toggle('on', b.dataset.s===s));
+      const m = row.querySelector('.conf-m');
+      m.classList.toggle('hide', s!=='erro'); m.value = q.m || ''; m.classList.toggle('bad', s==='erro' && !(q.m||'').trim());
+      row.classList.toggle('ok', s==='ok'); row.classList.toggle('erro', s==='erro');
+    });
+    const todos = confUnidades(card).map(x=>x.s), igual = todos.every(x=>x===todos[0]) ? todos[0] : null;
+    box.querySelectorAll('.conf-geral button').forEach(b=>b.classList.toggle('on', igual!==null && b.dataset.s===igual));
+  } else {
+    box.querySelectorAll('.conf-st button').forEach(b=>b.classList.toggle('on', b.dataset.s===(r.s||'')));
+    const m = box.querySelector('.conf-m');
+    m.classList.toggle('hide', r.s!=='erro'); m.value = r.m || ''; m.classList.toggle('bad', r.s==='erro' && !(r.m||'').trim());
+  }
   box.querySelector('.conf-obs').value = r.obs || '';
-  box.querySelector('.conf-em').textContent = r.em ? ((st==='ok'?'Conferido':st==='erro'?'Marcado com problema':'Atualizado')+' em '+r.em) : '';
-  card.classList.toggle('conf-ok', st==='ok'); card.classList.toggle('conf-erro', st==='erro');
+  const rot = st==='ok' ? 'Conferido' : st==='erro' ? 'Marcado com problema' : st==='parcial' ? 'Conferido em parte' : 'Atualizado';
+  box.querySelector('.conf-em').textContent = r.em ? (rot + ' em ' + r.em) : '';
+  card.classList.toggle('conf-ok', st==='ok'); card.classList.toggle('conf-erro', st==='erro'); card.classList.toggle('conf-parcial', st==='parcial');
 }
-function confMarcar(card, st){
-  const k = card.dataset.ck, r = CONF[k] || {};
-  r.s = st; r.em = new Date().toLocaleString('pt-BR').slice(0,17);
+function confLimpo(r){ return !r.s && !r.m && !r.obs && !r.off && !(r.p && Object.keys(r.p).length); }
+function confMarcar(card, st, nome){
+  const k = card.dataset.ck, r = CONF[k] || {}, nomes = confNomesDe(card);
+  if(nomes.length){
+    r.p = r.p || {};
+    (nome ? [nome] : nomes).forEach(n=>{ const q = r.p[n] || {}; q.s = st; r.p[n] = q; if(!q.s && !q.m) delete r.p[n]; });
+    r.s = '';
+  } else r.s = st;
+  r.em = new Date().toLocaleString('pt-BR').slice(0,17);
   CONF[k] = r;
-  if(!r.s && !r.m && !r.obs && !r.off) delete CONF[k];
+  if(confLimpo(r)) delete CONF[k];
   confPintar(card); confAtualizar(); procAutoSave();
-  if(st==='erro'){ const m = card.querySelector('.conf-m'); if(m && !m.value) m.focus(); }
+  if(st==='erro'){
+    const alvo = nomes.length ? [...card.querySelectorAll('.conf-p')].find(row=>!nome || nomes[+row.dataset.i]===nome) : card;
+    const m = alvo && alvo.querySelector('.conf-m'); if(m && !m.value) m.focus();
+  }
 }
-function confTexto(card, campo, v){
+function confTexto(card, campo, v, nome){
   const k = card.dataset.ck, r = CONF[k] || {s:''};
-  r[campo] = v; CONF[k] = r;
-  if(campo==='m') card.querySelector('.conf-m').classList.toggle('bad', r.s==='erro' && !v.trim());
-  if(!r.s && !r.m && !r.obs && !r.off) delete CONF[k];
+  if(nome){ r.p = r.p || {}; const q = r.p[nome] || {s:''}; q[campo] = v; r.p[nome] = q; }
+  else r[campo] = v;
+  CONF[k] = r;
+  if(campo==='m'){
+    if(nome){ const row = [...card.querySelectorAll('.conf-p')].find(x=>confNomesDe(card)[+x.dataset.i]===nome); if(row) row.querySelector('.conf-m').classList.toggle('bad', !v.trim()); }
+    else card.querySelector('.conf-m').classList.toggle('bad', r.s==='erro' && !v.trim());
+  }
+  if(confLimpo(r)) delete CONF[k];
   confAtualizar(); procAutoSave();
 }
-function confDocs(){ return [...document.querySelectorAll('#slides .doc')].filter(c=>!c.classList.contains('off') && c.dataset.ck); }
+function confDocs(){ return [...document.querySelectorAll('#slides .doc')].filter(c=>!c.classList.contains('off') && c.dataset.ck && c.querySelector('.conf')); }
 function confAtualizar(){
   const slides = document.getElementById('slides'); if(!slides) return;
   let bar = document.getElementById('confbar');
@@ -3005,9 +3083,9 @@ function confAtualizar(){
     const pb = slides.querySelector('.printbar');
     if(pb) pb.insertAdjacentElement('afterend', bar); else slides.prepend(bar);
   }
-  let ok=0, erro=0, semMotivo=0;
-  docs.forEach(c=>{ const r = CONF[c.dataset.ck]||{}; if(r.s==='ok') ok++; else if(r.s==='erro'){ erro++; if(!(r.m||'').trim()) semMotivo++; } });
-  const tot = docs.length, pend = tot - ok - erro, pct = Math.round(ok*100/tot);
+  let tot=0, ok=0, erro=0, semMotivo=0;
+  docs.forEach(c=>confUnidades(c).forEach(u=>{ tot++; if(u.s==='ok') ok++; else if(u.s==='erro'){ erro++; if(!u.m.trim()) semMotivo++; } }));
+  const pend = tot - ok - erro, pct = Math.round(ok*100/tot);
   bar.classList.toggle('completa', ok===tot);
   bar.innerHTML = '<div class="cb-txt">'
     + (ok===tot ? '<b>✅ Documentação completa — pronta para enviar à HS</b>' : '<b>Conferência: '+ok+' de '+tot+' documentos ('+pct+'%)</b>')
@@ -3020,16 +3098,16 @@ function confAtualizar(){
 }
 function pendAbrir(){
   const nome = (document.getElementById('p_nome').value||'').trim().split(/\s+/)[0] || '[Nome]';
-  const linha = c => {
-    const t = (c.querySelector('h4 span[contenteditable]')||{}).textContent.trim();
-    const p = ((c.querySelector('.pessoa')||{}).textContent||'').trim();
-    return t + (p ? ' ('+p+')' : '');
-  };
   const erros = [], pends = [];
   confDocs().forEach(c=>{
-    const r = CONF[c.dataset.ck]||{};
-    if(r.s==='erro') erros.push('• ' + linha(c) + ((r.m||'').trim() ? ': ' + r.m.trim() : '') + ((r.obs||'').trim() ? ' — ' + r.obs.trim() : ''));
-    else if(r.s!=='ok') pends.push('• ' + linha(c) + ((r.obs||'').trim() ? ' — ' + r.obs.trim() : ''));
+    const t = (c.querySelector('h4 span[contenteditable]')||{}).textContent.trim();
+    const pCard = ((c.querySelector('.pessoa')||{}).textContent||'').trim();
+    const obs = ((CONF[c.dataset.ck]||{}).obs||'').trim();
+    const us = confUnidades(c);
+    const multi = us.length > 1;
+    const er = us.filter(u=>u.s==='erro'), pe = us.filter(u=>u.s!=='ok' && u.s!=='erro');
+    er.forEach(u=>erros.push('• ' + t + ' (' + (multi ? u.nome : pCard) + ')' + (u.m.trim() ? ': ' + u.m.trim() : '') + (obs ? ' — ' + obs : '')));
+    if(pe.length) pends.push('• ' + t + ((multi ? pe.map(u=>u.nome).join(' e ') : pCard) ? ' (' + (multi ? pe.map(u=>u.nome).join(' e ') : pCard) + ')' : '') + (obs ? ' — ' + obs : ''));
   });
   let t = 'Olá, ' + nome + '! Tudo bem?\n\nConferimos os documentos enviados até agora. Para darmos andamento ao processo, ainda precisamos do seguinte:\n';
   if(erros.length) t += '\n⚠️ Precisam ser reenviados:\n' + erros.join('\n') + '\n';
