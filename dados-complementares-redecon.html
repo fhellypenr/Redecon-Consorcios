@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<script>/* Os Dados complementares funcionam dentro do Painel de Checklist (aba 7), que cuida do login. */
+if(window.top === window.self) location.replace('painel-checklist-redecon.html#dcomp');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dados complementares | Redecon Consórcios</title>
+<script src="moeda-br.js"></script>
+<script src="conferencia-final.js" defer></script>
+<style>
+  :root{
+    --navy:#15151d; --coral:#c73b2e; --coral2:#f0806c;
+    --bg:#f4f4f4; --ink:#1a1a1f; --muted:#6b6b74; --line:#e3e3e8; --ok:#1f9d55;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+
+  header.app{background:#fff;border-bottom:1px solid var(--line);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  header.app h1{font-size:18px;font-weight:700}
+  header.app h1 small{display:block;font-size:11.5px;font-weight:400;color:var(--muted)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{border:0;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn-coral{background:var(--coral);color:#fff}
+  .btn-coral:hover{background:#a92300}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--coral);color:var(--coral)}
+
+  main{display:grid;grid-template-columns:470px 1fr;min-height:calc(100vh - 62px)}
+  @media(max-width:1100px){main{grid-template-columns:1fr}}
+
+  #form{background:#fff;border-right:1px solid var(--line);padding:18px;overflow-y:auto;max-height:calc(100vh - 62px)}
+  @media(max-width:1100px){#form{max-height:none}}
+  .sec{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .sec>h2{background:var(--navy);color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:10px 14px;display:flex;align-items:center;gap:8px}
+  .sec>h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--coral)}
+  .sec>h2 .opc{margin-left:auto;font-size:10.5px;font-weight:600;color:#c9cad1;letter-spacing:.3px;text-transform:none}
+  .sec .body{padding:13px}
+  .sec.na .body .g,.sec.na .body .sub-na{display:none}
+  .g{display:grid;gap:8px 10px;grid-template-columns:repeat(6,1fr);margin-bottom:8px}
+  .field{grid-column:span 6}
+  .s1{grid-column:span 1}.s2{grid-column:span 2}.s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}
+  .field label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:4px}
+  .field input,.field select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fff;font-family:inherit}
+  .field input:focus,.field select:focus{outline:2px solid var(--coral2);border-color:var(--coral)}
+  .field input.bad{border-color:#d33;background:#fff5f5}
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:3px}
+  .hint a{color:var(--coral);cursor:pointer;text-decoration:underline}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{border:1px solid var(--line);border-radius:20px;padding:7px 13px;font-size:13px;cursor:pointer;user-select:none;background:#fff}
+  .chip:hover{border-color:var(--coral2)}
+  .chip.on{background:var(--coral);border-color:var(--coral);color:#fff;font-weight:600}
+  .switch{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:2px 0 8px}
+  .switch input{width:17px;height:17px;accent-color:var(--coral);cursor:pointer}
+  .confere{display:flex;gap:9px;align-items:flex-start;background:#fff8e6;border:1px solid #f1d58b;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin-top:4px;cursor:pointer}
+  .confere input{width:17px;height:17px;margin-top:1px;accent-color:var(--coral);flex:0 0 auto}
+  .privacidade{font-size:11.5px;color:var(--muted);line-height:1.5;background:#f7f7f9;border-radius:10px;padding:10px 12px;margin-bottom:14px}
+  .rasc-linha{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .rasc-linha label{font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap}
+  .rasc-linha select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
+  .rasc-info{font-size:11.5px;color:var(--ok);font-weight:600;margin-bottom:6px}
+  .hide{display:none !important}
+
+  #previa{padding:18px 22px;overflow:auto;max-height:calc(100vh - 62px);display:flex;flex-direction:column;gap:10px;align-items:stretch}
+  @media(max-width:1100px){#previa{max-height:none}}
+  #avisos,#puxados{font-size:12.5px;line-height:1.55;border-radius:10px;padding:10px 14px}
+  #avisos.ok{background:#eef8f1;border:1px solid #bfe3cb;color:#1d5e33}
+  #avisos.tem{background:#fff6e5;border:1px solid #f1d58b;color:#6b4a00}
+  #avisos b,#puxados b{display:block;margin-bottom:3px}
+  #puxados{background:#eef3fb;border:1px solid #c5d6f0;color:#1d3a66}
+  .paperwrap{margin:0 auto;width:210mm;max-width:100%}
+  .paper{background:#fff;width:210mm;box-shadow:0 2px 10px rgba(0,0,0,.12);padding:10mm 12mm;transform-origin:top left}
+
+  /* ===== DOCUMENTO — mesmo layout do formulário da HS ===== */
+  #doc{font-family:Arial,Helvetica,sans-serif;color:#333;font-size:9pt}
+  #doc table{width:100%;border-collapse:collapse;border:1px solid #bdbdbd;margin-bottom:4mm;break-inside:avoid;page-break-inside:avoid}
+  #doc td,#doc th{border:1px solid #bdbdbd;padding:2.1mm 3mm;vertical-align:middle;text-align:left}
+  #doc th{background:#f5f5f5;font-weight:700;text-align:center;text-transform:uppercase}
+  #doc th.forte{background:#cccccc}
+  #doc tr:nth-child(even) td{background:#f5f5f5}
+  #doc td.rot{width:35%;font-weight:700}
+  #doc table.veic td.rot{width:50%;font-weight:400}
+  #doc td.val{font-weight:400;color:#000;min-height:5mm}
+  #doc .topo td{background:#f5f5f5 !important;height:22mm}
+  #doc .junto{break-inside:avoid;page-break-inside:avoid}
+  #doc .topo td.logo{width:35%;text-align:center}
+  #doc .topo td.logo img{height:13mm;max-width:90%;background:#fff;padding:3mm 5mm;box-sizing:content-box}
+  #doc .topo td.tit{text-align:center;font-weight:700;font-size:9.5pt}
+  #doc .aviso{font-weight:700;margin:-1mm 0 4mm;line-height:1.45}
+  #doc .obs{font-weight:700;text-align:center;margin-top:2mm}
+  #doc .radio{display:inline-flex;align-items:center;gap:1mm;margin-right:4mm}
+  #doc .radio i{display:inline-block;width:3.2mm;height:3.2mm;border:.3mm solid #555;border-radius:50%;position:relative}
+  #doc .radio i.on::after{content:'';position:absolute;inset:.6mm;border-radius:50%;background:#000}
+  #doc .na td.val{color:#999}
+
+  @page{size:A4;margin:10mm}
+  @media print{
+    body{background:#fff}
+    header.app,#form,#avisos,#puxados{display:none !important}
+    main{display:block}
+    #previa{padding:0;max-height:none;overflow:visible}
+    .paperwrap{width:auto !important;height:auto !important}
+    .paper{box-shadow:none;padding:0;width:auto;transform:none !important}
+    #doc{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <h1>Dados complementares — contemplação veículo<small>Formulário obrigatório da HS · os dados ficam só neste computador (não vão para a nuvem)</small></h1>
+  <div class="toolbar">
+    <button class="btn btn-ghost" onclick="apagarDados()">🗑 Apagar dados</button>
+    <button class="btn btn-coral" onclick="gerarPDF()">🖨 Imprimir / Salvar PDF</button>
+  </div>
+</header>
+
+<main>
+<div id="form">
+
+  <div class="privacidade">
+    <div class="rasc-linha"><label for="rasc_sel">📂 Rascunho</label><select id="rasc_sel"></select></div>
+    <div id="rasc_info" class="rasc-info"></div>
+    🔒 CPF e dados bancários ficam salvos <b>só neste computador</b>, um rascunho por processo, até você clicar em <b>Apagar dados</b>.
+  </div>
+
+  <div class="sec" id="sec_fav"><h2><span class="dot"></span>Favorecido (quem recebe o valor)</h2><div class="body">
+    <div class="field" style="margin-bottom:10px"><label>Quem recebe</label>
+      <div class="chips" id="fav"><span class="chip" data-v="vendedor">Vendedor / proprietário</span><span class="chip" data-v="procurador">Procurador</span><span class="chip" data-v="consorciado">Consorciado (reembolso)</span><span class="chip" data-v="outro">Outro</span></div>
+      <div class="hint" id="fav_hint"></div>
+    </div>
+    <div class="g">
+      <div class="field"><label>Nome completo do favorecido</label><input type="text" data-k="f.nome"></div>
+      <div class="field s3"><label>CPF/CNPJ</label><input type="text" data-k="f.doc" data-m="doc" inputmode="numeric"></div>
+      <div class="field s3"><label>Telefone</label><input type="text" data-k="f.tel" data-m="tel" inputmode="tel"></div>
+      <div class="field"><label>E-mail</label><input type="email" data-k="f.email"></div>
+      <div class="field"><label>Banco</label><input type="text" data-k="f.banco" placeholder="Ex.: 001 - Banco do Brasil"></div>
+      <div class="field s4"><label>Agência</label><input type="text" data-k="f.ag" inputmode="numeric"></div>
+      <div class="field s2"><label>Dígito</label><input type="text" data-k="f.agdv" maxlength="2"></div>
+      <div class="field s4"><label>Conta</label><input type="text" data-k="f.conta" inputmode="numeric"></div>
+      <div class="field s2"><label>Dígito</label><input type="text" data-k="f.contadv" maxlength="2"></div>
+      <div class="field"><label>Tipo</label><div class="chips" id="tipo"><span class="chip" data-v="cc">Conta Corrente</span><span class="chip" data-v="cp">Conta Poupança</span></div></div>
+    </div>
+    <label class="confere"><input type="checkbox" id="banco_ok"> <span>Conferi banco, agência e conta com o comprovante. <b>É para essa conta que a HS faz o pagamento.</b></span></label>
+  </div></div>
+
+  <div class="sec"><h2><span class="dot"></span>Dados do veículo</h2><div class="body">
+    <div class="g">
+      <div class="field s3"><label>Valor a ser preenchido no DUT (R$)</label><input type="text" data-k="v.dut" data-moeda inputmode="decimal" placeholder="Ex.: 85.000,00"></div>
+      <div class="field s3"><label>Placa do veículo</label><input type="text" data-k="v.placa" data-m="placa" placeholder="Ex.: ABC1D23"></div>
+      <div class="field"><label>Telefone para vistoria</label><input type="text" data-k="v.telvist" data-m="tel" inputmode="tel"><div class="hint"><a onclick="copiarTel()">Usar o telefone do favorecido</a></div></div>
+    </div>
+  </div></div>
+
+  <div class="sec"><h2><span class="dot"></span>Consorciado</h2><div class="body">
+    <div class="g">
+      <div class="field s4"><label>Nome completo</label><input type="text" data-k="c.nome"></div>
+      <div class="field s2"><label>Telefone/WhatsApp</label><input type="text" data-k="c.tel" data-m="tel" inputmode="tel"></div>
+    </div>
+  </div></div>
+
+  <div class="sec" id="sec_fia"><h2><span class="dot"></span>Fiador<span class="opc">quando houver</span></h2><div class="body">
+    <label class="switch"><input type="checkbox" id="fia_on"> Tem fiador (devedor solidário / avalista)</label>
+    <div class="g">
+      <div class="field s4"><label>Nome completo</label><input type="text" data-k="fi.nome"></div>
+      <div class="field s2"><label>Telefone/WhatsApp</label><input type="text" data-k="fi.tel" data-m="tel" inputmode="tel"></div>
+    </div>
+    <div class="sub-na">
+      <label class="switch" style="border-top:1px solid var(--line);padding-top:10px"><input type="checkbox" id="fcj_on"> Cônjuge do fiador</label>
+      <div class="g" id="g_fcj">
+        <div class="field s4"><label>Nome completo</label><input type="text" data-k="fc.nome"></div>
+        <div class="field s2"><label>Telefone/WhatsApp</label><input type="text" data-k="fc.tel" data-m="tel" inputmode="tel"></div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="sec" id="sec_soc"><h2><span class="dot"></span>Sócio administrador<span class="opc">procurador ou PJ</span></h2><div class="body">
+    <label class="switch"><input type="checkbox" id="soc_on"> Processo com procurador, ou vendedor/procurador pessoa jurídica</label>
+    <div class="g">
+      <div class="field s4"><label>Nome completo do sócio administrador</label><input type="text" data-k="s.nome"></div>
+      <div class="field s2"><label>CPF do sócio administrador</label><input type="text" data-k="s.cpf" data-m="cpf" inputmode="numeric"></div>
+    </div>
+  </div></div>
+
+</div>
+
+<div id="previa">
+  <div id="puxados" class="hide"></div>
+  <div id="avisos"></div>
+  <div class="paperwrap"><div class="paper" id="paper"><div id="doc"></div></div></div>
+</div>
+</main>
+
+<script>
+/* ===================== BASE ===================== */
+const $ = s => document.querySelector(s);
+const E = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const so = s => String(s || '').replace(/\D/g, '');
+function cpfValido(c){
+  c = so(c); if(c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+  for(let t = 9; t < 11; t++){ let s = 0; for(let i = 0; i < t; i++) s += +c[i] * (t + 1 - i); if(((s * 10) % 11) % 10 !== +c[t]) return false; }
+  return true;
+}
+function cnpjValido(c){
+  c = so(c); if(c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
+  const calc = len => { let s = 0, p = len - 7; for(let i = 0; i < len; i++){ s += +c[i] * p--; if(p < 2) p = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; };
+  return calc(12) === +c[12] && calc(13) === +c[13];
+}
+function docValido(v){ const d = so(v); return d.length === 11 ? cpfValido(d) : d.length === 14 ? cnpjValido(d) : false; }
+const MASK = {
+  cpf: v => { const d = so(v).slice(0, 11); return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : v; },
+  doc: v => { const d = so(v); if(d.length === 11) return MASK.cpf(d); if(d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'); return v; },
+  tel: v => { const d = so(v); if(d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3'); if(d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3'); return v; },
+  placa: v => { const p = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-Z]{3}\d{4}$/.test(p) ? p.slice(0, 3) + '-' + p.slice(3) : p; },
+};
+const placaValida = v => /^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/.test(String(v || '').toUpperCase());
+const telOk = v => [10, 11].includes(so(v).length);
+const emailOk = v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+function chipVal(id){ const c = document.querySelector('#' + id + ' .chip.on'); return c ? c.dataset.v : ''; }
+function setChip(id, v){ document.querySelectorAll('#' + id + ' .chip').forEach(c => c.classList.toggle('on', c.dataset.v === v)); }
+
+/* ===================== ESTADO / RASCUNHOS (um por processo, só neste computador) ===================== */
+const STORE_KEY = 'redecon_dcomp_rascunhos', ULTIMO_KEY = 'redecon_dcomp_ultimo';
+let RASC_ID = '', RASC_PROC = '';
+let FONTES = {};   /* dados de cada possível favorecido vindos do checklist: {vendedor:{...}, procurador:{...}, consorciado:{...}} */
+const CAMPOS_FAV = ['f.nome','f.doc','f.tel','f.email','f.banco','f.ag','f.agdv','f.conta','f.contadv'];
+function coletar(){
+  const o = { fav: chipVal('fav'), tipo: chipVal('tipo'), _fia: $('#fia_on').checked, _fcj: $('#fcj_on').checked, _soc: $('#soc_on').checked, _bancoOk: $('#banco_ok').checked, _fontes: FONTES };
+  document.querySelectorAll('[data-k]').forEach(el => { o[el.dataset.k] = el.value.trim(); });
+  return o;
+}
+function lerRascunhos(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; } }
+function gravarRascunhos(m){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(m)); return true; }catch(e){ return false; } }
+function temConteudo(o){ return Object.keys(o).some(k => /^[a-z]+\./.test(k) && String(o[k] || '').trim()); }
+function rotuloRascunho(r){ if(r.processo) return r.processo; const n = (r.dados || {})['c.nome']; return 'Sem processo' + (n ? ' — ' + n : ''); }
+function dataCurta(s){ s = s || ''; return s.slice(0, 5) + ' ' + s.slice(12, 17); }
+function salvarRascunho(){
+  if(!RASC_ID) RASC_ID = 'a:' + Date.now();
+  const m = lerRascunhos(), dados = coletar();
+  if(temConteudo(dados)) m[RASC_ID] = { processo: RASC_PROC, dados, salvoEm: new Date().toLocaleString('pt-BR'), ts: Date.now(), criado: (m[RASC_ID] && m[RASC_ID].criado) || Date.now() };
+  else delete m[RASC_ID];
+  gravarRascunhos(m);
+  try{ localStorage.setItem(ULTIMO_KEY, RASC_ID); }catch(e){}
+  montarSeletor();
+}
+function limparCampos(){
+  document.querySelectorAll('[data-k]').forEach(el => { el.value = ''; el.classList.remove('bad'); });
+  ['fia_on','fcj_on','soc_on','banco_ok'].forEach(id => $('#' + id).checked = false);
+  setChip('fav', 'vendedor'); setChip('tipo', ''); FONTES = {};
+}
+function aplicarDados(o){
+  setChip('fav', o.fav || 'vendedor'); setChip('tipo', o.tipo || '');
+  $('#fia_on').checked = !!o._fia; $('#fcj_on').checked = !!o._fcj; $('#soc_on').checked = !!o._soc; $('#banco_ok').checked = !!o._bancoOk;
+  FONTES = o._fontes || {};
+  document.querySelectorAll('[data-k]').forEach(el => { if(o[el.dataset.k] != null) el.value = o[el.dataset.k]; });
+}
+function abrirRascunho(id, processo){
+  RASC_ID = id; RASC_PROC = processo || '';
+  const r = lerRascunhos()[id];
+  limparCampos();
+  if(r){ RASC_PROC = r.processo || RASC_PROC; aplicarDados(r.dados || {}); }
+  try{ localStorage.setItem(ULTIMO_KEY, id); }catch(e){}
+  return !!r;
+}
+function montarSeletor(){
+  const sel = $('#rasc_sel'); if(!sel) return;
+  const m = lerRascunhos();
+  const ids = Object.keys(m).sort((a, b) => (m[b].ts || 0) - (m[a].ts || 0));
+  let h = ids.map(id => '<option value="' + E(id) + '"' + (id === RASC_ID ? ' selected' : '') + '>' + E(rotuloRascunho(m[id])) + ' · ' + E(dataCurta(m[id].salvoEm)) + '</option>').join('');
+  if(!m[RASC_ID]) h = '<option value="' + E(RASC_ID) + '" selected>' + E(RASC_PROC ? RASC_PROC + ' (ainda vazio)' : 'Formulário em branco (ainda não salvo)') + '</option>' + h;
+  h += '<option value="__novo">＋ Novo formulário em branco</option>';
+  sel.innerHTML = h;
+  const r = m[RASC_ID];
+  let info = '';
+  if(r){
+    info = '✓ Salvo neste computador em ' + r.salvoEm;
+    const idade = Math.floor((Date.now() - (r.criado || r.ts || Date.now())) / 86400000);
+    if(idade >= 30) info += ' · ⚠️ guardado há ' + idade + ' dias — apague se já foi enviado';
+  }
+  $('#rasc_info').textContent = info;
+}
+function restaurar(){
+  let ult = ''; try{ ult = localStorage.getItem(ULTIMO_KEY) || ''; }catch(e){}
+  const m = lerRascunhos();
+  if(ult && m[ult]) abrirRascunho(ult);
+  else { const ids = Object.keys(m).sort((a, b) => (m[b].ts || 0) - (m[a].ts || 0)); if(ids.length) abrirRascunho(ids[0]); else { RASC_ID = 'a:' + Date.now(); limparCampos(); } }
+  montarSeletor();
+}
+function apagarDados(){
+  if(!confirm('Apagar os dados de ' + (RASC_PROC ? '"' + RASC_PROC + '"' : 'este formulário') + ' deste computador?\n\nOs outros rascunhos salvos não são afetados.')) return;
+  clearTimeout(_t);
+  const m = lerRascunhos(); delete m[RASC_ID]; gravarRascunhos(m);
+  RASC_ID = 'a:' + Date.now(); RASC_PROC = '';
+  limparCampos();
+  $('#puxados').classList.add('hide');
+  atualizar();
+}
+
+/* ===================== FAVORECIDO ===================== */
+const FAV_ROT = { vendedor:'vendedor / proprietário', procurador:'procurador', consorciado:'consorciado', outro:'outra pessoa' };
+function favPreencher(quem){
+  const f = FONTES[quem] || {};
+  const mapa = { 'f.nome':f.nome, 'f.doc':f.doc, 'f.tel':f.tel, 'f.email':f.email, 'f.banco':f.banco, 'f.ag':f.ag, 'f.agdv':f.agdv, 'f.conta':f.conta, 'f.contadv':f.contadv };
+  Object.keys(mapa).forEach(k => { const el = $('[data-k="' + k + '"]'); const v = String(mapa[k] || ''); el.value = el.dataset.m ? MASK[el.dataset.m](v) : v; });
+  setChip('tipo', f.tipo || '');
+  $('#banco_ok').checked = !!f.bancoOk;
+}
+$('#fav').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if(!c) return;
+  const novo = c.dataset.v, atual = chipVal('fav');
+  if(novo === atual) return;
+  /* guarda o que foi digitado para o favorecido atual: voltando a ele, os dados voltam */
+  if(atual){
+    const f = FONTES[atual] = Object.assign({}, FONTES[atual] || {});
+    CAMPOS_FAV.forEach(k => { f[k.slice(2)] = $('[data-k="' + k + '"]').value.trim(); });
+    f.tipo = chipVal('tipo'); f.bancoOk = $('#banco_ok').checked;
+  }
+  setChip('fav', novo);
+  favPreencher(novo);
+  atualizar();
+});
+$('#tipo').addEventListener('click', e => { const c = e.target.closest('.chip'); if(!c) return; setChip('tipo', c.dataset.v); atualizar(); });
+function copiarTel(){ const t = $('[data-k="f.tel"]').value; if(!t){ alert('Preencha antes o telefone do favorecido.'); return; } $('[data-k="v.telvist"]').value = t; atualizar(); }
+
+/* ===================== CONFERÊNCIA ===================== */
+function conferir(d){
+  const av = [];
+  const falta = (k, rot) => { if(!d[k]) av.push('Falta ' + rot + '.'); };
+  if(!d.fav) av.push('Escolha quem recebe o valor (favorecido).');
+  falta('f.nome', 'o nome do favorecido'); falta('f.doc', 'o CPF/CNPJ do favorecido');
+  if(d['f.doc'] && !docValido(d['f.doc'])) av.push('CPF/CNPJ do favorecido inválido — confira os números.');
+  falta('f.tel', 'o telefone do favorecido');
+  if(d['f.tel'] && !telOk(d['f.tel'])) av.push('Telefone do favorecido: informe DDD + número.');
+  falta('f.email', 'o e-mail do favorecido');
+  if(d['f.email'] && !emailOk(d['f.email'])) av.push('E-mail do favorecido parece inválido.');
+  falta('f.banco', 'o banco'); falta('f.ag', 'a agência'); falta('f.conta', 'a conta');
+  if(!d.tipo) av.push('Marque o tipo de conta (corrente ou poupança).');
+  if(d.fav === 'procurador' || d.fav === 'outro') av.push('A conta não é do vendedor: encaminhar procuração de acordo (observação do próprio formulário).');
+  falta('v.dut', 'o valor a ser preenchido no DUT');
+  falta('v.telvist', 'o telefone para vistoria');
+  if(d['v.telvist'] && !telOk(d['v.telvist'])) av.push('Telefone para vistoria: informe DDD + número.');
+  falta('v.placa', 'a placa do veículo');
+  if(d['v.placa'] && !placaValida(d['v.placa'])) av.push('Placa fora do padrão (ABC1D23 ou ABC-1234).');
+  falta('c.nome', 'o nome do consorciado'); falta('c.tel', 'o telefone do consorciado');
+  if(d['c.tel'] && !telOk(d['c.tel'])) av.push('Telefone do consorciado: informe DDD + número.');
+  if(d._fia){
+    falta('fi.nome', 'o nome do fiador'); falta('fi.tel', 'o telefone do fiador');
+    if(d._fcj){ falta('fc.nome', 'o nome do cônjuge do fiador'); falta('fc.tel', 'o telefone do cônjuge do fiador'); }
+  }
+  if(d._soc){
+    falta('s.nome', 'o nome do sócio administrador'); falta('s.cpf', 'o CPF do sócio administrador');
+    if(d['s.cpf'] && !cpfValido(d['s.cpf'])) av.push('CPF do sócio administrador inválido.');
+  }
+  if(!d._bancoOk) av.push('Marque a conferência de banco, agência e conta com o comprovante.');
+  return av;
+}
+function marcarInvalidos(d){
+  const bad = (k, cond) => { const el = $('[data-k="' + k + '"]'); if(el) el.classList.toggle('bad', !!cond); };
+  bad('f.doc', d['f.doc'] && !docValido(d['f.doc']));
+  bad('f.email', d['f.email'] && !emailOk(d['f.email']));
+  bad('s.cpf', d['s.cpf'] && !cpfValido(d['s.cpf']));
+  bad('v.placa', d['v.placa'] && !placaValida(d['v.placa']));
+  ['f.tel','v.telvist','c.tel','fi.tel','fc.tel'].forEach(k => bad(k, d[k] && !telOk(d[k])));
+}
+
+/* ===================== DOCUMENTO (layout do formulário da HS) ===================== */
+/* CAIXA ALTA em tudo o que é preenchido (padrão Redecon, igual ao Termo e à DPS), exceto o e-mail */
+const UP = v => E(String(v || '').toLocaleUpperCase('pt-BR'));
+function linha(rot, val){ return '<tr><td class="rot">' + rot + '</td><td class="val">' + (val || '') + '</td></tr>'; }
+function montarDoc(d){
+  const ag = d['f.ag'] ? UP(d['f.ag']) + ' - ' + UP(d['f.agdv']) : ' - ';
+  const ct = d['f.conta'] ? UP(d['f.conta']) + ' - ' + UP(d['f.contadv']) : ' - ';
+  const radio = (v, rot) => '<span class="radio"><i class="' + (d.tipo === v ? 'on' : '') + '"></i>' + rot + '</span>';
+  const dut = d['v.dut'] ? MoedaBR.normalizar(d['v.dut']) : '';
+  const fia = d._fia, fcj = d._fia && d._fcj, soc = d._soc;
+  return ''
+    + '<table class="topo"><tr><td class="logo"><img src="img/logo-hs-consorcios.png" alt="HS Consórcios"></td><td class="tit">INFORMAÇÕES COMPLEMENTARES - CONTEMPLAÇÃO VEÍCULO</td></tr></table>'
+    + '<table><tr><th class="forte" colspan="2">DADOS DO VENDEDOR/PROPRIETÁRIO VEÍCULO OU PROCURADOR (PESSOA QUE RECEBERA O VALOR)</th></tr>'
+    + linha('Nome Completo Favorecido', UP(d['f.nome']))
+    + linha('CPF/CNPJ', UP(d['f.doc']))
+    + linha('Telefone', UP(d['f.tel']))
+    + linha('E-mail', E(d['f.email']))
+    + linha('BANCO', UP(d['f.banco']))
+    + linha('AGENCIA', ag)
+    + linha('CONTA', ct)
+    + linha('TIPO', radio('cc', 'Conta Corrente') + radio('cp', 'Conta Poupança'))
+    + '</table>'
+    + '<table class="veic"><tr><th colspan="2">DADOS DO VEÍCULO</th></tr>'
+    + linha('Valor a ser preenchido no DUT', 'R$ ' + E(dut))
+    + linha('Telefone para vistoria', UP(d['v.telvist']))
+    + linha('Placa do Veículo', UP(d['v.placa']))
+    + '</table>'
+    + '<p class="aviso">Favor informar os números de contato das partes envolvidas, a fim de viabilizar o envio do link para assinatura eletrônica dos documentos de alienação:</p>'
+    + '<table><tr><th colspan="2">CONSORCIADO</th></tr>' + linha('Nome Completo', UP(d['c.nome'])) + linha('Telefone/WhatsApp', UP(d['c.tel'])) + '</table>'
+    + '<table><tr><th colspan="2">FIADOR</th></tr>' + linha('Nome Completo', fia ? UP(d['fi.nome']) : '') + linha('Telefone/WhatsApp', fia ? UP(d['fi.tel']) : '') + '</table>'
+    + '<table><tr><th colspan="2">CÔNJUGE DO FIADOR (QUANDO APLICÁVEL)</th></tr>' + linha('Nome Completo', fcj ? UP(d['fc.nome']) : '') + linha('Telefone/WhatsApp', fcj ? UP(d['fc.tel']) : '') + '</table>'
+    + '<div class="junto"><p class="aviso">Quando o processo possuir procurador, ou quando o vendedor ou procurador for pessoa jurídica, informar também:</p>'
+    + '<table><tr><th colspan="2">INFORMAÇÕES ADICIONAIS OBRIGATÓRIAS</th></tr>' + linha('Nome completo do sócio administrador', soc ? UP(d['s.nome']) : '') + linha('CPF do sócio administrador', soc ? UP(d['s.cpf']) : '') + '</table>'
+    + '<p class="obs">OBSERVAÇÃO: Se os dados de conta não pertencem ao vendedor do veículo, favor encaminhar procuração de acordo.</p></div>';
+}
+
+/* ===================== TELA ===================== */
+function aplicarVisibilidade(d){
+  $('#sec_fia').classList.toggle('na', !d._fia);
+  $('#g_fcj').classList.toggle('hide', !d._fcj);
+  $('#sec_soc').classList.toggle('na', !d._soc);
+  const f = FONTES[d.fav] || {};
+  $('#fav_hint').innerHTML = d.fav === 'consorciado' ? 'Reembolso: o valor é pago ao consorciado, na conta em nome dele.'
+    : d.fav === 'procurador' ? 'Procurador recebendo: a HS pede procuração de acordo com os dados da conta.'
+    : d.fav === 'outro' ? 'Outra pessoa recebendo: a HS pede procuração de acordo com os dados da conta.'
+    : 'Vendedor / proprietário do veículo.';
+  if(f.origem) $('#fav_hint').innerHTML += ' <span style="color:var(--ok)">Puxado do checklist: ' + E(f.origem) + '.</span>';
+}
+let _t = null;
+function atualizar(){
+  const d = coletar();
+  aplicarVisibilidade(d);
+  marcarInvalidos(d);
+  $('#doc').innerHTML = montarDoc(d);
+  const av = conferir(d), box = $('#avisos');
+  if(av.length){ box.className = 'tem'; box.innerHTML = '<b>⚠️ Conferir antes de gerar (' + av.length + ')</b>' + av.map(x => '• ' + E(x)).join('<br>'); }
+  else { box.className = 'ok'; box.innerHTML = '<b>✅ Tudo preenchido e conferido.</b>Revise a prévia e gere o PDF para enviar à HS.'; }
+  clearTimeout(_t); _t = setTimeout(salvarRascunho, 400);
+  escalar();
+}
+function escalar(){
+  const wrap = $('#previa'), paper = $('#paper');
+  paper.style.transform = '';
+  const disp = wrap.clientWidth - 44, larg = paper.offsetWidth;
+  const k = Math.min(1, disp / larg);
+  paper.style.transform = k < 1 ? 'scale(' + k + ')' : '';
+  $('.paperwrap').style.height = k < 1 ? (paper.offsetHeight * k) + 'px' : '';
+  $('.paperwrap').style.width = k < 1 ? (larg * k) + 'px' : '';
+}
+window.addEventListener('resize', escalar);
+
+async function gerarPDF(){
+  const d = coletar();
+  if(!d._bancoOk){ alert('Antes de gerar: confira banco, agência e conta com o comprovante e marque a caixa de conferência.'); $('#banco_ok').scrollIntoView({behavior:'smooth', block:'center'}); return; }
+  const av = conferir(d);
+  if(window.conferenciaFinal && !(await conferenciaFinal({ titulo: 'Dados complementares (veículo)', avisos: av, botao: av.length ? 'Gerar mesmo assim' : '✓ Conferi, gerar PDF' }))) return;
+  const novo = ('Dados complementares - ' + (d['c.nome'] || 'cliente')).replace(/[\\/:*?"<>|]/g, '');
+  const tituloOrig = document.title;
+  let pai = null, tituloPai = '';
+  try{ if(window.parent !== window){ pai = window.parent.document; tituloPai = pai.title; pai.title = novo; } }catch(e){ pai = null; }
+  document.title = novo;
+  window.print();
+  document.title = tituloOrig;
+  if(pai) pai.title = tituloPai;
+}
+
+/* eventos */
+document.querySelectorAll('[data-k]').forEach(el => {
+  el.addEventListener('input', atualizar);
+  el.addEventListener('change', () => { if(el.dataset.m && el.value) el.value = MASK[el.dataset.m](el.value); atualizar(); });
+});
+['fia_on','fcj_on','soc_on','banco_ok'].forEach(id => $('#' + id).addEventListener('change', atualizar));
+$('#rasc_sel').addEventListener('change', e => {
+  const v = e.target.value;
+  clearTimeout(_t); salvarRascunho();
+  if(v === '__novo'){ RASC_ID = 'a:' + Date.now(); RASC_PROC = ''; limparCampos(); }
+  else abrirRascunho(v);
+  $('#puxados').classList.add('hide');
+  atualizar(); montarSeletor();
+});
+
+/* ===================== DADOS VINDOS DO CHECKLIST =====================
+   O checklist grava uma chave temporária e abre esta aba; aqui ela é lida e apagada na hora.
+   Rascunho que já existe: só completa os campos vazios, nada do que foi digitado muda. */
+const PREFILL_KEY = 'redecon_dcomp_prefill';
+function aplicarPrefill(){
+  let pk = null;
+  try{ pk = JSON.parse(localStorage.getItem(PREFILL_KEY)); localStorage.removeItem(PREFILL_KEY); }catch(e){}
+  if(!pk || !pk.d || (Date.now() - (pk.ts || 0)) > 10 * 60 * 1000) return;
+  const d = pk.d;
+  const id = pk.origem ? 'p:' + pk.origem : 'a:' + Date.now();
+  const existia = abrirRascunho(id, pk.origem || '');
+  FONTES = d.fontes || {};
+  const usados = [];
+  const por = (k, v, rot) => { const el = $('[data-k="' + k + '"]'); if(!el || !v || el.value.trim()) return; el.value = el.dataset.m ? MASK[el.dataset.m](v) : v; if(rot) usados.push(rot); };
+  if(!existia){
+    setChip('fav', d.fav || 'vendedor');
+    $('#fia_on').checked = !!d.fia; $('#fcj_on').checked = !!d.fcj; $('#soc_on').checked = !!d.soc;
+  }
+  /* favorecido: só preenche se ainda não tem nada digitado */
+  const fav = chipVal('fav') || 'vendedor';
+  if(!CAMPOS_FAV.some(k => $('[data-k="' + k + '"]').value.trim())){
+    const f = FONTES[fav] || {};
+    if(Object.keys(f).some(k => k !== 'origem' && f[k])){ favPreencher(fav); usados.push('favorecido (' + FAV_ROT[fav] + ')'); }
+  }
+  por('c.nome', d.cNome, 'consorciado'); por('c.tel', d.cTel, 'telefone do consorciado');
+  por('v.placa', d.placa, 'placa');
+  if($('#fia_on').checked){ por('fi.nome', d.fiNome, 'fiador'); por('fi.tel', d.fiTel, 'telefone do fiador'); }
+  if($('#fcj_on').checked){ por('fc.nome', d.fcNome, 'cônjuge do fiador'); por('fc.tel', d.fcTel, 'telefone do cônjuge do fiador'); }
+  if($('#soc_on').checked){ por('s.nome', d.sNome, 'sócio administrador'); por('s.cpf', d.sCpf, 'CPF do sócio'); }
+  const box = $('#puxados');
+  box.classList.remove('hide');
+  box.innerHTML = existia
+    ? '<b>📂 Rascunho de ' + E(pk.origem) + ' reaberto</b>Nada do que já estava digitado foi alterado.' + (usados.length ? ' Do checklist foram completados só os campos vazios: ' + E(usados.join(', ')) + '.' : '')
+    : '<b>📋 Dados puxados do checklist' + (pk.origem ? ' — ' + E(pk.origem) : '') + '</b>' + (usados.length ? E(usados.join(', ')) + '.' : 'Nenhum dado disponível no checklist.')
+      + '<br>Complete o que faltar (lista abaixo). Nome e CPF/CNPJ do vendedor de veículo não ficam no checklist: digite aqui.';
+  montarSeletor();
+}
+
+restaurar();
+aplicarPrefill();
+atualizar();
+</script>
+</body>
+</html>

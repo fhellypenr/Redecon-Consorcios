@@ -10,6 +10,7 @@ Endereço: https://fhellypenr.github.io/Redecon-Consorcios/
 | `base-segura.js` · `cripto-base.js` | Leitura da chave no Firebase e decifragem da base no navegador |
 | `redecon_processos.html` | Acompanhamento de processos (imóvel e veículo) |
 | `painel-checklist-redecon.html` | Pré-análise, negativas, perguntas e checklist |
+| `dados-complementares-redecon.html` | Formulário obrigatório da HS "Informações complementares – contemplação veículo" (aba 7 do Checklist, só em veículo). Dados ficam só no navegador |
 | `simulacao.html` | Simulador de contemplação (grupos da planilha Google Sheets) |
 | `auth.js` | Login compartilhado (Firebase Auth, sessão por aba, sai após 30 min parado) |
 
