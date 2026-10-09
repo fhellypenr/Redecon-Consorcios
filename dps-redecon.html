@@ -65,6 +65,11 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#d
   .rasc-linha select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
   .rasc-info{font-size:11.5px;color:var(--ok);font-weight:600;margin-bottom:6px}
   .hide{display:none !important}
+  .msgbox{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  .msgbox summary{cursor:pointer;font-weight:700;font-size:13px}
+  .msgbox textarea{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5;font-family:inherit;resize:vertical}
+  .msg-acoes{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}
+  .msg-acoes .hint{flex:1;min-width:180px}
   .bem-fixo{font-size:13px;background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 11px}
   .bem-fixo a{color:var(--coral);font-size:12px;margin-left:6px;cursor:pointer;text-decoration:underline}
 
@@ -169,6 +174,11 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#d
 <div id="previa">
   <div id="puxados" class="hide"></div>
   <div id="avisos"></div>
+  <details id="msg_box" class="msgbox">
+    <summary>💬 Mensagem para enviar junto com a DPS</summary>
+    <textarea id="msg_txt" rows="13"></textarea>
+    <div class="msg-acoes"><span class="hint" id="msg_hint">Preenchida com o nome do proponente. Pode editar antes de copiar.</span><button class="btn btn-ghost" type="button" onclick="msgRefazer()">↺ Refazer</button><button class="btn btn-coral" type="button" onclick="msgCopiar(this)">Copiar mensagem</button></div>
+  </details>
   <div class="prevbar"><span>Prévia do PDF que o cliente vai receber (atualiza ao sair de cada campo)</span><span id="prev_status"></span></div>
   <div id="prev_erro" class="hide"></div>
   <iframe id="prev" title="Prévia da DPS"></iframe>
@@ -278,7 +288,7 @@ function aplicarDados(o){
   if(!$('[data-k="local"]').value) $('[data-k="local"]').value = 'Pato Branco';
 }
 function abrirRascunho(id, processo){
-  RASC_ID = id; RASC_PROC = processo || '';
+  RASC_ID = id; RASC_PROC = processo || ''; MSG_EDITADA = false;
   const r = lerRascunhos()[id];
   limparCampos();
   if(r){ RASC_PROC = r.processo || RASC_PROC; aplicarDados(r.dados || {}); } else padroes();
@@ -463,6 +473,7 @@ function atualizar(){
   if(av.length){ box.className = 'tem'; box.innerHTML = '<b>⚠️ Conferir antes de gerar (' + av.length + ')</b>' + av.map(x => '• ' + E(x)).join('<br>'); }
   else { box.className = 'ok'; box.innerHTML = '<b>✅ Tudo preenchido e conferido.</b>Revise a prévia e gere o PDF para o cliente assinar (GOV.BR ou ICP-Brasil).'; }
   clearTimeout(_t); _t = setTimeout(salvarRascunho, 400);
+  msgAtualizar();
 }
 let _p = null, _url = null, _gen = 0;
 function agendarPrevia(){ clearTimeout(_p); _p = setTimeout(previa, 350); }
@@ -497,8 +508,32 @@ async function baixarPDF(){
   a.href = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
   a.download = nome + '.pdf';
   document.body.appendChild(a); a.click(); a.remove();
+  msgAtualizar(); $('#msg_box').open = true; $('#msg_box').scrollIntoView({behavior:'smooth', block:'start'});
   setTimeout(u => URL.revokeObjectURL(u), 5000, a.href);
 }
+
+/* ===================== MENSAGEM PARA O CLIENTE ===================== */
+let MSG_EDITADA = false;
+function primeiroNome(n){ const p = String(n || '').trim().split(/\s+/)[0] || ''; return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : '[Nome]'; }
+function msgTexto(){
+  const d = coletar();
+  return 'Olá, ' + primeiroNome(d.nome) + '! Tudo bem?\n\n'
+    + 'Segue a sua Declaração Pessoal de Saúde (DPS) do seguro prestamista, já preenchida com as informações que você nos passou. 📄\n\n'
+    + 'Antes de assinar, confira os dados e as respostas. Se algo estiver diferente, nos avise que corrigimos.\n\n'
+    + 'Como assinar:\n'
+    + '• Assinatura digital pelo GOV.BR (https://assinador.iti.br/assinatura) ou com certificado ICP-Brasil, no campo “Assinatura do Proponente”, na página 2.\n'
+    + '• Depois de assinado, não renomeie o arquivo nem junte com outros documentos, porque isso invalida a assinatura.\n\n'
+    + 'Em seguida, é só nos enviar o arquivo assinado por aqui para validarmos. ✅';
+}
+function msgAtualizar(){ if(!MSG_EDITADA) $('#msg_txt').value = msgTexto(); }
+function msgRefazer(){ MSG_EDITADA = false; msgAtualizar(); }
+function msgCopiar(btn){
+  const ta = $('#msg_txt');
+  const fim = () => { btn.textContent = '✓ Copiada'; setTimeout(() => btn.textContent = 'Copiar mensagem', 1800); };
+  if(navigator.clipboard) navigator.clipboard.writeText(ta.value).then(fim, () => { ta.select(); document.execCommand('copy'); fim(); });
+  else { ta.select(); document.execCommand('copy'); fim(); }
+}
+$('#msg_txt').addEventListener('input', () => { MSG_EDITADA = true; });
 
 /* máscaras + eventos */
 document.querySelectorAll('[data-k]').forEach(el => {
