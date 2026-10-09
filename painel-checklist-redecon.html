@@ -2923,6 +2923,8 @@ function atualizarMensagensEnvio(modo){
         });
       }
     }
+    /* 5) Junto ao Termo de Opção -- imóvel com Aquisição: quem assina sai do processo */
+    if(utz.includes('aquisicao')) msgs.push({ titulo: '📝 Junto ao Termo de Opção', texto: msgTermoOpcao() });
   } else if(modo==='veiculo'){
     const vId = document.getElementById('v_id').value.trim();
     msgs.push({
@@ -2945,6 +2947,45 @@ function atualizarMensagensEnvio(modo){
         + '<div id="'+id+'" style="white-space:pre-wrap;font-size:13px;color:#333;line-height:1.5" contenteditable="true">'+m.texto+'</div>'
         + '</div>';
     }).join('');
+}
+
+/* Mensagem para enviar junto com o Termo de Opção (imóvel). Signatários vindos do processo:
+   PF = primeiro nome (+ cônjuge); PJ = sócio(s) + (empresa). Sem nome no formulário, fica o campo [entre colchetes]. */
+function msgTermoOpcao(){
+  const g = id => document.getElementById(id);
+  const pn = n => String(n||'').trim().split(/\s+/)[0] || '';
+  const junta = arr => { const a = arr.filter(Boolean); return a.length > 1 ? a.slice(0,-1).join(', ') + ' e ' + a[a.length-1] : (a[0]||''); };
+  const temCj = ec => ec==='casado' || ec==='solteiro_ue';
+  const pj = (empresa, socios) => (junta(socios.map(pn)) || '[Sócio administrador]') + ' (' + (empresa || '[Empresa]') + ')';
+  /* compradores */
+  let comp, nComp;
+  if((chipVals('c_tipo')[0]||'pf')==='pj'){
+    const socios = [...document.querySelectorAll('#pj_socios .subcard .f_nome')].map(i=>i.value.trim()).filter(Boolean);
+    comp = pj(g('pj_nome').value.trim(), socios); nComp = 1;
+  } else {
+    const nomes = [pn(g('c_nome').value) || '[Comprador]'];
+    if(temCj(g('c_ec').value)) nomes.push(pn(g('cj_nome').value) || '[Cônjuge]');
+    comp = junta(nomes); nComp = nomes.length;
+  }
+  /* vendedores: uma linha por vendedor */
+  const vends = [...document.querySelectorAll('#vends .subcard')].map(v=>{
+    if(v.querySelector('.f_tipo').value==='pf'){
+      const nn = [pn(v.querySelector('.f_nome').value) || '[Vendedor]'];
+      if(temCj(v.querySelector('.v_pf .f_ec').value)) nn.push(pn(v.querySelector('.f_cjnome')?.value) || '[Cônjuge]');
+      return {t:junta(nn), n:nn.length};
+    }
+    const socios = (v.querySelector('.f_sociospj').value||'').split(',').map(x=>x.trim()).filter(Boolean);
+    return {t:pj((v.querySelector('.f_nomepj').value||'').trim(), socios), n:1};
+  });
+  if(!vends.length) vends.push({t:'[Vendedor]', n:1});
+  const linhas = ['• ' + comp + ' — ' + (nComp > 1 ? 'compradores' : 'comprador')]
+    .concat(vends.map(v=>'• ' + v.t + ' — ' + (v.n > 1 ? 'vendedores' : 'vendedor')));
+  return 'Olá! Tudo bem?\n\n'
+    + 'Segue o Termo de Opção para assinatura. 📄\n\n'
+    + 'Antes de assinar, pedimos que confiram todos os dados. Se houver qualquer divergência, nos avisem para corrigirmos antes da assinatura.\n\n'
+    + 'Quem assina, na 2ª página:\n' + linhas.join('\n') + '\n\n'
+    + 'A assinatura deve ser digital, por GOV.BR, ICP-Brasil ou e-Notariado. Não edite o arquivo nem junte com outros documentos, para não invalidar a assinatura.\n\n'
+    + 'Depois que todos assinarem, é só nos enviar o documento de volta para validarmos. ✅';
 }
 
 /* ===================== RESUMO FINANCEIRO ===================== */
