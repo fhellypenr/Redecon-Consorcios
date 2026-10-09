@@ -192,6 +192,12 @@
   .conf-pl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .conf-pn{font-size:12px;font-weight:700;color:var(--ink);flex:1 1 90px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .conf-p .conf-st button{padding:3px 8px;font-size:11px}
+  .conf-dados{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .conf-dados .cd-f{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .conf-dados .cd-f.lg{grid-column:1/-1}
+  .conf-dados label{font-size:10.5px;color:var(--muted);font-weight:700}
+  .conf textarea.conf-obs{width:100%;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-size:12px;font-family:inherit;background:#fff;resize:none;overflow:hidden;min-height:28px;line-height:1.4}
+  .confbar .cb-salvo{font-size:11.5px;color:#1d5e33;margin-top:4px}
   .confbar{max-width:960px;margin:0 auto 18px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .confbar .cb-txt{flex:1;min-width:240px;font-size:13px;line-height:1.5}
   .confbar .cb-txt b{font-size:14px}
@@ -1724,6 +1730,17 @@ function abrirTermoOpcao(){
       d['v.cnpj'] = docDe(d['v.razao']);
     }
   }
+  /* telefone, e-mail, profissão e conta anotados na conferência (cards "Dados ...") */
+  const DP = /^dados (pessoais|do vendedor|do procurador)/, DB = /^dados bancarios/;
+  const doConf = (pref, nome, i) => {
+    const x = confDadosDe(DP, nome); if(!x) return;
+    if(x.tel) d[pref+'.tel'+i] = x.tel; if(x.email) d[pref+'.email'+i] = x.email; if(x.prof) d[pref+'.prof'+i] = x.prof;
+  };
+  if(cTipo==='pf'){ doConf('c', d['c.nome1'], 1); doConf('c', d['c.nome2'], 2); }
+  if(d['v.tipo']==='pf'){ doConf('v', d['v.nome1'], 1); doConf('v', d['v.nome2'], 2); }
+  const vNomeBanco = d['v.tipo']==='pj' ? d['v.razao'] : d['v.nome1'];
+  const bco = confDadosDe(DB, vNomeBanco) || confDadosDe(DB, d['v.nome2']);
+  if(bco){ if(bco.banco) d['v.banco'] = bco.banco; if(bco.ag) d['v.ag'] = bco.ag; if(bco.conta) d['v.conta'] = bco.conta; if(bco.titular) d['v.titular'] = bco.titular; }
   d['i.desc'] = g('i_termo_desc').value.trim();
   d['i.mat'] = g('i_termo_mat').value.trim();
   d['i.lv'] = g('i_termo_lv').value.trim();
@@ -1773,6 +1790,8 @@ function abrirDPS(){
   const p = pes(d.nome);
   if(p.nome && (p.nome.length > (d.nome || '').length)) d.nome = p.nome;
   d.cpf = p.cpf || ''; d.nasc = p.nasc || '';
+  const dc = confDadosDe(/^dados pessoais/, d.nome);   /* anotado na conferência */
+  if(dc){ if(dc.email) d.email = dc.email; const t = (dc.tel||'').replace(/\D/g,''); if(t.length===11) d.cel = dc.tel; else if(t.length===10) d.tel = dc.tel; }
   Object.keys(d).forEach(k => { if(!d[k]) delete d[k]; });
   try{ localStorage.setItem('redecon_dps_prefill', JSON.stringify({ts:Date.now(), origem:(PROC_ATUAL || g('p_nome').value.trim() || ''), d})); }
   catch(e){ alert('Não foi possível passar os dados à DPS neste navegador. Ela vai abrir em branco.'); }
@@ -2439,6 +2458,7 @@ function procNovo(){
     if(PROC_ATUAL) procSalvar();
     limparFormSilencioso();
     PROC_ATUAL = nome;
+    try{ localStorage.setItem('redecon_proc_ultimo', nome); }catch(e){}
     document.getElementById('p_nome').value = nome;
     document.getElementById('proc_novo_nome').value='';
     setChips('modo',[tipo]);
@@ -2452,9 +2472,11 @@ function procAbrir(nome){
   if(PROC_ATUAL && PROC_ATUAL!==nome) procSalvar();
   limparFormSilencioso();
   PROC_ATUAL = nome;
+  try{ localStorage.setItem('redecon_proc_ultimo', nome); }catch(e){}
   aplicarForm(all[nome]);
   procBadge();
-  abrirTab((all[nome].modo==='veiculo') ? 'perg' : 'pre');
+  if(all[nome].gerado){ gerar(); abrirTab('chk'); }   /* checklist já gerado antes: volta pronto, com a conferência */
+  else abrirTab((all[nome].modo==='veiculo') ? 'perg' : 'pre');
 }
 function procSalvar(manual){
   if(!PROC_ATUAL){ if(manual) alert('Crie ou abra um processo na aba 🗂 Processos primeiro.'); return; }
@@ -2463,6 +2485,7 @@ function procSalvar(manual){
   all[PROC_ATUAL] = o;
   const ok = store.set('redecon_procs', all);
   if(window._fbSalvarChecklists) window._fbSalvarChecklists(all);
+  if(ok){ window._procSalvoEm = new Date().toLocaleTimeString('pt-BR').slice(0,5); if(document.getElementById('confbar')) confAtualizar(); }
   if(manual) alert(ok ? 'Processo salvo (neste navegador e na nuvem).' : 'Não foi possível salvar neste navegador — use Exportar .json como backup.');
 }
 let _autoTimer=null;
@@ -2475,7 +2498,7 @@ function procExcluir(nome){
   if(!confirm('Excluir o processo "'+nome+'"? Essa ação não pode ser desfeita (exporte antes, se quiser backup).')) return;
   const all = procsAll(); delete all[nome]; store.set('redecon_procs', all);
   if(window._fbSalvarChecklists) window._fbSalvarChecklists(all);
-  if(PROC_ATUAL===nome){ PROC_ATUAL=null; procBadge(); }
+  if(PROC_ATUAL===nome){ PROC_ATUAL=null; procBadge(); try{ localStorage.removeItem('redecon_proc_ultimo'); }catch(e){} }
   procRender();
 }
 function procExportar(nome){
@@ -2964,6 +2987,27 @@ function confPessoas(card){
   const nomes = p.split(/\s+e\s+|\s*,\s*/).map(x=>x.replace(/^(Sócio|Sócia|Anuente)\s*:\s*/i,'').trim()).filter(Boolean);
   return nomes.length > 1 ? nomes : [];
 }
+/* Cards "Dados ..." (pessoais, do vendedor, bancários, da empresa, do procurador): campos próprios para anotar o que o cliente informou.
+   Os campos saem da própria descrição do card. Esses dados alimentam o Termo de Opção e a DPS. */
+const CONF_CAMPOS = { tel:'Telefone (WhatsApp)', email:'E-mail', prof:'Profissão', banco:'Banco', ag:'Agência', conta:'Conta', titular:'Titular (se conjunta)', socio:'Sócio administrador', socioCpf:'CPF do sócio' };
+function confCamposDe(card){
+  const t = ((card.querySelector('h4 span[contenteditable]')||{}).textContent || '').trim();
+  if(!/^dados\b/i.test(t)) return [];
+  const d = ((card.querySelector('.inner p')||{}).textContent || '').toLowerCase();
+  if(/banco/.test(d) && /ag[eê]ncia/.test(d)) return ['banco','ag','conta'].concat(/titular/.test(d) ? ['titular'] : []);
+  const out = [];
+  if(/telefone|whats/.test(d)) out.push('tel');
+  if(/e-?mail/.test(d)) out.push('email');
+  if(/profiss/.test(d)) out.push('prof');
+  if(/s[oó]cio administrador/.test(d)) out.push('socio','socioCpf');
+  return out;
+}
+function confDadosHTML(campos, sufixo){
+  if(!campos.length) return '';
+  return '<div class="conf-dados">' + campos.map(c=>'<div class="cd-f'+(['email','titular','socio'].includes(c)?' lg':'')+'"><label>'+CONF_CAMPOS[c]+(sufixo?' — '+confEsc(sufixo):'')+'</label><input data-c="'+c+'"'+(c==='tel'?' inputmode="tel"':'')+'></div>').join('') + '</div>';
+}
+function confFoneFmt(v){ const d = String(v||'').replace(/\D/g,''); if(d.length===11) return d.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3'); if(d.length===10) return d.replace(/(\d{2})(\d{4})(\d{4})/,'($1) $2-$3'); return v; }
+function confAutoAltura(ta){ ta.style.height = 'auto'; ta.style.height = Math.max(28, ta.scrollHeight + 2) + 'px'; }
 const CONF_BTNS = '<button type="button" data-s="" title="Ainda não recebido">⏳ Pendente</button><button type="button" data-s="ok" title="Recebido e conferido">✅ OK</button><button type="button" data-s="erro" title="Recebido com problema (informar o motivo)">⚠️ Problema</button>';
 function confDecorar(){
   const vistos = {};
@@ -2976,29 +3020,38 @@ function confDecorar(){
     } else vistos[card.dataset.ck] = (vistos[card.dataset.ck]||0) + 1;
     if(card.querySelector('.conf')) return;
     if((CONF[card.dataset.ck]||{}).off) card.classList.add('off');
-    const nomes = confPessoas(card);
+    const nomes = confPessoas(card), campos = confCamposDe(card);
     const box = document.createElement('div');
     box.className = 'conf no-print';
     if(nomes.length){
       box.innerHTML = '<div class="conf-todos"><span>Todos:</span><div class="conf-st conf-geral">' + CONF_BTNS + '</div></div>'
         + nomes.map((n,i)=>'<div class="conf-p" data-i="'+i+'"><div class="conf-pl"><span class="conf-pn" title="'+confEsc(n)+'">'+confEsc(n)+'</span><div class="conf-st">'+CONF_BTNS+'</div></div>'
-          + '<input class="conf-m hide" placeholder="Motivo — '+confEsc(n)+' (obrigatório)"></div>').join('')
-        + '<input class="conf-obs" placeholder="Observação (opcional)"><div class="conf-em"></div>';
+          + '<input class="conf-m hide" placeholder="Motivo — '+confEsc(n)+' (obrigatório)">' + confDadosHTML(campos, '') + '</div>').join('')
+        + '<textarea class="conf-obs" rows="1" placeholder="Observação (opcional)"></textarea><div class="conf-em"></div>';
       box.dataset.nomes = JSON.stringify(nomes);
       box.querySelectorAll('.conf-geral button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s, null)));
       box.querySelectorAll('.conf-p').forEach(row=>{
         const nome = nomes[+row.dataset.i];
         row.querySelectorAll('.conf-st button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s, nome)));
         row.querySelector('.conf-m').addEventListener('input', e=>confTexto(card, 'm', e.target.value, nome));
+        row.querySelectorAll('.conf-dados input').forEach(inp=>{
+          inp.addEventListener('input', ()=>confDado(card, inp.dataset.c, inp.value, nome));
+          if(inp.dataset.c==='tel') inp.addEventListener('blur', ()=>{ inp.value = confFoneFmt(inp.value); confDado(card, 'tel', inp.value, nome); });
+        });
       });
     } else {
       box.innerHTML = '<div class="conf-st">' + CONF_BTNS + '</div>'
         + '<input class="conf-m hide" placeholder="Motivo do problema (obrigatório) — ex.: vencida, falta o verso">'
-        + '<input class="conf-obs" placeholder="Observação (opcional)"><div class="conf-em"></div>';
+        + confDadosHTML(campos, '')
+        + '<textarea class="conf-obs" rows="1" placeholder="Observação (opcional)"></textarea><div class="conf-em"></div>';
       box.querySelectorAll('.conf-st button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s, null)));
       box.querySelector('.conf-m').addEventListener('input', e=>confTexto(card, 'm', e.target.value, null));
+      box.querySelectorAll('.conf-dados input').forEach(inp=>{
+        inp.addEventListener('input', ()=>confDado(card, inp.dataset.c, inp.value, null));
+        if(inp.dataset.c==='tel') inp.addEventListener('blur', ()=>{ inp.value = confFoneFmt(inp.value); confDado(card, 'tel', inp.value, null); });
+      });
     }
-    box.querySelector('.conf-obs').addEventListener('input', e=>confTexto(card, 'obs', e.target.value, null));
+    box.querySelector('.conf-obs').addEventListener('input', e=>{ confAutoAltura(e.target); confTexto(card, 'obs', e.target.value, null); });
     card.appendChild(box);
     confPintar(card);
   });
@@ -3030,6 +3083,7 @@ function confPintar(card){
       const m = row.querySelector('.conf-m');
       m.classList.toggle('hide', s!=='erro'); m.value = q.m || ''; m.classList.toggle('bad', s==='erro' && !(q.m||'').trim());
       row.classList.toggle('ok', s==='ok'); row.classList.toggle('erro', s==='erro');
+      row.querySelectorAll('.conf-dados input').forEach(inp=>{ inp.value = ((q.d||{})[inp.dataset.c]) || ''; });
     });
     const todos = confUnidades(card).map(x=>x.s), igual = todos.every(x=>x===todos[0]) ? todos[0] : null;
     box.querySelectorAll('.conf-geral button').forEach(b=>b.classList.toggle('on', igual!==null && b.dataset.s===igual));
@@ -3037,18 +3091,39 @@ function confPintar(card){
     box.querySelectorAll('.conf-st button').forEach(b=>b.classList.toggle('on', b.dataset.s===(r.s||'')));
     const m = box.querySelector('.conf-m');
     m.classList.toggle('hide', r.s!=='erro'); m.value = r.m || ''; m.classList.toggle('bad', r.s==='erro' && !(r.m||'').trim());
+    box.querySelectorAll('.conf-dados input').forEach(inp=>{ inp.value = ((r.d||{})[inp.dataset.c]) || ''; });
   }
-  box.querySelector('.conf-obs').value = r.obs || '';
+  const ob = box.querySelector('.conf-obs'); ob.value = r.obs || ''; requestAnimationFrame(()=>confAutoAltura(ob));
   const rot = st==='ok' ? 'Conferido' : st==='erro' ? 'Marcado com problema' : st==='parcial' ? 'Conferido em parte' : 'Atualizado';
   box.querySelector('.conf-em').textContent = r.em ? (rot + ' em ' + r.em) : '';
   card.classList.toggle('conf-ok', st==='ok'); card.classList.toggle('conf-erro', st==='erro'); card.classList.toggle('conf-parcial', st==='parcial');
 }
-function confLimpo(r){ return !r.s && !r.m && !r.obs && !r.off && !(r.p && Object.keys(r.p).length); }
+const confTemDados = d => !!d && Object.values(d).some(v=>String(v||'').trim());
+function confLimpo(r){ return !r.s && !r.m && !r.obs && !r.off && !confTemDados(r.d) && !(r.p && Object.keys(r.p).length); }
+function confDado(card, campo, v, nome){
+  const k = card.dataset.ck, r = CONF[k] || {s:''};
+  if(nome){ r.p = r.p || {}; const q = r.p[nome] || {s:''}; q.d = q.d || {}; q.d[campo] = v; r.p[nome] = q; if(!q.s && !q.m && !confTemDados(q.d)) delete r.p[nome]; }
+  else { r.d = r.d || {}; r.d[campo] = v; }
+  CONF[k] = r;
+  if(confLimpo(r)) delete CONF[k];
+  procAutoSave();
+}
+/* dados anotados na conferência para uma pessoa: procura nos cards "Dados ..." cujo título casa com tituloRe */
+function confDadosDe(tituloRe, nome){
+  if(!nome) return null;
+  for(const [k, r] of Object.entries(CONF)){
+    const [t, p] = k.split('|');
+    if(!tituloRe.test(t)) continue;
+    if(r.p){ for(const n of Object.keys(r.p)) if(mesmoNome(n, nome) && confTemDados(r.p[n].d)) return r.p[n].d; }
+    else if(confTemDados(r.d) && p && mesmoNome((p||'').replace(/#\d+$/,''), nome)) return r.d;
+  }
+  return null;
+}
 function confMarcar(card, st, nome){
   const k = card.dataset.ck, r = CONF[k] || {}, nomes = confNomesDe(card);
   if(nomes.length){
     r.p = r.p || {};
-    (nome ? [nome] : nomes).forEach(n=>{ const q = r.p[n] || {}; q.s = st; r.p[n] = q; if(!q.s && !q.m) delete r.p[n]; });
+    (nome ? [nome] : nomes).forEach(n=>{ const q = r.p[n] || {}; q.s = st; r.p[n] = q; if(!q.s && !q.m && !confTemDados(q.d)) delete r.p[n]; });
     r.s = '';
   } else r.s = st;
   r.em = new Date().toLocaleString('pt-BR').slice(0,17);
@@ -3092,7 +3167,8 @@ function confAtualizar(){
     + '<br>✅ '+ok+' recebidos OK · ⚠️ '+erro+' com problema · ⏳ '+pend+' pendentes'
     + '<div class="cb-barra"><span style="width:'+pct+'%"></span></div>'
     + (semMotivo ? '<div class="cb-aviso">'+semMotivo+' documento(s) com problema sem o motivo preenchido.</div>' : '')
-    + (!PROC_ATUAL ? '<div class="cb-aviso">⚠️ Nenhum processo aberto: a conferência não fica salva. Crie ou abra o processo na aba 🗂 Processos.</div>' : '')
+    + (!PROC_ATUAL ? '<div class="cb-aviso">⚠️ Nenhum processo aberto: a conferência não fica salva. Crie ou abra o processo na aba 🗂 Processos.</div>'
+                   : '<div class="cb-salvo">💾 Salva automaticamente no processo “' + confEsc(PROC_ATUAL) + '”' + (window._procSalvoEm ? ' — última gravação às ' + window._procSalvoEm : '') + '. Não precisa clicar em nada.</div>')
     + '</div>'
     + ((erro||pend) ? '<button class="btn btn-coral" onclick="pendAbrir()">📋 Mensagem de pendências</button>' : '');
 }
@@ -3157,6 +3233,7 @@ function coletarForm(){
     fin:{parcela:g('f_parcela').value, seguro:g('f_seguro').value, renda:g('f_renda').value, fundo:g('f_fundo').value, valbem:g('f_valbem').value},
     neg: NEG,
     conf: CONF,
+    gerado: !!document.querySelector('#slides .slide'),
     preTexto: g('pre_texto').value,
   };
 }
@@ -3200,6 +3277,8 @@ function aplicarForm(o){
   if(o.fin){ g('f_parcela').value=o.fin.parcela||''; g('f_seguro').value=o.fin.seguro||''; g('f_renda').value=o.fin.renda||''; g('f_fundo').value=o.fin.fundo||''; g('f_valbem').value=o.fin.valbem||''; }
   if(o.neg && Array.isArray(o.neg.pessoas)) NEG = o.neg;
   CONF = (o.conf && typeof o.conf==='object') ? o.conf : {};
+  document.querySelectorAll('#slides .doc').forEach(c=>{ if(c.querySelector('.conf')){ c.classList.toggle('off', !!(CONF[c.dataset.ck]||{}).off); confPintar(c); } });
+  if(document.getElementById('confbar')) confAtualizar();
   if(typeof o.preTexto==='string') g('pre_texto').value=o.preTexto;
   negRender();
   onFormChange();
@@ -3252,6 +3331,8 @@ function limparTudo(){
   onFormChange();
 }
 onFormChange();
+/* reabre o último processo em que se trabalhou (com o checklist e a conferência, se já tinha sido gerado) */
+(function(){ let u = ''; try{ u = localStorage.getItem('redecon_proc_ultimo') || ''; }catch(e){} if(u && procsAll()[u]) procAbrir(u); })();
 if(location.hash === '#termo'){ termoMostrarAba(); abrirTab('termo'); }
 if(location.hash === '#dps'){ dpsMostrarAba(); abrirTab('dps'); }
 document.getElementById('form').addEventListener('input', procAutoSave);

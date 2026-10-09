@@ -499,7 +499,7 @@ $('#resp_ok').addEventListener('change', () => { atualizar(); });
 /* ===================== DADOS VINDOS DO CHECKLIST =====================
    O checklist grava uma chave temporária e abre esta aba; aqui ela é lida e apagada na hora. */
 const PREFILL_KEY = 'redecon_dps_prefill';
-const ROTULOS = { nome:'nome', cpf:'CPF', nasc:'data de nascimento', ec:'estado civil', grupo:'grupo', cota:'cota', bem:'tipo de bem' };
+const ROTULOS = { nome:'nome', cpf:'CPF', nasc:'data de nascimento', ec:'estado civil', grupo:'grupo', cota:'cota', bem:'tipo de bem', email:'e-mail', cel:'celular', tel:'telefone' };
 function aplicarPrefill(){
   let pk = null;
   try{ pk = JSON.parse(localStorage.getItem(PREFILL_KEY)); localStorage.removeItem(PREFILL_KEY); }catch(e){}
