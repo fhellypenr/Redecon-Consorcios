@@ -638,6 +638,12 @@
             <option value="excluir">Não optar — Termo de exclusão (sócio administrador)</option>
             <option value="incluir">Optar — Termo de indicação de sócio + DPS do sócio</option>
           </select>
+          <div class="hint">Sem seguro, não há DPS: a aba 6 e o botão “Gerar DPS” ficam ocultos.</div>
+        </div>
+        <div class="field hide" id="pj_socio_dps_wrap">
+          <label>Sócio indicado para a DPS</label>
+          <select id="pj_socio_dps"></select>
+          <div class="hint">A DPS (aba 6) sai em nome deste sócio. Cadastre os sócios abaixo.</div>
         </div>
         <div class="field">
           <label>Sócios</label>
@@ -793,7 +799,9 @@ function onFormChange(){
   const btnTermo = document.querySelector('nav.tabs button[data-t=termo]');
   if(btnTermo && !btnTermo.classList.contains('on')) btnTermo.classList.toggle('hide', avulso || modo!=='imovel' || !utz.includes('aquisicao'));
   const btnDps = document.querySelector('nav.tabs button[data-t=dps]');
-  if(btnDps && !btnDps.classList.contains('on')) btnDps.classList.toggle('hide', avulso);
+  if(btnDps && !btnDps.classList.contains('on')) btnDps.classList.toggle('hide', !dpsDisponivel());
+  document.getElementById('pj_socio_dps_wrap').classList.toggle('hide', document.getElementById('pj_seguro').value!=='incluir');
+  dpsSociosSync();
   /* campos do avulso */
   const aParte = document.getElementById('a_parte').value;
   const aEc = document.getElementById('a_ec').value;
@@ -821,7 +829,8 @@ function onFormChange(){
   document.getElementById('cj_rendas_wrap').classList.toggle('hide', !document.getElementById('cj_renda_on').checked);
   document.getElementById('cj_emp_wrap').classList.toggle('hide', !chipVals('cj_rendas').includes('empresario'));
 }
-['c_ec','cj_renda_on','v_bem','a_parte','a_ec','a_cjrenda_on'].forEach(id=>document.getElementById(id).addEventListener('change', onFormChange));
+['c_ec','cj_renda_on','v_bem','a_parte','a_ec','a_cjrenda_on','pj_seguro'].forEach(id=>document.getElementById(id).addEventListener('change', onFormChange));
+document.getElementById('pj_socios').addEventListener('input', e=>{ if(e.target.classList.contains('f_nome')) dpsSociosSync(); });
 document.getElementById('i_cond').addEventListener('change', ()=>{
   document.getElementById('i_condnome_wrap').classList.toggle('hide', document.getElementById('i_cond').value==='nao');
 });
@@ -1362,7 +1371,7 @@ function gerar(){
     if(seguro==='excluir') cardsE.push({t:'Exclusão do seguro prestamista', d:'Será emitido pela Redecon e enviado para assinatura do sócio administrador.', pessoa:pjNome});
     else {
       cardsE.push({t:'Termo de indicação de sócio', d:'Indicação do sócio que assinará a DPS do seguro prestamista.', pessoa:pjNome});
-      cardsE.push({t:'Declaração de saúde (DPS)', d:'Em nome do sócio indicado. Será emitida pela Redecon e encaminhada para assinatura.', pessoa:pjNome});
+      cardsE.push({t:'Declaração de saúde (DPS)', d:'Em nome do sócio indicado'+(document.getElementById('pj_socio_dps').value?' ('+document.getElementById('pj_socio_dps').value+')':'')+'. Será emitida pela Redecon e encaminhada para assinatura.', pessoa:pjNome});
     }
     cardsE.push({t:'Certidão simplificada da Junta Comercial', d:'Atualizada — validade de 30 dias.', pessoa:pjNome});
     cardsE.push({t:'Contrato Social ou Consolidação', d:'Com as alterações posteriores, se houver. Via eletrônica ou desmaterializada.', pessoa:pjNome});
@@ -1619,7 +1628,7 @@ function gerar(){
   }
   bar += `<button class="btn btn-light" onclick="criarProcessoNoAcompanhamento('imovel', this)">🗂️ Criar processo no acompanhamento</button>`;
   if(utz.includes('aquisicao')) bar += `<button class="btn btn-light" onclick="abrirTermoOpcao()">📝 Gerar Termo de Opção</button>`;
-  bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
+  if(dpsDisponivel()) bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
   bar += '</div>';
   html = bar + html;
 
@@ -1704,12 +1713,16 @@ function abrirDPS(){
   const pes = nome => (nome && NEG.pessoas.find(x => mesmoNome(x.nome, nome))) || {};
   const EC_DPS = {solteiro:'solteiro', solteiro_ue:'uniao', casado:'casado', divorciado:'divorciado', viuvo:'viuvo'};
   const d = { bem: chipVals('modo')[0] || 'imovel', grupo: g('p_grupo').value.trim(), cota: g('p_cota').value.trim() };
+  if(!dpsDisponivel()){ alert('Esta empresa não optou pelo seguro prestamista, então não há DPS (vai o Termo de exclusão).\n\nSe a empresa indicar um sócio para o seguro, mude “Seguro prestamista” para “Optar” no cadastro da PJ.'); return; }
   if((chipVals('c_tipo')[0] || 'pf') === 'pf'){
     d.nome = g('c_nome').value.trim() || g('p_nome').value.trim();
     d.ec = EC_DPS[g('c_ec').value] || '';
   } else {
-    const s = document.querySelector('#pj_socios .subcard');
+    const socios = [...document.querySelectorAll('#pj_socios .subcard')];
+    const ind = g('pj_socio_dps').value;
+    const s = socios.find(x => (x.querySelector('.f_nome').value || '').trim() === ind) || socios[0];
     if(s){ d.nome = (s.querySelector('.f_nome').value || '').trim(); const ec = s.querySelector('.f_ec'); d.ec = ec ? (EC_DPS[ec.value] || '') : ''; }
+    d.pj = '1';
   }
   const p = pes(d.nome);
   if(p.nome && (p.nome.length > (d.nome || '').length)) d.nome = p.nome;
@@ -1720,6 +1733,19 @@ function abrirDPS(){
   dpsMostrarAba();
   abrirTab('dps');
   dpsCarregar(true);
+}
+/* DPS só existe para PF ou PJ que optou pelo seguro (Termo de indicação de sócio + DPS do sócio). */
+function dpsDisponivel(){
+  if((chipVals('emissao')[0]||'completo')==='avulso') return false;
+  if((chipVals('c_tipo')[0]||'pf')==='pf') return true;
+  return document.getElementById('pj_seguro').value==='incluir';
+}
+function dpsSociosSync(){
+  const sel = document.getElementById('pj_socio_dps'); if(!sel) return;
+  const atual = sel.value || sel.dataset.salvo || '';
+  const nomes = [...document.querySelectorAll('#pj_socios .subcard .f_nome')].map(i=>i.value.trim()).filter(Boolean);
+  sel.innerHTML = nomes.length ? nomes.map(n=>'<option'+(n===atual?' selected':'')+'>'+n.replace(/[&<>"]/g,'')+'</option>').join('') : '<option value="">— cadastre os sócios abaixo —</option>';
+  if(nomes.includes(atual)) sel.value = atual;
 }
 function dpsMostrarAba(){ document.querySelector('nav.tabs button[data-t=dps]').classList.remove('hide'); }
 function dpsCarregar(recarregar){
@@ -1926,7 +1952,7 @@ function gerarVeiculo(){
     if(seguro==='excluir') cardsE.push({t:'Exclusão do seguro prestamista', d:'Será emitido pela Redecon e enviado para assinatura do sócio administrador.', pessoa:pjNome});
     else {
       cardsE.push({t:'Termo de indicação de sócio', d:'Indicação do sócio que assinará a DPS do seguro prestamista.', pessoa:pjNome});
-      cardsE.push({t:'Declaração de saúde (DPS)', d:'Em nome do sócio indicado. Será emitida pela Redecon e encaminhada para assinatura.', pessoa:pjNome});
+      cardsE.push({t:'Declaração de saúde (DPS)', d:'Em nome do sócio indicado'+(document.getElementById('pj_socio_dps').value?' ('+document.getElementById('pj_socio_dps').value+')':'')+'. Será emitida pela Redecon e encaminhada para assinatura.', pessoa:pjNome});
     }
     cardsE.push({t:'Certidão simplificada da Junta Comercial', d:'Atualizada — validade de 30 dias.', pessoa:pjNome});
     cardsE.push({t:'Contrato Social ou Consolidação', d:'Com as alterações posteriores, se houver. Via eletrônica ou desmaterializada.', pessoa:pjNome});
@@ -1979,7 +2005,7 @@ function gerarVeiculo(){
   bar += `<button class="btn btn-coral" onclick="printBloco('vend','Veiculo e vendedor')">🖨 PDF do veículo e vendedor</button>`;
   bar += `<button class="btn btn-light" onclick="printBloco('tudo','${nomeCapa.replace(/'/g,'')}')">Imprimir tudo</button>`;
   bar += `<button class="btn btn-light" onclick="criarProcessoNoAcompanhamento('veiculo', this)">🗂️ Criar processo no acompanhamento</button>`;
-  bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
+  if(dpsDisponivel()) bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
   bar += '</div>';
   html = bar + html;
 
@@ -2883,7 +2909,7 @@ function coletarForm(){
     p:{nome:g('p_nome').value, grupo:g('p_grupo').value, cota:g('p_cota').value, data:g('p_data').value, valor:g('p_valor').value, utz:chipVals('p_utz')},
     c:{tipo:chipVals('c_tipo')[0]||'pf', nome:g('c_nome').value, ec:g('c_ec').value, regime:g('c_regime').value, pre77:g('c_pre77').checked, rendas:chipVals('c_rendas'), empRegime:g('c_emp_regime').value},
     cj:{nome:g('cj_nome').value, rendaOn:g('cj_renda_on').checked, rendas:chipVals('cj_rendas'), empRegime:g('cj_emp_regime').value},
-    pj:{nome:g('pj_nome').value, regime:g('pj_regime').value, seguro:g('pj_seguro').value,
+    pj:{nome:g('pj_nome').value, regime:g('pj_regime').value, seguro:g('pj_seguro').value, socioDps:g('pj_socio_dps').value,
         socios:[...document.querySelectorAll('#pj_socios .subcard')].map(s=>({nome:s.querySelector('.f_nome').value, ec:s.querySelector('.f_ec').value}))},
     devs:[...document.querySelectorAll('#devs .subcard')].map(s=>({nome:s.querySelector('.f_nome').value, ec:s.querySelector('.f_ec').value,
         rendas:[...s.querySelectorAll('.f_rendas .chip.on')].map(c=>c.dataset.v), empRegime:s.querySelector('.f_empregime')?.value||'simples',
@@ -2915,6 +2941,7 @@ function aplicarForm(o){
   g('cj_nome').value=o.cj.nome; g('cj_renda_on').checked=o.cj.rendaOn; g('cj_emp_regime').value=o.cj.empRegime;
   g('pj_nome').value=o.pj.nome; g('pj_regime').value=o.pj.regime; g('pj_seguro').value=o.pj.seguro;
   g('pj_socios').innerHTML=''; o.pj.socios.forEach(s=>{ addSocio(); const el=g('pj_socios').lastElementChild; el.querySelector('.f_nome').value=s.nome; el.querySelector('.f_ec').value=s.ec; });
+  g('pj_socio_dps').dataset.salvo = o.pj.socioDps || ''; g('pj_socio_dps').value=''; dpsSociosSync();
   g('devs').innerHTML=''; o.devs.forEach(dv=>{ addDev(); const el=g('devs').lastElementChild; el.querySelector('.f_nome').value=dv.nome; el.querySelector('.f_ec').value=dv.ec;
     el.querySelectorAll('.f_rendas .chip').forEach(c=>c.classList.toggle('on', dv.rendas.includes(c.dataset.v)));
     const emp=el.querySelector('.f_empregime'); if(emp){ emp.value=dv.empRegime; emp.classList.toggle('hide', !dv.rendas.includes('empresario')); }

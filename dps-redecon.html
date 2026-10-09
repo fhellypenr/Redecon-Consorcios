@@ -509,6 +509,25 @@ function aplicarPrefill(){
   const existia = abrirRascunho(id, pk.origem || '');
   if(!existia && d.bem) setChip('bem', d.bem);
   const usados = [];
+  /* PF: completa com o consorciado do Termo de Opção do mesmo processo (endereço e contato), se existir */
+  let doTermo = [];
+  if(!d.pj && pk.origem){
+    let t = null; try{ t = (JSON.parse(localStorage.getItem('redecon_termo_rascunhos')) || {})['p:' + pk.origem]; }catch(e){}
+    const td = t && t.dados;
+    if(td && td['c.tipo'] === 'pf'){
+      const tel = so(td['c.tel1']);
+      const mapa = { nome:td['c.nome1'], cpf:td['c.cpf1'], end:td['c.log'], num:td['c.num'], comp:td['c.compl'], bairro:td['c.bairro'], cidade:td['c.cidade'], uf:td['c.uf'], email:td['c.email1'],
+                     cel: tel.length === 11 ? td['c.tel1'] : '', tel: tel.length === 10 ? td['c.tel1'] : '' };
+      const ROT_T = { nome:'nome', cpf:'CPF', end:'endereço', num:'número', comp:'complemento', bairro:'bairro', cidade:'cidade', uf:'UF', email:'e-mail', cel:'celular', tel:'telefone' };
+      Object.keys(mapa).forEach(k => {
+        const v = String(mapa[k] || '').trim(), el = document.querySelector('[data-k="' + k + '"]');
+        if(!v || !el || el.value.trim() || (d[k] && k !== 'nome')) return;
+        if(k === 'nome' && d.nome) return;
+        el.value = el.dataset.m ? MASK[el.dataset.m](v) : v; doTermo.push(ROT_T[k]);
+      });
+    }
+  }
+  delete d.pj;
   Object.keys(d).forEach(k => {
     if(k === 'bem'){ if(!existia) usados.push(ROTULOS.bem); return; }
     const el = document.querySelector('[data-k="' + k + '"]');
@@ -522,6 +541,7 @@ function aplicarPrefill(){
     ? '<b>📂 Rascunho de ' + E(pk.origem) + ' reaberto</b>Nada do que já estava digitado foi alterado.' + (usados.length ? ' Do checklist foram completados só os campos vazios: ' + E(usados.join(', ')) + '.' : '')
     : '<b>📋 Dados puxados do checklist' + (pk.origem ? ' — ' + E(pk.origem) : '') + '</b>' + (usados.length ? E(usados.join(', ')) + '.' : 'Nenhum dado disponível no checklist.')
       + '<br>Complete contrato, prazo, endereço, contatos, saldo devedor e as 5 respostas do cliente.';
+  if(doTermo.length) box.innerHTML += '<br>📝 Do Termo de Opção deste processo: ' + E(doTermo.join(', ')) + '.';
   montarSeletor();
 }
 $('#rasc_sel').addEventListener('change', e => {
