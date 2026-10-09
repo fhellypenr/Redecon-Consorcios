@@ -84,6 +84,8 @@
   @media(max-width:1250px){nav.tabs{flex-wrap:wrap}nav.tabs .tabs-acoes{width:100%;justify-content:flex-end;padding:0 0 8px}}
   #tab_termo{background:var(--bg)}
   #termo_frame{display:block;width:100%;border:0;height:calc(100vh - 108px)}
+  #tab_dps{background:var(--bg)}
+  #dps_frame{display:block;width:100%;border:0;height:calc(100vh - 108px)}
   .page{padding:26px;max-width:1180px;margin:0 auto}
   /* barra de processos */
   #procbar{background:#fff;border-bottom:1px solid var(--line);padding:10px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -201,7 +203,7 @@
     @page{size:A4 landscape;margin:0}
     body{background:#fff}
     header.app,#form,#vazio,.addcard,.doc .ctrl,.custa .ctrl,.no-print,nav.tabs,#procbar,#msgs_envio{display:none !important}
-    #tab_pre,#tab_neg,#tab_perg,#tab_proc,#tab_termo{display:none !important}
+    #tab_pre,#tab_neg,#tab_perg,#tab_proc,#tab_termo,#tab_dps{display:none !important}
     body.print-neg #tab_neg{display:block !important;padding:10mm}
     body.print-neg #tab_chk{display:none !important}
     body.print-neg .neg-actions,body.print-neg #neg_links,body.print-neg .panelbox p.desc,body.print-neg #neg_resumo{display:none !important}
@@ -283,6 +285,7 @@
   <button data-t="perg" onclick="abrirTab('perg')">3 · Perguntas</button>
   <button data-t="chk" class="on" onclick="abrirTab('chk')">4 · Checklist</button>
   <button data-t="termo" class="hide" onclick="abrirTab('termo')">5 · Termo de Opção</button>
+  <button data-t="dps" class="hide" onclick="abrirTab('dps')">6 · DPS</button>
   <span id="proc_badge" style="margin-left:auto;align-self:center;color:#f0806c;font-size:13px;font-weight:700;padding-right:4px"></span>
   <div class="tabs-acoes" id="acoes_chk">
     <button class="btn btn-ghost" onclick="salvarProcesso()" title="Baixar o processo em .json">💾 Salvar</button>
@@ -378,6 +381,7 @@
 </div>
 
 <div id="tab_termo" class="hide"><iframe id="termo_frame" title="Termo de Opção"></iframe></div>
+<div id="tab_dps" class="hide"><iframe id="dps_frame" title="DPS — Declaração Pessoal de Saúde"></iframe></div>
 
 <main id="tab_chk">
 <!-- ============================================================ FORM -->
@@ -788,6 +792,8 @@ function onFormChange(){
   document.getElementById('i_termo_wrap').classList.toggle('hide', avulso || modo!=='imovel' || !utz.includes('aquisicao'));
   const btnTermo = document.querySelector('nav.tabs button[data-t=termo]');
   if(btnTermo && !btnTermo.classList.contains('on')) btnTermo.classList.toggle('hide', avulso || modo!=='imovel' || !utz.includes('aquisicao'));
+  const btnDps = document.querySelector('nav.tabs button[data-t=dps]');
+  if(btnDps && !btnDps.classList.contains('on')) btnDps.classList.toggle('hide', avulso);
   /* campos do avulso */
   const aParte = document.getElementById('a_parte').value;
   const aEc = document.getElementById('a_ec').value;
@@ -1613,6 +1619,7 @@ function gerar(){
   }
   bar += `<button class="btn btn-light" onclick="criarProcessoNoAcompanhamento('imovel', this)">🗂️ Criar processo no acompanhamento</button>`;
   if(utz.includes('aquisicao')) bar += `<button class="btn btn-light" onclick="abrirTermoOpcao()">📝 Gerar Termo de Opção</button>`;
+  bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
   bar += '</div>';
   html = bar + html;
 
@@ -1688,6 +1695,45 @@ function termoAjustarAltura(){
   fr.style.height = Math.max(480, window.innerHeight - topo) + 'px';
 }
 window.addEventListener('resize', termoAjustarAltura);
+
+/* ===================== DPS (aba 6) =====================
+   Passa ao formulário da DPS só o que o checklist já tem: tipo de bem, grupo/cota e o proponente
+   (PF: consorciado · PJ: 1º sócio) com CPF e nascimento das Negativas. Chave temporária, apagada ao ler. */
+function abrirDPS(){
+  const g = id => document.getElementById(id);
+  const pes = nome => (nome && NEG.pessoas.find(x => mesmoNome(x.nome, nome))) || {};
+  const EC_DPS = {solteiro:'solteiro', solteiro_ue:'uniao', casado:'casado', divorciado:'divorciado', viuvo:'viuvo'};
+  const d = { bem: chipVals('modo')[0] || 'imovel', grupo: g('p_grupo').value.trim(), cota: g('p_cota').value.trim() };
+  if((chipVals('c_tipo')[0] || 'pf') === 'pf'){
+    d.nome = g('c_nome').value.trim() || g('p_nome').value.trim();
+    d.ec = EC_DPS[g('c_ec').value] || '';
+  } else {
+    const s = document.querySelector('#pj_socios .subcard');
+    if(s){ d.nome = (s.querySelector('.f_nome').value || '').trim(); const ec = s.querySelector('.f_ec'); d.ec = ec ? (EC_DPS[ec.value] || '') : ''; }
+  }
+  const p = pes(d.nome);
+  if(p.nome && (p.nome.length > (d.nome || '').length)) d.nome = p.nome;
+  d.cpf = p.cpf || ''; d.nasc = p.nasc || '';
+  Object.keys(d).forEach(k => { if(!d[k]) delete d[k]; });
+  try{ localStorage.setItem('redecon_dps_prefill', JSON.stringify({ts:Date.now(), origem:(PROC_ATUAL || g('p_nome').value.trim() || ''), d})); }
+  catch(e){ alert('Não foi possível passar os dados à DPS neste navegador. Ela vai abrir em branco.'); }
+  dpsMostrarAba();
+  abrirTab('dps');
+  dpsCarregar(true);
+}
+function dpsMostrarAba(){ document.querySelector('nav.tabs button[data-t=dps]').classList.remove('hide'); }
+function dpsCarregar(recarregar){
+  const fr = document.getElementById('dps_frame');
+  if(recarregar || !fr.getAttribute('src')) fr.src = 'dps-redecon.html?embed=1&t=' + Date.now();
+  dpsAjustarAltura();
+}
+function dpsAjustarAltura(){
+  const fr = document.getElementById('dps_frame');
+  if(!fr || document.getElementById('tab_dps').classList.contains('hide')) return;
+  const topo = fr.getBoundingClientRect().top + window.scrollY;
+  fr.style.height = Math.max(480, window.innerHeight - topo) + 'px';
+}
+window.addEventListener('resize', dpsAjustarAltura);
 function mesmoNome(a,b){
   const A=normNome(a), B=normNome(b);
   if(!A.length || !B.length) return false;
@@ -1933,6 +1979,7 @@ function gerarVeiculo(){
   bar += `<button class="btn btn-coral" onclick="printBloco('vend','Veiculo e vendedor')">🖨 PDF do veículo e vendedor</button>`;
   bar += `<button class="btn btn-light" onclick="printBloco('tudo','${nomeCapa.replace(/'/g,'')}')">Imprimir tudo</button>`;
   bar += `<button class="btn btn-light" onclick="criarProcessoNoAcompanhamento('veiculo', this)">🗂️ Criar processo no acompanhamento</button>`;
+  bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
   bar += '</div>';
   html = bar + html;
 
@@ -1946,12 +1993,13 @@ function gerarVeiculo(){
 
 /* ===================== ABAS ===================== */
 function abrirTab(t){
-  ['proc','pre','neg','perg','chk','termo'].forEach(x=>{
+  ['proc','pre','neg','perg','chk','termo','dps'].forEach(x=>{
     document.getElementById('tab_'+x).classList.toggle('hide', x!==t);
     document.querySelector('nav.tabs button[data-t='+x+']').classList.toggle('on', x===t);
   });
-  document.getElementById('acoes_chk').classList.toggle('hide', t==='termo');
+  document.getElementById('acoes_chk').classList.toggle('hide', t==='termo' || t==='dps');
   if(t==='termo'){ termoMostrarAba(); termoCarregar(false); }
+  if(t==='dps'){ dpsMostrarAba(); dpsCarregar(false); }
   if(t==='neg'){ const dp=document.getElementById('neg_data_padrao'); if(dp && !dp.value) dp.value=NEG_DATA_PADRAO; negRender(); }
   if(t==='perg') gerarPerguntas();
   if(t==='proc') procRender();
@@ -2946,6 +2994,7 @@ function limparTudo(){
 }
 onFormChange();
 if(location.hash === '#termo'){ termoMostrarAba(); abrirTab('termo'); }
+if(location.hash === '#dps'){ dpsMostrarAba(); abrirTab('dps'); }
 document.getElementById('form').addEventListener('input', procAutoSave);
 document.getElementById('form').addEventListener('change', procAutoSave);
 document.getElementById('form').addEventListener('change', atualizarHintRenda);

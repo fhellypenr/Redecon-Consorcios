@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<script>/* A DPS funciona dentro do Painel de Checklist (aba 6), que cuida do login. */
+if(window.top === window.self) location.replace('painel-checklist-redecon.html#dps');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DPS | Redecon Consórcios</title>
+<script src="lib/pdf-lib-1.17.1.min.js"></script>
+<style>
+  :root{
+    --navy:#15151d; --coral:#c73b2e; --coral2:#f0806c;
+    --bg:#f4f4f4; --ink:#1a1a1f; --muted:#6b6b74; --line:#e3e3e8; --ok:#1f9d55; --warn:#b26a00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+
+  header.app{background:#fff;border-bottom:1px solid var(--line);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  header.app h1{font-size:18px;font-weight:700}
+  header.app h1 small{display:block;font-size:11.5px;font-weight:400;color:var(--muted)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{border:0;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn-coral{background:var(--coral);color:#fff}
+  .btn-coral:hover{background:#a92300}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--coral);color:var(--coral)}
+
+  main{display:grid;grid-template-columns:470px 1fr;min-height:calc(100vh - 62px)}
+  @media(max-width:1100px){main{grid-template-columns:1fr}}
+
+  #form{background:#fff;border-right:1px solid var(--line);padding:18px;overflow-y:auto;max-height:calc(100vh - 62px)}
+  @media(max-width:1100px){#form{max-height:none}}
+  .sec{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .sec>h2{background:var(--navy);color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:10px 14px;display:flex;align-items:center;gap:8px}
+  .sec>h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--coral)}
+  .sec .body{padding:13px}
+  .g{display:grid;gap:8px 10px;grid-template-columns:repeat(6,1fr);margin-bottom:8px}
+  .field{grid-column:span 6}
+  .s1{grid-column:span 1}.s2{grid-column:span 2}.s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}
+  .field label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:4px}
+  .field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fff;font-family:inherit}
+  .field textarea{resize:vertical;min-height:54px;line-height:1.4}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--coral2);border-color:var(--coral)}
+  .field input.bad,.field textarea.bad{border-color:#d33;background:#fff5f5}
+  .field input[readonly]{background:#f6f8fb;color:var(--muted)}
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:3px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{border:1px solid var(--line);border-radius:20px;padding:7px 13px;font-size:13px;cursor:pointer;user-select:none;background:#fff}
+  .chip:hover{border-color:var(--coral2)}
+  .chip.on{background:var(--coral);border-color:var(--coral);color:#fff;font-weight:600}
+  .calc{background:#f6f8fb;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;line-height:1.55}
+  .calc b{color:var(--ink)}
+  .perg{border-top:1px dashed var(--line);padding:10px 0 4px}
+  .perg:first-of-type{border-top:0;padding-top:0}
+  .perg p{font-size:12.5px;line-height:1.45;margin-bottom:7px}
+  .perg p b{color:var(--coral)}
+  .perg .field{margin-top:7px}
+  .confere{display:flex;gap:9px;align-items:flex-start;background:#fff8e6;border:1px solid #f1d58b;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin-top:4px;cursor:pointer}
+  .confere input{width:17px;height:17px;margin-top:1px;accent-color:var(--coral);flex:0 0 auto}
+  .privacidade{font-size:11.5px;color:var(--muted);line-height:1.5;background:#f7f7f9;border-radius:10px;padding:10px 12px;margin-bottom:14px}
+  .rasc-linha{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .rasc-linha label{font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap}
+  .rasc-linha select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
+  .rasc-info{font-size:11.5px;color:var(--ok);font-weight:600;margin-bottom:6px}
+  .hide{display:none !important}
+
+  #previa{padding:18px 22px;overflow:auto;max-height:calc(100vh - 62px);display:flex;flex-direction:column;gap:10px}
+  @media(max-width:1100px){#previa{max-height:none}}
+  #avisos,#puxados{font-size:12.5px;line-height:1.55;border-radius:10px;padding:10px 14px}
+  #avisos.ok{background:#eef8f1;border:1px solid #bfe3cb;color:#1d5e33}
+  #avisos.tem{background:#fff6e5;border:1px solid #f1d58b;color:#6b4a00}
+  #avisos b,#puxados b{display:block;margin-bottom:3px}
+  #puxados{background:#eef3fb;border:1px solid #c5d6f0;color:#1d3a66}
+  .prevbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+  #prev{flex:1;min-height:640px;width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
+  #prev_erro{font-size:12.5px;color:#a12;background:#fff5f5;border:1px solid #f3c2c2;border-radius:10px;padding:10px 14px}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <h1>DPS — Declaração Pessoal de Saúde<small>Proposta de Adesão Seguro Prestamista · formulário oficial Tokio Marine / HS (v4) · os dados não vão para a nuvem</small></h1>
+  <div class="toolbar">
+    <button class="btn btn-ghost" onclick="apagarDados()">🗑 Apagar dados</button>
+    <button class="btn btn-coral" onclick="baixarPDF()">⬇ Gerar PDF</button>
+  </div>
+</header>
+
+<main>
+<div id="form">
+
+  <div class="privacidade">
+    <div class="rasc-linha"><label for="rasc_sel">📂 Rascunho</label><select id="rasc_sel"></select></div>
+    <div id="rasc_info" class="rasc-info"></div>
+    🔒 Respostas de saúde são <b>dado sensível (LGPD)</b>. Ficam salvas <b>só neste computador</b> (no navegador), um rascunho por processo, e <b>não vão para a nuvem</b>. Continuam aqui até você clicar em <b>Apagar dados</b> — faça isso depois que a DPS for assinada e enviada.
+  </div>
+
+  <div class="sec"><h2><span class="dot"></span>Cota e seguro</h2><div class="body">
+    <div class="g">
+      <div class="field"><label>Tipo de bem</label>
+        <div class="chips" id="bem"><span class="chip on" data-v="imovel">Imóvel</span><span class="chip" data-v="veiculo">Veículo</span></div>
+      </div>
+      <div class="field s3"><label>Início da vigência</label><input type="date" data-k="vig"><div class="hint">Data do preenchimento.</div></div>
+      <div class="field s3"><label>Prazo da obrigação (meses)</label><input type="text" inputmode="numeric" data-k="prazo" data-m="int" placeholder="Prazo restante"><div class="hint">Meses que faltam do consórcio.</div></div>
+      <div class="field s2"><label>Nº contrato de adesão</label><input type="text" data-k="contrato"></div>
+      <div class="field s2"><label>Grupo</label><input type="text" data-k="grupo"></div>
+      <div class="field s2"><label>Cota</label><input type="text" data-k="cota"></div>
+      <div class="field"><label>Demais grupos e cotas (opcional)</label><input type="text" data-k="outras" placeholder="Ex.: Grupo 1500 cota 322 · Grupo 1500 cota 323"><div class="hint">Uma DPS por grupo/cota. Com mais cotas do mesmo cliente, listar aqui (DPS única com a soma dos saldos).</div></div>
+    </div>
+    <div class="calc" id="calc_sub"></div>
+  </div></div>
+
+  <div class="sec"><h2><span class="dot"></span>Proponente (consorciado)</h2><div class="body">
+    <div class="g">
+      <div class="field"><label>Nome completo</label><input type="text" data-k="nome"></div>
+      <div class="field s3"><label>Data de nascimento</label><input type="text" data-k="nasc" data-m="data" placeholder="dd/mm/aaaa" inputmode="numeric"></div>
+      <div class="field s3"><label>Sexo</label><div class="chips" id="sexo"><span class="chip" data-v="M">Masculino</span><span class="chip" data-v="F">Feminino</span></div></div>
+      <div class="field s3"><label>Estado civil</label>
+        <select data-k="ec">
+          <option value="">—</option>
+          <option value="solteiro">Solteiro(a)</option>
+          <option value="casado">Casado(a)</option>
+          <option value="uniao">União estável</option>
+          <option value="divorciado">Divorciado(a)</option>
+          <option value="separado">Separado(a)</option>
+          <option value="viuvo">Viúvo(a)</option>
+        </select>
+      </div>
+      <div class="field s3"><label>CPF</label><input type="text" data-k="cpf" data-m="cpf" inputmode="numeric"></div>
+      <div class="field s4"><label>Endereço (rua)</label><input type="text" data-k="end"></div>
+      <div class="field s2"><label>Número</label><input type="text" data-k="num"></div>
+      <div class="field s3"><label>Complemento</label><input type="text" data-k="comp"></div>
+      <div class="field s3"><label>Bairro</label><input type="text" data-k="bairro"></div>
+      <div class="field s3"><label>Cidade</label><input type="text" data-k="cidade"></div>
+      <div class="field s1"><label>UF</label><input type="text" data-k="uf" data-m="uf" maxlength="2"></div>
+      <div class="field s2"><label>CEP</label><input type="text" data-k="cep" data-m="cep" inputmode="numeric"></div>
+      <div class="field s3"><label>Telefone fixo (com DDD)</label><input type="text" data-k="tel" data-m="tel" inputmode="numeric" placeholder="Opcional"></div>
+      <div class="field s3"><label>Celular (com DDD)</label><input type="text" data-k="cel" data-m="tel" inputmode="numeric"></div>
+      <div class="field"><label>E-mail</label><input type="email" data-k="email"></div>
+    </div>
+    <div class="hint">Percentual de participação: não se preenche.</div>
+  </div></div>
+
+  <div class="sec"><h2><span class="dot"></span>Coberturas</h2><div class="body">
+    <div class="g">
+      <div class="field"><label>Saldo devedor total (R$)</label><input type="text" data-k="saldo" data-m="brl" inputmode="decimal" placeholder="0,00"><div class="hint">Vai igual em Morte e em Invalidez Permanente Total por Acidente.</div></div>
+    </div>
+    <div class="calc" id="calc_premio"></div>
+  </div></div>
+
+  <div class="sec"><h2><span class="dot"></span>Declaração de saúde</h2><div class="body" id="pergs"></div></div>
+
+  <div class="sec"><h2><span class="dot"></span>Fechamento</h2><div class="body">
+    <div class="g">
+      <div class="field s3"><label>Local</label><input type="text" data-k="local"></div>
+      <div class="field s3"><label>Data</label><input type="date" data-k="data"></div>
+    </div>
+    <div class="hint" style="margin-bottom:8px">“Declaro que recebi e tomei ciência das Condições Contratuais” sai marcado. Assinatura do corretor, beneficiários e modalidade ficam em branco.</div>
+    <label class="confere"><input type="checkbox" id="resp_ok"> <span>Conferi as 5 respostas com o que o cliente informou. Informação de saúde omitida faz o cliente <b>perder a cobertura</b> (art. 766 do Código Civil, citado na própria DPS).</span></label>
+  </div></div>
+
+</div>
+
+<div id="previa">
+  <div id="puxados" class="hide"></div>
+  <div id="avisos"></div>
+  <div class="prevbar"><span>Prévia do PDF que o cliente vai receber (atualiza ao sair de cada campo)</span><span id="prev_status"></span></div>
+  <div id="prev_erro" class="hide"></div>
+  <iframe id="prev" title="Prévia da DPS"></iframe>
+</div>
+</main>
+
+<script>
+/* ===================== BASE ===================== */
+const $ = s => document.querySelector(s);
+const E = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const so = s => String(s || '').replace(/\D/g, '');
+function brlParse(s){ s = String(s || '').replace(/[^\d,.-]/g, ''); if(!s) return null; if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); else if((s.match(/\./g)||[]).length > 1 || /\.\d{3}$/.test(s)) s = s.replace(/\./g, ''); const n = parseFloat(s); return isNaN(n) ? null : Math.round(n * 100) / 100; }
+function brlFmt(n){ return n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function cpfValido(c){
+  c = so(c); if(c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+  for(let t = 9; t < 11; t++){ let s = 0; for(let i = 0; i < t; i++) s += +c[i] * (t + 1 - i); if(((s * 10) % 11) % 10 !== +c[t]) return false; }
+  return true;
+}
+const MASK = {
+  cpf: v => { const d = so(v).slice(0, 11); return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : v; },
+  cep: v => { const d = so(v).slice(0, 8); return d.length === 8 ? d.replace(/(\d{5})(\d{3})/, '$1-$2') : v; },
+  tel: v => { const d = so(v); if(d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3'); if(d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3'); return v; },
+  brl: v => { const n = brlParse(v); return n == null ? '' : brlFmt(n); },
+  uf: v => String(v || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2),
+  int: v => so(v).slice(0, 3),
+  data: v => { const d = so(v); return d.length === 8 ? d.replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3') : v; },
+};
+function dataBR(iso){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
+function lerData(br){ const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(br || ''); if(!m) return null; const d = new Date(+m[3], +m[2] - 1, +m[1]); return d.getDate() === +m[1] && d.getMonth() === +m[2] - 1 ? d : null; }
+function hojeISO(){ const d = new Date(); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+
+/* ===================== REGRAS (Fhellype 09/10/2026 + circular HS) ===================== */
+const CNPJ_HS = '73.516.106/0001-16';
+const BEM = {
+  imovel:  { nome:'Imóvel',  cod:'2', taxa:0.0005551, taxaTxt:'0,05551%', limite:3500000 },
+  veiculo: { nome:'Veículo', cod:'1', taxa:0.0008881, taxaTxt:'0,08881%', limite:2500000 },
+};
+const PERGS = [
+  { n:1, txt:'Encontra-se atualmente em plena atividade de trabalho?', explicaQuando:'nao', rotExp:'Motivo (obrigatório quando “Não”)',
+    hint:'Normalmente <b>Sim</b> — inclusive aposentado ou desempregado que não trabalha por motivo que não é doença (circular HS). “Não” só quando o motivo é de saúde (ex.: invalidez, afastamento).' },
+  { n:2, txt:'Sofre atualmente ou sofreu nos últimos 3 anos de alguma moléstia que o tenha obrigado a consultar médicos, hospitalizar-se, submeter-se a intervenções cirúrgicas ou afastar-se de suas atividades de trabalho?', explicaQuando:'sim', rotExp:'Especifique (obrigatório quando “Sim”)' },
+  { n:3, txt:'Já foi submetido a tratamento clínico ou cirúrgico (inclusive com a realização de biópsia) ou à quimioterapia, radioterapia ou outros tratamentos específicos por tempo prolongado?', explicaQuando:'sim', rotExp:'Especifique (obrigatório quando “Sim”)' },
+  { n:4, txt:'Faz uso habitual de medicamentos?', explicaQuando:'sim', rotExp:'Qual(is), motivo do uso e se há prescrição médica (obrigatório quando “Sim”)' },
+  { n:5, txt:'Tem deficiência em órgãos, membros ou sentidos?', explicaQuando:'sim', rotExp:'Especifique (obrigatório quando “Sim”)' },
+];
+const EC_TXT = { solteiro:['Solteiro','Solteira','Solteiro(a)'], casado:['Casado','Casada','Casado(a)'], uniao:['União estável','União estável','União estável'],
+  divorciado:['Divorciado','Divorciada','Divorciado(a)'], separado:['Separado','Separada','Separado(a)'], viuvo:['Viúvo','Viúva','Viúvo(a)'] };
+
+/* monta as 5 perguntas */
+$('#pergs').innerHTML = PERGS.map(p =>
+  '<div class="perg"><p><b>' + p.n + ')</b> ' + E(p.txt) + '</p>'
+  + '<div class="chips" id="q' + p.n + '"><span class="chip" data-v="sim">Sim</span><span class="chip" data-v="nao">Não</span></div>'
+  + (p.hint ? '<div class="hint" style="margin-top:6px">' + p.hint + '</div>' : '')
+  + '<div class="field hide" id="qx' + p.n + '"><label>' + E(p.rotExp) + '</label><textarea data-k="exp' + p.n + '" rows="2"></textarea><div class="hint" id="qc' + p.n + '"></div></div></div>'
+).join('');
+
+function chipVal(id){ const c = document.querySelector('#' + id + ' .chip.on'); return c ? c.dataset.v : ''; }
+function setChip(id, v){ document.querySelectorAll('#' + id + ' .chip').forEach(c => c.classList.toggle('on', c.dataset.v === v)); }
+['bem', 'sexo', 'q1', 'q2', 'q3', 'q4', 'q5'].forEach(id => {
+  $('#' + id).addEventListener('click', e => { const c = e.target.closest('.chip'); if(!c) return; setChip(id, c.dataset.v); atualizar(); agendarPrevia(); });
+});
+
+/* ===================== ESTADO / RASCUNHOS ===================== */
+const STORE_KEY = 'redecon_dps_rascunhos', ULTIMO_KEY = 'redecon_dps_ultimo';
+let RASC_ID = '', RASC_PROC = '';
+function coletar(){
+  const o = { bem: chipVal('bem') || 'imovel', sexo: chipVal('sexo'), _respOk: $('#resp_ok').checked };
+  PERGS.forEach(p => o['q' + p.n] = chipVal('q' + p.n));
+  document.querySelectorAll('[data-k]').forEach(el => { o[el.dataset.k] = el.value.trim(); });
+  return o;
+}
+function padroes(){ $('[data-k="vig"]').value = hojeISO(); $('[data-k="data"]').value = hojeISO(); $('[data-k="local"]').value = 'Pato Branco'; setChip('q1', 'sim'); }
+function lerRascunhos(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }catch(e){ return {}; } }
+function gravarRascunhos(m){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(m)); return true; }catch(e){ return false; } }
+const CAMPOS_PESSOAIS = ['nome','cpf','nasc','contrato','grupo','cota','end','cel','email','saldo','prazo','exp1','exp2','exp3','exp4','exp5'];
+function temConteudo(o){ return CAMPOS_PESSOAIS.some(k => String(o[k] || '').trim()) || ['q2','q3','q4','q5'].some(k => o[k]); }
+function rotuloRascunho(r){ if(r.processo) return r.processo; const n = (r.dados || {}).nome; return 'Sem processo' + (n ? ' — ' + n : ''); }
+function dataCurta(s){ s = s || ''; return s.slice(0, 5) + ' ' + s.slice(12, 17); }
+function salvarRascunho(){
+  if(!RASC_ID) RASC_ID = 'a:' + Date.now();
+  const m = lerRascunhos(), dados = coletar();
+  if(temConteudo(dados)) m[RASC_ID] = { processo: RASC_PROC, dados, salvoEm: new Date().toLocaleString('pt-BR'), ts: Date.now(), criado: (m[RASC_ID] && m[RASC_ID].criado) || Date.now() };
+  else delete m[RASC_ID];
+  gravarRascunhos(m);
+  try{ localStorage.setItem(ULTIMO_KEY, RASC_ID); }catch(e){}
+  montarSeletor();
+}
+function limparCampos(){
+  document.querySelectorAll('[data-k]').forEach(el => { el.value = ''; el.classList.remove('bad'); });
+  $('#resp_ok').checked = false;
+  setChip('bem', 'imovel'); setChip('sexo', ''); PERGS.forEach(p => setChip('q' + p.n, ''));
+}
+function aplicarDados(o){
+  setChip('bem', o.bem || 'imovel'); setChip('sexo', o.sexo || '');
+  PERGS.forEach(p => setChip('q' + p.n, o['q' + p.n] || ''));
+  document.querySelectorAll('[data-k]').forEach(el => { if(o[el.dataset.k] != null) el.value = o[el.dataset.k]; });
+  $('#resp_ok').checked = !!o._respOk;
+  if(!$('[data-k="vig"]').value) $('[data-k="vig"]').value = hojeISO();
+  if(!$('[data-k="data"]').value) $('[data-k="data"]').value = hojeISO();
+  if(!$('[data-k="local"]').value) $('[data-k="local"]').value = 'Pato Branco';
+}
+function abrirRascunho(id, processo){
+  RASC_ID = id; RASC_PROC = processo || '';
+  const r = lerRascunhos()[id];
+  limparCampos();
+  if(r){ RASC_PROC = r.processo || RASC_PROC; aplicarDados(r.dados || {}); } else padroes();
+  try{ localStorage.setItem(ULTIMO_KEY, id); }catch(e){}
+  return !!r;
+}
+function montarSeletor(){
+  const sel = $('#rasc_sel'); if(!sel) return;
+  const m = lerRascunhos();
+  const ids = Object.keys(m).sort((a, b) => (m[b].ts || 0) - (m[a].ts || 0));
+  let h = ids.map(id => '<option value="' + E(id) + '"' + (id === RASC_ID ? ' selected' : '') + '>' + E(rotuloRascunho(m[id])) + ' · ' + E(dataCurta(m[id].salvoEm)) + '</option>').join('');
+  if(!m[RASC_ID]) h = '<option value="' + E(RASC_ID) + '" selected>' + E(RASC_PROC ? RASC_PROC + ' (ainda vazio)' : 'DPS em branco (ainda não salva)') + '</option>' + h;
+  h += '<option value="__novo">＋ Nova DPS em branco</option>';
+  sel.innerHTML = h;
+  const r = m[RASC_ID];
+  let info = '';
+  if(r){
+    info = '✓ Salvo neste computador em ' + r.salvoEm;
+    const idade = Math.floor((Date.now() - (r.criado || r.ts || Date.now())) / 86400000);
+    if(idade >= 30) info += ' · ⚠️ guardado há ' + idade + ' dias — apague se já foi enviada';
+  }
+  $('#rasc_info').textContent = info;
+}
+function restaurar(){
+  let ult = ''; try{ ult = localStorage.getItem(ULTIMO_KEY) || ''; }catch(e){}
+  const m = lerRascunhos();
+  if(ult && m[ult]) abrirRascunho(ult);
+  else { const ids = Object.keys(m).sort((a, b) => (m[b].ts || 0) - (m[a].ts || 0)); if(ids.length) abrirRascunho(ids[0]); else { RASC_ID = 'a:' + Date.now(); padroes(); } }
+  montarSeletor();
+}
+function apagarDados(){
+  if(!confirm('Apagar os dados de ' + (RASC_PROC ? '"' + RASC_PROC + '"' : 'esta DPS') + ' deste computador?\n\nOs outros rascunhos salvos não são afetados.')) return;
+  clearTimeout(_t);
+  const m = lerRascunhos(); delete m[RASC_ID]; gravarRascunhos(m);
+  RASC_ID = 'a:' + Date.now(); RASC_PROC = '';
+  limparCampos(); padroes();
+  $('#puxados').classList.add('hide');
+  atualizar(); agendarPrevia();
+}
+
+/* ===================== CÁLCULOS E CONFERÊNCIA ===================== */
+function premio(d){ const s = brlParse(d.saldo); return s == null ? null : Math.round(s * BEM[d.bem].taxa * 100) / 100; }
+function idadeEm(nasc, ref){ let a = ref.getFullYear() - nasc.getFullYear(); const m = ref.getMonth() - nasc.getMonth(); if(m < 0 || (m === 0 && ref.getDate() < nasc.getDate())) a--; return a; }
+function ecTexto(d){ const t = EC_TXT[d.ec]; if(!t) return ''; return d.sexo === 'M' ? t[0] : d.sexo === 'F' ? t[1] : t[2]; }
+
+function conferir(d){
+  const av = [];
+  const falta = (k, rot) => { if(!d[k]) av.push('Falta ' + rot + '.'); };
+  falta('vig', 'o início da vigência'); falta('prazo', 'o prazo da obrigação em meses');
+  falta('contrato', 'o nº do contrato de adesão'); falta('grupo', 'o grupo'); falta('cota', 'a cota');
+  falta('nome', 'o nome do proponente'); falta('nasc', 'a data de nascimento');
+  if(!d.sexo) av.push('Falta o sexo.');
+  falta('ec', 'o estado civil'); falta('cpf', 'o CPF');
+  falta('end', 'o endereço'); falta('num', 'o número do endereço'); falta('bairro', 'o bairro'); falta('cidade', 'a cidade'); falta('uf', 'a UF'); falta('cep', 'o CEP');
+  if(!d.cel && !d.tel) av.push('Falta telefone ou celular.');
+  falta('email', 'o e-mail'); falta('saldo', 'o saldo devedor total');
+  if(d.cpf && !cpfValido(d.cpf)) av.push('CPF inválido — confira os números.');
+  if(d.cep && so(d.cep).length !== 8) av.push('CEP deve ter 8 dígitos.');
+  if(d.uf && d.uf.length !== 2) av.push('UF deve ter 2 letras.');
+  if(d.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) av.push('E-mail parece inválido.');
+  [['tel','Telefone fixo'],['cel','Celular']].forEach(([k, r]) => { if(d[k] && ![10, 11].includes(so(d[k]).length)) av.push(r + ': informe DDD + número.'); });
+  const prazo = parseInt(d.prazo, 10);
+  if(d.prazo && !(prazo > 0 && prazo <= 240)) av.push('Prazo em meses fora do normal (1 a 240).');
+  const nasc = lerData(d.nasc);
+  if(d.nasc && !nasc) av.push('Data de nascimento inválida (use dd/mm/aaaa).');
+  const vig = d.vig ? new Date(d.vig + 'T12:00:00') : null;
+  if(nasc && vig){
+    const idade = idadeEm(nasc, vig);
+    if(idade < 18) av.push('Proponente com menos de 18 anos — confirmar com a HS.');
+    if(prazo > 0){
+      const fim = new Date(vig); fim.setMonth(fim.getMonth() + prazo);
+      const meses = (fim.getFullYear() - nasc.getFullYear()) * 12 + (fim.getMonth() - nasc.getMonth()) - (fim.getDate() < nasc.getDate() ? 1 : 0);
+      if(meses > 74 * 12 + 11) av.push('Ao fim do plano o proponente terá ' + Math.floor(meses / 12) + ' anos e ' + (meses % 12) + ' meses: acima de 74 anos e 11 meses o seguro fica SEM cobertura (circular HS). Confirmar com a HS.');
+    }
+  }
+  const s = brlParse(d.saldo);
+  if(s != null && s > BEM[d.bem].limite) av.push('Saldo acima de R$ ' + brlFmt(BEM[d.bem].limite) + ' (' + BEM[d.bem].nome.toLowerCase() + '): acima do limite por CPF o saldo fica sem cobertura (circular HS). Lembre de somar outras cotas contempladas do mesmo CPF.');
+  if(d.vig){ const dias = Math.round((Date.now() - new Date(d.vig + 'T12:00:00')) / 86400000); if(dias > 0) av.push('Início da vigência é de ' + dias + ' dia(s) atrás — normalmente é a data do preenchimento.'); }
+  PERGS.forEach(p => {
+    const r = d['q' + p.n];
+    if(!r) av.push('Pergunta ' + p.n + ': marcar Sim ou Não.');
+    else if(r === p.explicaQuando && !d['exp' + p.n]) av.push('Pergunta ' + p.n + ': ' + (p.n === 1 ? 'informar o motivo do “Não”.' : 'especificar o “Sim”.'));
+  });
+  ['local', 'data'].forEach(k => { if(!d[k]) av.push('Falta ' + (k === 'local' ? 'o local' : 'a data') + ' do fechamento.'); });
+  if(!d._respOk) av.push('Marque a conferência das respostas com o cliente.');
+  return av.concat(LONGOS);
+}
+
+/* ===================== PDF (preenche o formulário oficial) ===================== */
+const MODELO_URL = 'modelos/dps-tokio-marine-v4.pdf';
+let MODELO_BYTES = null, LONGOS = [];
+async function modelo(){
+  if(!MODELO_BYTES){
+    const r = await fetch(MODELO_URL, {cache:'no-cache'});
+    if(!r.ok) throw new Error('Não foi possível carregar o formulário oficial (' + r.status + ').');
+    MODELO_BYTES = await r.arrayBuffer();
+  }
+  return MODELO_BYTES;
+}
+function separaTel(v){ const d = so(v); if(d.length < 10) return ['', '']; const ddd = d.slice(0, 2), n = d.slice(2); return [ddd, n.length === 9 ? n.slice(0, 5) + '-' + n.slice(5) : n.slice(0, 4) + '-' + n.slice(4)]; }
+function valoresPDF(d){
+  const b = BEM[d.bem], vig = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d.vig || '') || [];
+  const saldo = brlParse(d.saldo), pr = premio(d);
+  const [dddT, tel] = separaTel(d.tel), [dddC, cel] = separaTel(d.cel);
+  const v = {
+    diaa: vig[3] || '', mees: vig[2] || '', anoo: vig[1] || '',
+    vPrazo: d.prazo, quadrado: 'X',
+    vNumero_Contrato: d.contrato, vGrupo: d.grupo, vCota: d.cota,
+    vCnpj_Empresa: CNPJ_HS, vTipo_Seguro: b.cod,
+    vSegurado: d.nome.toUpperCase(), vData_Nascimento: d.nasc,
+    vSexo_M: d.sexo === 'M' ? 'X' : '', vSexo_F: d.sexo === 'F' ? 'X' : '',
+    vEstado_Civil: ecTexto(d), vCpf: MASK.cpf(d.cpf),
+    vEndereco: d.end, vNumero_Endereco: d.num, vComplemento: d.comp,
+    vBairro: d.bairro, vCidade: d.cidade, vUF: d.uf, vCEP: MASK.cep(d.cep),
+    vDDD_Telefone: dddT, vTelefone: tel, vDDD_Celular: dddC, vCelular: cel, vEmail: d.email,
+    vVL_Morte: saldo == null ? '' : brlFmt(saldo), vVL_Invalidez: saldo == null ? '' : brlFmt(saldo),
+    vVL_Morte2: '', vVL_Invalidez2: pr == null ? '' : brlFmt(pr),
+    vDeclaro: 'X', vLocal: d.local, vData: dataBR(d.data),
+  };
+  if(d.outras) v['Inclusão editável'] = d.outras;
+  PERGS.forEach(p => {
+    const r = d['q' + p.n];
+    v['vSim ' + p.n] = r === 'sim' ? 'X' : '';
+    v['vNão ' + p.n] = r === 'nao' ? 'X' : '';
+    v['vExplicação' + p.n] = r === p.explicaQuando ? d['exp' + p.n].replace(/\s+/g, ' ') : '';
+  });
+  return v;
+}
+async function montarPDF(d){
+  const { PDFDocument, StandardFonts } = PDFLib;
+  const pdf = await PDFDocument.load(await modelo());
+  const form = pdf.getForm(), helv = await pdf.embedFont(StandardFonts.Helvetica);
+  const longos = [];
+  for(const [k, val] of Object.entries(valoresPDF(d))){
+    let f; try{ f = form.getTextField(k); }catch(e){ throw new Error('O formulário não tem o campo "' + k + '" — a versão do PDF mudou?'); }
+    const txt = String(val || '').replace(/[^\x20-\x7E -ÿ–—‘’“”•€]/g, '');
+    f.setText(txt);
+    const base = k.startsWith('vSim') || k.startsWith('vNão') || ['vSexo_M', 'vSexo_F', 'quadrado', 'vDeclaro'].includes(k) ? 8 : 10;
+    const larg = f.acroField.getWidgets()[0].getRectangle().width - 4;
+    let s = base; while(s > 6 && helv.widthOfTextAtSize(txt, s) > larg) s -= 0.5;
+    f.setFontSize(s);
+    if(helv.widthOfTextAtSize(txt, s) > larg) longos.push(k);
+  }
+  form.updateFieldAppearances(helv);
+  form.flatten();
+  pdf.setTitle('Proposta de Adesão - Seguro Prestamista (DPS)');
+  pdf.setProducer('Redecon Consórcios'); pdf.setCreator('Redecon Consórcios');
+  const ROT = { vEndereco:'Endereço', vEmail:'E-mail', vSegurado:'Nome', vComplemento:'Complemento', vBairro:'Bairro', vCidade:'Cidade', vEstado_Civil:'Estado civil', 'Inclusão editável':'Demais grupos e cotas' };
+  LONGOS = longos.map(k => (/^vExplicação(\d)/.test(k) ? 'Pergunta ' + k.slice(-1) + ': texto longo demais para a linha do formulário — resuma.' : (ROT[k] || k) + ': texto longo demais para o campo — abrevie.'));
+  return pdf.save();
+}
+
+/* ===================== TELA ===================== */
+function aplicarVisibilidade(d){
+  PERGS.forEach(p => {
+    const mostra = d['q' + p.n] === p.explicaQuando;
+    $('#qx' + p.n).classList.toggle('hide', !mostra);
+    const n = (d['exp' + p.n] || '').length;
+    $('#qc' + p.n).textContent = mostra ? n + ' caracteres · cabe ~110 numa linha' : '';
+  });
+  const b = BEM[d.bem];
+  $('#calc_sub').innerHTML = 'Código do subestipulante: <b>' + b.cod + '</b> (' + b.nome.toLowerCase() + ') · CNPJ do subestipulante: <b>' + CNPJ_HS + '</b> (HS) · tipo de obrigação: <b>Consórcio</b>';
+  const s = brlParse(d.saldo), pr = premio(d);
+  $('#calc_premio').innerHTML = s == null ? 'Informe o saldo devedor para calcular o prêmio mensal.'
+    : 'Morte: <b>R$ ' + brlFmt(s) + '</b> · Invalidez: <b>R$ ' + brlFmt(s) + '</b><br>Prêmio mensal: <b>R$ ' + brlFmt(pr) + '</b> (saldo × ' + b.taxaTxt + ', ' + b.nome.toLowerCase() + ')';
+}
+function marcarInvalidos(d){
+  const bad = (k, cond) => { const el = $('[data-k="' + k + '"]'); if(el) el.classList.toggle('bad', !!cond); };
+  bad('cpf', d.cpf && !cpfValido(d.cpf));
+  bad('nasc', d.nasc && !lerData(d.nasc));
+  bad('cep', d.cep && so(d.cep).length !== 8);
+  bad('email', d.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email));
+  PERGS.forEach(p => bad('exp' + p.n, d['q' + p.n] === p.explicaQuando && !d['exp' + p.n]));
+}
+let _t = null;
+function atualizar(){
+  const d = coletar();
+  aplicarVisibilidade(d);
+  marcarInvalidos(d);
+  const av = conferir(d), box = $('#avisos');
+  if(av.length){ box.className = 'tem'; box.innerHTML = '<b>⚠️ Conferir antes de gerar (' + av.length + ')</b>' + av.map(x => '• ' + E(x)).join('<br>'); }
+  else { box.className = 'ok'; box.innerHTML = '<b>✅ Tudo preenchido e conferido.</b>Revise a prévia e gere o PDF para o cliente assinar (GOV.BR ou ICP-Brasil).'; }
+  clearTimeout(_t); _t = setTimeout(salvarRascunho, 400);
+}
+let _p = null, _url = null, _gen = 0;
+function agendarPrevia(){ clearTimeout(_p); _p = setTimeout(previa, 350); }
+async function previa(){
+  const g = ++_gen;
+  $('#prev_status').textContent = 'gerando…';
+  try{
+    const bytes = await montarPDF(coletar());
+    if(g !== _gen) return;
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    $('#prev').src = url + '#toolbar=0&view=FitH';
+    if(_url) setTimeout(u => URL.revokeObjectURL(u), 2000, _url);
+    _url = url;
+    $('#prev_erro').classList.add('hide');
+    $('#prev_status').textContent = 'atualizada ' + new Date().toLocaleTimeString('pt-BR');
+    atualizar();
+  }catch(e){
+    $('#prev_erro').textContent = '⚠️ ' + e.message; $('#prev_erro').classList.remove('hide');
+    $('#prev_status').textContent = '';
+  }
+}
+async function baixarPDF(){
+  const d = coletar();
+  if(!d._respOk){ alert('Antes de gerar: confira as 5 respostas com o cliente e marque a caixa de conferência.'); $('#resp_ok').scrollIntoView({behavior:'smooth', block:'center'}); return; }
+  let bytes;
+  try{ bytes = await montarPDF(d); }catch(e){ alert(e.message); return; }
+  atualizar();
+  const av = conferir(d);
+  if(av.length && !confirm('Há ' + av.length + ' ponto(s) para conferir:\n\n• ' + av.join('\n• ') + '\n\nGerar o PDF mesmo assim?')) return;
+  const nome = ('DPS - ' + (d.nome || 'cliente') + (d.grupo ? ' - ' + d.grupo + '-' + d.cota : '')).replace(/[\\/:*?"<>|]/g, '').trim();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+  a.download = nome + '.pdf';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(u => URL.revokeObjectURL(u), 5000, a.href);
+}
+
+/* máscaras + eventos */
+document.querySelectorAll('[data-k]').forEach(el => {
+  el.addEventListener('input', atualizar);
+  el.addEventListener('change', () => { if(el.dataset.m && el.value) el.value = MASK[el.dataset.m](el.value); atualizar(); agendarPrevia(); });
+});
+$('#resp_ok').addEventListener('change', () => { atualizar(); });
+
+/* ===================== DADOS VINDOS DO CHECKLIST =====================
+   O checklist grava uma chave temporária e abre esta aba; aqui ela é lida e apagada na hora. */
+const PREFILL_KEY = 'redecon_dps_prefill';
+const ROTULOS = { nome:'nome', cpf:'CPF', nasc:'data de nascimento', ec:'estado civil', grupo:'grupo', cota:'cota', bem:'tipo de bem' };
+function aplicarPrefill(){
+  let pk = null;
+  try{ pk = JSON.parse(localStorage.getItem(PREFILL_KEY)); localStorage.removeItem(PREFILL_KEY); }catch(e){}
+  if(!pk || !pk.d || (Date.now() - (pk.ts || 0)) > 10 * 60 * 1000) return;
+  const d = pk.d;
+  const id = pk.origem ? 'p:' + pk.origem : 'a:' + Date.now();
+  const existia = abrirRascunho(id, pk.origem || '');
+  if(!existia && d.bem) setChip('bem', d.bem);
+  const usados = [];
+  Object.keys(d).forEach(k => {
+    if(k === 'bem'){ if(!existia) usados.push(ROTULOS.bem); return; }
+    const el = document.querySelector('[data-k="' + k + '"]');
+    if(!el || !d[k] || el.value.trim()) return;
+    el.value = el.dataset.m ? MASK[el.dataset.m](d[k]) : d[k];
+    if(ROTULOS[k]) usados.push(ROTULOS[k]);
+  });
+  const box = $('#puxados');
+  box.classList.remove('hide');
+  box.innerHTML = existia
+    ? '<b>📂 Rascunho de ' + E(pk.origem) + ' reaberto</b>Nada do que já estava digitado foi alterado.' + (usados.length ? ' Do checklist foram completados só os campos vazios: ' + E(usados.join(', ')) + '.' : '')
+    : '<b>📋 Dados puxados do checklist' + (pk.origem ? ' — ' + E(pk.origem) : '') + '</b>' + (usados.length ? E(usados.join(', ')) + '.' : 'Nenhum dado disponível no checklist.')
+      + '<br>Complete contrato, prazo, endereço, contatos, saldo devedor e as 5 respostas do cliente.';
+  montarSeletor();
+}
+$('#rasc_sel').addEventListener('change', e => {
+  const v = e.target.value;
+  clearTimeout(_t); salvarRascunho();
+  if(v === '__novo'){ RASC_ID = 'a:' + Date.now(); RASC_PROC = ''; limparCampos(); padroes(); }
+  else abrirRascunho(v);
+  $('#puxados').classList.add('hide');
+  atualizar(); montarSeletor(); agendarPrevia();
+});
+
+restaurar();
+aplicarPrefill();
+atualizar();
+previa();
+</script>
+</body>
+</html>
