@@ -400,6 +400,7 @@ svg{display:block}
     <a class="nav-btn" href="redecon_processos.html"><span class="nav-icon">▣</span>Processos<span class="nav-spacer"></span><span class="nav-count">abrir</span></a>
     <a class="nav-btn" href="painel-checklist-redecon.html"><span class="nav-icon">✓</span>Checklist<span class="nav-spacer"></span><span class="nav-count">abrir</span></a>
     <a class="nav-btn" href="painel-checklist-redecon.html#termo"><span class="nav-icon">✎</span>Termo de Opção<span class="nav-spacer"></span><span class="nav-count">abrir</span></a>
+    <a class="nav-btn" href="painel-checklist-redecon.html#dps"><span class="nav-icon">✚</span>DPS (seguro)<span class="nav-spacer"></span><span class="nav-count">abrir</span></a>
     <a class="nav-btn" href="simulacao.html"><span class="nav-icon">∑</span>Simulações</a>
     <a class="nav-btn" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener"><span class="nav-icon">◇</span>Uso do Crédito</a>
     <button class="nav-btn" data-view="operacional"><span class="nav-icon">☷</span>Central Operacional</button>
@@ -423,7 +424,7 @@ svg{display:block}
 <div id="baseAviso" class="base-aviso" hidden></div>
 
 <div class="mobile-nav">
-  <button data-view="home">Início</button><a href="redecon_processos.html">Processos</a><a href="painel-checklist-redecon.html">Checklist</a><a href="painel-checklist-redecon.html#termo">Termo de Opção</a>
+  <button data-view="home">Início</button><a href="redecon_processos.html">Processos</a><a href="painel-checklist-redecon.html">Checklist</a><a href="painel-checklist-redecon.html#termo">Termo de Opção</a><a href="painel-checklist-redecon.html#dps">DPS</a>
   <a href="simulacao.html">Simulações</a><a href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener">Uso do crédito</a><button data-view="rotina">Rotina</button><button data-view="operacional">Operacional</button><button data-view="mensagens">Mensagens</button><button data-view="links">Links</button>
 </div>
 
@@ -584,6 +585,7 @@ svg{display:block}
       <div class="link-item"><div class="l-icon" data-icon="folder"></div><div><strong>Processos</strong><span>Acompanhamento de processos</span></div><a class="right" href="redecon_processos.html">→</a></div>
       <div class="link-item"><div class="l-icon" data-icon="clipboard"></div><div><strong>Checklist</strong><span>Pré-análise e checklist</span></div><a class="right" href="painel-checklist-redecon.html">→</a></div>
       <div class="link-item"><div class="l-icon" data-icon="pen"></div><div><strong>Termo de Opção</strong><span>Aba 5 do Checklist · 4 modelos HS</span></div><a class="right" href="painel-checklist-redecon.html#termo">→</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="pen"></div><div><strong>DPS — Declaração de Saúde</strong><span>Aba 6 do Checklist · formulário oficial Tokio Marine/HS preenchido</span></div><a class="right" href="painel-checklist-redecon.html#dps">→</a></div>
       <div class="link-item"><div class="l-icon" data-icon="calculator"></div><div><strong>Simulador de contemplação</strong><span>Simulação por grupo</span></div><a class="right" href="simulacao.html">→</a></div>
       <div class="link-item"><div class="l-icon" data-icon="wallet"></div><div><strong>Como Usar Seu Crédito</strong><span>Site público enviado aos clientes</span></div><a class="right" target="_blank" rel="noopener" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/">↗</a></div>
       <div class="link-group">Assinatura</div>
@@ -896,6 +898,7 @@ window._iniciarCentral = function(B){
     {title:'Processos', meta:'Ferramenta · acompanhamento de imóvel e veículo', hay:'processos acompanhamento etapas andamento', action:() => location.href = 'redecon_processos.html'},
     {title:'Checklist', meta:'Ferramenta · pré-análise, negativas, perguntas, documentos', hay:'checklist pre-analise negativas perguntas documentos emissao pdf', action:() => location.href = 'painel-checklist-redecon.html'},
     {title:'Termo de Opção', meta:'Checklist · aba 5 · gera o termo (PF/PJ) nos modelos HS, em PDF', hay:'termo de opcao opção aquisicao compra venda vendedor comprador promitente pdf assinatura', action:() => location.href = 'painel-checklist-redecon.html#termo'},
+    {title:'DPS — Declaração Pessoal de Saúde', meta:'Checklist · aba 6 · preenche a proposta do seguro prestamista (Tokio Marine/HS) em PDF', hay:'dps declaracao declaração saude saúde seguro prestamista tokio marine proposta adesao perguntas pdf assinatura', action:() => location.href = 'painel-checklist-redecon.html#dps'},
     {title:'NewCon (Extranet HS)', meta:'Sistema HS · dados do cliente, extrato, boleto', hay:'newcon extranet sistema principal extrato boleto cliente', action:() => window.open('https://extranet.hsconsorcios.com.br/Newcon.Web/frmCorCCCnsLogin.aspx', '_blank', 'noopener')},
     {title:'Responsivo HS', meta:'Sistema HS · venda da cota', hay:'responsivo venda vender cota proposta', action:() => window.open('https://responsivo.hsconsorcios.com.br/', '_blank', 'noopener')},
     {title:'Portal de Corretores HS', meta:'Sistema HS · processos de contemplação e assinatura', hay:'portal corretores contemplacao processo assinatura encaminhar', action:() => window.open('https://corretores.hsconsorcios.com.br/', '_blank', 'noopener')},

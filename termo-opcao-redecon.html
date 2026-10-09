@@ -7,6 +7,7 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#t
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Termo de Opção | Redecon Consórcios</title>
+<script src="conferencia-final.js" defer></script>
 <style>
   :root{
     --navy:#15151d; --navy2:#1e1e28; --coral:#c73b2e; --coral2:#f0806c;
@@ -712,11 +713,11 @@ function escalar(){
   $('.paperwrap').style.width = k < 1 ? (larg * k) + 'px' : '';
 }
 
-function gerarPDF(){
+async function gerarPDF(){
   const d = coletar();
   if(!$('#banco_ok').checked){ alert('Antes de gerar: confira banco, agência e conta com o comprovante do vendedor e marque a caixa de conferência.'); $('#banco_ok').scrollIntoView({behavior:'smooth', block:'center'}); return; }
   const av = conferir(d);
-  if(av.length && !confirm('Há ' + av.length + ' ponto(s) para conferir:\n\n• ' + av.join('\n• ') + '\n\nGerar o PDF mesmo assim?')) return;
+  if(!(await conferenciaFinal({ titulo: 'Termo de Opção (' + $('#modelo_nome').textContent + ')', avisos: av, botao: av.length ? 'Gerar mesmo assim' : '✓ Conferi, gerar PDF' }))) return;
   const nome = d['c.tipo'] === 'pf' ? d['c.nome1'] : d['c.razao'];
   const tituloOrig = document.title, novo = 'Termo de Opção - ' + (nome || 'cliente').replace(/[\\/:*?"<>|]/g, '');
   let pai = null, tituloPai = '';

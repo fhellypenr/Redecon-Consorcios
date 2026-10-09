@@ -8,6 +8,7 @@ if(window.top === window.self) location.replace('painel-checklist-redecon.html#d
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DPS | Redecon Consórcios</title>
 <script src="lib/pdf-lib-1.17.1.min.js"></script>
+<script src="conferencia-final.js" defer></script>
 <style>
   :root{
     --navy:#15151d; --coral:#c73b2e; --coral2:#f0806c;
@@ -479,7 +480,7 @@ async function baixarPDF(){
   try{ bytes = await montarPDF(d); }catch(e){ alert(e.message); return; }
   atualizar();
   const av = conferir(d);
-  if(av.length && !confirm('Há ' + av.length + ' ponto(s) para conferir:\n\n• ' + av.join('\n• ') + '\n\nGerar o PDF mesmo assim?')) return;
+  if(!(await conferenciaFinal({ titulo: 'DPS (' + BEM[d.bem].nome + ')', avisos: av, botao: av.length ? 'Gerar mesmo assim' : '✓ Conferi, gerar PDF' }))) return;
   const nome = ('DPS - ' + (d.nome || 'cliente') + (d.grupo ? ' - ' + d.grupo + '-' + d.cota : '')).replace(/[\\/:*?"<>|]/g, '').trim();
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
