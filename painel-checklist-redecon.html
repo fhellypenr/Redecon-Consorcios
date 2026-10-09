@@ -170,6 +170,34 @@
   .doc .ctrl{position:absolute;top:9px;right:8px;display:flex;gap:4px}
   .doc .ctrl button{border:0;background:#f0f0f2;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer;color:#555}
   .doc .ctrl button:hover{background:var(--coral);color:#fff}
+  /* conferência dos documentos recebidos (só na tela) */
+  .doc .conf{margin-top:auto;border-top:1px dashed var(--line);padding:8px 12px 10px;background:#fafafb;border-radius:0 0 10px 10px;display:flex;flex-direction:column;gap:6px}
+  .conf-st{display:flex;gap:5px;flex-wrap:wrap}
+  .conf-st button{border:1px solid var(--line);background:#fff;border-radius:16px;padding:4px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;color:#444}
+  .conf-st button.on[data-s=""]{background:#eef0f4;border-color:#c9ccd6;color:#333;font-weight:700}
+  .conf-st button.on[data-s="ok"]{background:#1f9d55;border-color:#1f9d55;color:#fff;font-weight:700}
+  .conf-st button.on[data-s="erro"]{background:#d97706;border-color:#d97706;color:#fff;font-weight:700}
+  .conf input{width:100%;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-size:12px;font-family:inherit;background:#fff}
+  .conf input.conf-m{border-color:#f0b35b;background:#fffaf0}
+  .conf input.conf-m.bad{border-color:#d33;background:#fff5f5}
+  .conf-em{font-size:10.5px;color:var(--muted)}
+  .doc.conf-ok .strip{background:#1f9d55}
+  .doc.conf-erro .strip{background:#d97706}
+  .doc.off .conf{display:none}
+  .confbar{max-width:960px;margin:0 auto 18px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .confbar .cb-txt{flex:1;min-width:240px;font-size:13px;line-height:1.5}
+  .confbar .cb-txt b{font-size:14px}
+  .confbar .cb-barra{height:8px;background:#eceef2;border-radius:6px;overflow:hidden;margin-top:6px}
+  .confbar .cb-barra span{display:block;height:100%;background:#1f9d55;transition:width .3s}
+  .confbar.completa{border-color:#bfe3cb;background:#eef8f1}
+  .confbar .cb-aviso{font-size:11.5px;color:var(--warn);margin-top:4px}
+  #pendModalBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto}
+  #pendModalBackdrop.open{display:flex}
+  #pendModal{background:#fff;border-radius:14px;max-width:640px;width:100%;padding:18px 20px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  #pendModal h3{font-size:17px;margin-bottom:4px}
+  #pendModal p.hint{margin-bottom:10px}
+  #pendModal textarea{width:100%;min-height:300px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.5;font-family:inherit}
+  #pendModal .acoes{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
   .addcard{border:2px dashed var(--line);border-radius:10px;min-height:90px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
   .addcard:hover{border-color:var(--coral);color:var(--coral)}
 
@@ -1191,10 +1219,20 @@ function custaHTML(t, dsc){
     <p contenteditable="true">${dsc}</p>
   </div>`;
 }
-function tgl(id){ document.getElementById(id).classList.toggle('off'); }
-function del(id){ if(confirm('Excluir este card?')) document.getElementById(id).remove(); }
+function tgl(id){
+  const el = document.getElementById(id); el.classList.toggle('off');
+  if(el.dataset.ck){ /* "não se aplica" fica salvo com a conferência do processo */
+    const k = el.dataset.ck, r = CONF[k] || {s:''};
+    if(el.classList.contains('off')) r.off = true; else delete r.off;
+    CONF[k] = r; if(!r.s && !r.m && !r.obs && !r.off) delete CONF[k];
+    procAutoSave();
+  }
+  confAtualizar();
+}
+function del(id){ if(confirm('Excluir este card?')){ document.getElementById(id).remove(); confAtualizar(); } }
 function addCustom(btn){
   btn.insertAdjacentHTML('beforebegin', cardHTML('', 'Novo documento', 'Descreva aqui a orientação.'));
+  confDecorar();
 }
 function addCustomCusta(btn){
   btn.insertAdjacentHTML('beforebegin', custaHTML('Nova custa', 'Descreva aqui a orientação.'));
@@ -2380,6 +2418,7 @@ function limparFormSilencioso(){
   document.getElementById('pre_texto').value='';
   document.getElementById('pre_resumo').style.display='none';
   NEG = {pessoas:[]};
+  CONF = {};
   document.getElementById('vazio').style.display='block';
   onFormChange();
 }
@@ -2892,6 +2931,119 @@ function decorateSlides(){
     box.appendChild(b); box.appendChild(del);
     s.appendChild(box);
   });
+  confDecorar();
+}
+
+/* ===================== CONFERÊNCIA DOS DOCUMENTOS RECEBIDOS =====================
+   Cada card de documento (.doc) ganha status (pendente / OK / com problema + motivo) e observação.
+   Fica salvo com o processo (CONF → coletarForm/aplicarForm), ligado ao nome do documento + pessoa.
+   Só aparece na tela (no-print). Cards desligados (👁) saem da conta. */
+let CONF = {};
+const confNorm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+function confChaveDe(card){
+  const t = (card.querySelector('h4 span[contenteditable]')||{}).textContent || '';
+  const p = (card.querySelector('.pessoa')||{}).textContent || '';
+  return confNorm(t) + '|' + confNorm(p);
+}
+function confDecorar(){
+  const vistos = {};
+  document.querySelectorAll('#slides .doc').forEach(card=>{
+    if(!card.dataset.ck){
+      let k = confChaveDe(card);
+      vistos[k] = (vistos[k]||0) + 1;
+      if(vistos[k] > 1) k += '#' + vistos[k];
+      card.dataset.ck = k;
+    } else vistos[card.dataset.ck] = (vistos[card.dataset.ck]||0) + 1;
+    if(card.querySelector('.conf')) return;
+    if((CONF[card.dataset.ck]||{}).off) card.classList.add('off');
+    const box = document.createElement('div');
+    box.className = 'conf no-print';
+    box.innerHTML = '<div class="conf-st"><button type="button" data-s="" title="Ainda não recebido">⏳ Pendente</button><button type="button" data-s="ok" title="Recebido e conferido">✅ OK</button><button type="button" data-s="erro" title="Recebido com problema (informar o motivo)">⚠️ Problema</button></div>'
+      + '<input class="conf-m hide" placeholder="Motivo do problema (obrigatório) — ex.: vencida, falta o verso">'
+      + '<input class="conf-obs" placeholder="Observação (opcional)">'
+      + '<div class="conf-em"></div>';
+    card.appendChild(box);
+    box.querySelectorAll('.conf-st button').forEach(b=>b.addEventListener('click', ()=>confMarcar(card, b.dataset.s)));
+    box.querySelector('.conf-m').addEventListener('input', e=>confTexto(card, 'm', e.target.value));
+    box.querySelector('.conf-obs').addEventListener('input', e=>confTexto(card, 'obs', e.target.value));
+    confPintar(card);
+  });
+  confAtualizar();
+}
+function confPintar(card){
+  const r = CONF[card.dataset.ck] || {}, st = r.s || '', box = card.querySelector('.conf'); if(!box) return;
+  box.querySelectorAll('.conf-st button').forEach(b=>b.classList.toggle('on', b.dataset.s===st));
+  const m = box.querySelector('.conf-m');
+  m.classList.toggle('hide', st!=='erro'); m.value = r.m || ''; m.classList.toggle('bad', st==='erro' && !(r.m||'').trim());
+  box.querySelector('.conf-obs').value = r.obs || '';
+  box.querySelector('.conf-em').textContent = r.em ? ((st==='ok'?'Conferido':st==='erro'?'Marcado com problema':'Atualizado')+' em '+r.em) : '';
+  card.classList.toggle('conf-ok', st==='ok'); card.classList.toggle('conf-erro', st==='erro');
+}
+function confMarcar(card, st){
+  const k = card.dataset.ck, r = CONF[k] || {};
+  r.s = st; r.em = new Date().toLocaleString('pt-BR').slice(0,17);
+  CONF[k] = r;
+  if(!r.s && !r.m && !r.obs && !r.off) delete CONF[k];
+  confPintar(card); confAtualizar(); procAutoSave();
+  if(st==='erro'){ const m = card.querySelector('.conf-m'); if(m && !m.value) m.focus(); }
+}
+function confTexto(card, campo, v){
+  const k = card.dataset.ck, r = CONF[k] || {s:''};
+  r[campo] = v; CONF[k] = r;
+  if(campo==='m') card.querySelector('.conf-m').classList.toggle('bad', r.s==='erro' && !v.trim());
+  if(!r.s && !r.m && !r.obs && !r.off) delete CONF[k];
+  confAtualizar(); procAutoSave();
+}
+function confDocs(){ return [...document.querySelectorAll('#slides .doc')].filter(c=>!c.classList.contains('off') && c.dataset.ck); }
+function confAtualizar(){
+  const slides = document.getElementById('slides'); if(!slides) return;
+  let bar = document.getElementById('confbar');
+  const docs = confDocs();
+  if(!docs.length){ if(bar) bar.remove(); return; }
+  if(!bar){
+    bar = document.createElement('div'); bar.id = 'confbar'; bar.className = 'confbar no-print';
+    const pb = slides.querySelector('.printbar');
+    if(pb) pb.insertAdjacentElement('afterend', bar); else slides.prepend(bar);
+  }
+  let ok=0, erro=0, semMotivo=0;
+  docs.forEach(c=>{ const r = CONF[c.dataset.ck]||{}; if(r.s==='ok') ok++; else if(r.s==='erro'){ erro++; if(!(r.m||'').trim()) semMotivo++; } });
+  const tot = docs.length, pend = tot - ok - erro, pct = Math.round(ok*100/tot);
+  bar.classList.toggle('completa', ok===tot);
+  bar.innerHTML = '<div class="cb-txt">'
+    + (ok===tot ? '<b>✅ Documentação completa — pronta para enviar à HS</b>' : '<b>Conferência: '+ok+' de '+tot+' documentos ('+pct+'%)</b>')
+    + '<br>✅ '+ok+' recebidos OK · ⚠️ '+erro+' com problema · ⏳ '+pend+' pendentes'
+    + '<div class="cb-barra"><span style="width:'+pct+'%"></span></div>'
+    + (semMotivo ? '<div class="cb-aviso">'+semMotivo+' documento(s) com problema sem o motivo preenchido.</div>' : '')
+    + (!PROC_ATUAL ? '<div class="cb-aviso">⚠️ Nenhum processo aberto: a conferência não fica salva. Crie ou abra o processo na aba 🗂 Processos.</div>' : '')
+    + '</div>'
+    + ((erro||pend) ? '<button class="btn btn-coral" onclick="pendAbrir()">📋 Mensagem de pendências</button>' : '');
+}
+function pendAbrir(){
+  const nome = (document.getElementById('p_nome').value||'').trim().split(/\s+/)[0] || '[Nome]';
+  const linha = c => {
+    const t = (c.querySelector('h4 span[contenteditable]')||{}).textContent.trim();
+    const p = ((c.querySelector('.pessoa')||{}).textContent||'').trim();
+    return t + (p ? ' ('+p+')' : '');
+  };
+  const erros = [], pends = [];
+  confDocs().forEach(c=>{
+    const r = CONF[c.dataset.ck]||{};
+    if(r.s==='erro') erros.push('• ' + linha(c) + ((r.m||'').trim() ? ': ' + r.m.trim() : '') + ((r.obs||'').trim() ? ' — ' + r.obs.trim() : ''));
+    else if(r.s!=='ok') pends.push('• ' + linha(c) + ((r.obs||'').trim() ? ' — ' + r.obs.trim() : ''));
+  });
+  let t = 'Olá, ' + nome + '! Tudo bem?\n\nConferimos os documentos enviados até agora. Para darmos andamento ao processo, ainda precisamos do seguinte:\n';
+  if(erros.length) t += '\n⚠️ Precisam ser reenviados:\n' + erros.join('\n') + '\n';
+  if(pends.length) t += '\n📄 Ainda não recebidos:\n' + pends.join('\n') + '\n';
+  t += '\nAssim que enviar, fazemos a conferência e seguimos com o processo. Qualquer dúvida, estamos à disposição.';
+  document.getElementById('pend_txt').value = t;
+  document.getElementById('pendModalBackdrop').classList.add('open');
+}
+function pendFechar(){ document.getElementById('pendModalBackdrop').classList.remove('open'); }
+function pendCopiar(btn){
+  const ta = document.getElementById('pend_txt');
+  const fim = () => { btn.textContent = '✓ Copiada'; setTimeout(()=>btn.textContent='Copiar mensagem', 1800); };
+  if(navigator.clipboard) navigator.clipboard.writeText(ta.value).then(fim, ()=>{ ta.select(); document.execCommand('copy'); fim(); });
+  else { ta.select(); document.execCommand('copy'); fim(); }
 }
 function selTodas(incluir){
   document.querySelectorAll('#slides .slide').forEach(s=>{
@@ -2926,6 +3078,7 @@ function coletarForm(){
     v:{bem:g('v_bem').value, cond:chipVals('v_cond')[0]||'usado', vendpj:g('v_vendpj').checked, temproc:g('v_temproc').checked, procnome:g('v_procnome').value, id:g('v_id').value},
     fin:{parcela:g('f_parcela').value, seguro:g('f_seguro').value, renda:g('f_renda').value, fundo:g('f_fundo').value, valbem:g('f_valbem').value},
     neg: NEG,
+    conf: CONF,
     preTexto: g('pre_texto').value,
   };
 }
@@ -2968,6 +3121,7 @@ function aplicarForm(o){
   g('v_temproc').checked=!!o.v.temproc; document.getElementById('v_proc_wrap').classList.toggle('hide', !o.v.temproc); g('v_procnome').value=o.v.procnome||'';
   if(o.fin){ g('f_parcela').value=o.fin.parcela||''; g('f_seguro').value=o.fin.seguro||''; g('f_renda').value=o.fin.renda||''; g('f_fundo').value=o.fin.fundo||''; g('f_valbem').value=o.fin.valbem||''; }
   if(o.neg && Array.isArray(o.neg.pessoas)) NEG = o.neg;
+  CONF = (o.conf && typeof o.conf==='object') ? o.conf : {};
   if(typeof o.preTexto==='string') g('pre_texto').value=o.preTexto;
   negRender();
   onFormChange();
@@ -3075,6 +3229,17 @@ procBadge(); procRender();
   };
 </script>
 
+<div id="pendModalBackdrop" onclick="if(event.target===this)pendFechar()">
+  <div id="pendModal" role="dialog" aria-modal="true" aria-label="Mensagem de pendências">
+    <h3>📋 Mensagem de pendências</h3>
+    <p class="hint">Montada com os documentos marcados como “Com problema” (com o motivo) e os que ainda estão pendentes. Revise antes de enviar.</p>
+    <textarea id="pend_txt"></textarea>
+    <div class="acoes">
+      <button class="btn btn-light" onclick="pendFechar()">Fechar</button>
+      <button class="btn btn-coral" onclick="pendCopiar(this)">Copiar mensagem</button>
+    </div>
+  </div>
+</div>
 <div id="tipoModalBackdrop">
   <div id="tipoModal">
     <h3 id="tipoModalTitulo">Novo processo</h3>
