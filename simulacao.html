@@ -923,7 +923,8 @@ function parseCSV(text){
   if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
   return rows.map(r => r.map(c => c.trim()));
 }
-function semAcento(t){ return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); }
+// Sem acento, minúsculo; quebra de linha e espaços repetidos viram um espaço (o cabeçalho da planilha tem quebra de linha)
+function semAcento(t){ return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').toLowerCase().trim(); }
 
 // Posição de cada coluna pelo NOME do cabeçalho (a ordem das colunas deixa de importar).
 // Fidelidades: qualquer coluna "Fidelidade N" / "Fid N". Meses e % opcionais no próprio cabeçalho:
@@ -932,7 +933,7 @@ function mapearCabecalho(cab){
   const m = {fids:{}};
   cab.forEach((h, i) => {
     const t = semAcento(h);
-    const f = t.match(/^fid(?:elidade)?\.?\s*(\d+)(.*)$/);
+    const f = t.match(/^fid(?:elidade)?\.?\s*(\d+)([\s\S]*)$/);
     if (f) {
       const resto = f[2];
       const mm = resto.match(/(\d+)\s*m(?:es|eses)?\b/);
