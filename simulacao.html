@@ -161,6 +161,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:
 .narrativa-box{background:#f6f8fa;border-radius:6px;padding:8px 12px;font-size:11px;color:#1e3460;line-height:1.6;text-align:center;margin-bottom:4px}
 
 /* RODAPÉ */
+.data-simulacao{margin-top:2px;font-size:8.5px;color:#999}
 .rodape{padding-top:8px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #dde;font-size:9px;color:#999;margin-top:auto}
 .assinatura-linha{border-bottom:1px solid #1a2e4a;width:150px;margin-bottom:3px;height:18px}
 .assinatura-nome{font-size:11px;font-weight:700;color:#2d3748}
@@ -327,7 +328,7 @@ body.auth-pending > *:not(#auth-overlay){visibility:hidden!important}
       <div class="field"><label for="f-credito">Crédito (R$)</label><input id="f-credito" type="text" data-moeda inputmode="decimal" autocomplete="off" placeholder="Ex.: 150.000,00"></div>
       <div class="row">
         <div class="field"><label for="f-andamento">Andamento (meses)</label><input id="f-andamento" type="number" inputmode="numeric" placeholder="Ex.: 15" oninput="onAndamento()"></div>
-        <div class="field"><label for="f-pct-pago">% já pago</label><input id="f-pct-pago" type="text" data-pct="3" inputmode="decimal" autocomplete="off" placeholder="Ex.: 2,795"></div>
+        <div class="field"><label for="f-pct-pago">% já pago</label><input id="f-pct-pago" type="text" data-pct="4" inputmode="decimal" autocomplete="off" placeholder="Ex.: 2,7950"></div>
       </div>
       <div class="field"><label for="f-aditivos">Termos aditivos (R$)</label><input id="f-aditivos" type="text" data-moeda inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
     </div>
@@ -437,7 +438,7 @@ body.auth-pending > *:not(#auth-overlay){visibility:hidden!important}
 
     <!-- RODAPÉ -->
     <div class="rodape">
-      <p>* Administradora: HS Consórcios</p>
+      <div><p>* Administradora: HS Consórcios</p><p class="data-simulacao" id="p-data-sim"></p></div>
       <div style="text-align:right">
         <div class="assinatura-linha"></div>
         <div id="p-assinatura" class="assinatura-nome">Fhellype Novello Resner</div>
@@ -510,8 +511,25 @@ function onAndamento(){
   if(!credito)return;
   const pctPP = (1+taxa)/d.prazo/2;
   const pctPago = pctPP*and*100;
-  document.getElementById('f-pct-pago').value = MoedaBR.fmtPct(pctPago, 3);
+  document.getElementById('f-pct-pago').value = MoedaBR.fmtPct(pctPago, 4);
 }
+
+// ===== NOME DO PDF =====
+// Ao salvar em PDF, o navegador usa o título da página como nome do arquivo:
+// "Simulação – Nome do Cliente – Grupo 1189 Cota 0042"
+const TITULO_PADRAO = 'Simulação de Contemplação – Redecon';
+function tituloPDF(){
+  const limpa = t => String(t||'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim();
+  const nome = limpa(document.getElementById('f-nome').value);
+  const grupo = limpa(document.getElementById('f-grupo').value);
+  const cota = limpa(document.getElementById('f-cota').value);
+  const partes = ['Simulação'];
+  if (nome) partes.push(nome);
+  const gc = (grupo ? 'Grupo ' + grupo : '') + (cota ? (grupo ? ' ' : '') + 'Cota ' + cota : '');
+  if (gc) partes.push(gc);
+  return partes.length > 1 ? partes.join(' – ') : TITULO_PADRAO;
+}
+window.addEventListener('beforeprint', () => { document.title = tituloPDF(); });
 
 // ===== CALCULAR =====
 function calcular(){
@@ -549,12 +567,16 @@ function calcular(){
   // Badges
   const nome = document.getElementById('f-nome').value||'—';
   const cota = document.getElementById('f-cota').value||'—';
+
+  // Data da simulação (rodapé) e nome sugerido do PDF
+  document.getElementById('p-data-sim').textContent = 'Simulação feita em ' + new Date().toLocaleDateString('pt-BR');
+  document.title = tituloPDF();
   const bem = d.bem==='imovel'?'Imóvel':'Automóvel';
   document.getElementById('p-badges').innerHTML = `
     <div class="info-bloco"><div class="info-label">Cliente</div><div class="info-valor">${nome}</div></div>
     <div class="info-bloco"><div class="info-label">Grupo · Cota</div><div class="info-valor">${g} · ${cota}</div></div>
     <div class="info-bloco"><div class="info-label">Bem</div><div class="info-valor">${bem}</div></div>
-    <div class="info-bloco"><div class="info-label">Crédito</div><div class="info-valor">${fmt(credito)}</div></div>
+    <div class="info-bloco"><div class="info-label">Crédito atual</div><div class="info-valor">${fmt(credito)}</div></div>
     <div class="info-bloco"><div class="info-label">Referência</div><div class="info-valor">${MESES[mes]}/${ano}</div></div>`;
 
   // Calcula modalidades
