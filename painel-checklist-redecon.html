@@ -290,8 +290,7 @@
     .doc,.custa{box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .doc.off,.custa.off{display:none}
     .doc [contenteditable]:focus{outline:none}
-    body.only-cons #bl_vend{display:none !important}
-    body.only-vend #bl_cons{display:none !important}
+    body.print-one #slides .bl:not(.print-alvo){display:none !important}
     .slide.excl,.sl-toggle,.sl-ctrl{display:none !important}
   }
   .printbar{max-width:960px;margin:0 auto 18px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
@@ -463,14 +462,14 @@
         <span class="chip on" data-v="completo">Processo completo</span>
         <span class="chip" data-v="avulso">Checklist avulso</span>
       </div>
-      <div class="hint">Avulso: emite só o checklist de uma parte (devedor solidário, anuente, vendedor ou cônjuge) para complementar um processo já em andamento.</div>
+      <div class="hint">Avulso: emite só o checklist de uma parte (consorciado, devedor solidário, anuente, vendedor ou cônjuge) para complementar um processo já em andamento.</div>
     </div>
   </div>
 
   <div class="sec hide" id="sec_avulso">
     <h2><span class="dot"></span>Checklist avulso</h2>
     <div class="body">
-      <div class="field"><label>Nome do cliente (consorciado do processo)</label><input type="text" id="a_cliente" placeholder="Ex.: João da Silva"></div>
+      <div class="field"><label id="a_cliente_label">Nome do cliente (consorciado do processo)</label><input type="text" id="a_cliente" placeholder="Ex.: João da Silva"></div>
       <div class="inline">
         <div class="field" style="flex:1"><label>Grupo</label><input type="text" id="a_grupo" placeholder="Ex.: 1234"></div>
         <div class="field" style="flex:1"><label>Cota</label><input type="text" id="a_cota" placeholder="Ex.: 567"></div>
@@ -478,14 +477,43 @@
       <div class="field">
         <label>Tipo de parte</label>
         <select id="a_parte">
-          <option value="devedor">Devedor solidário</option>
+          <option value="consorciado">Consorciado</option>
+          <option value="devedor" selected>Devedor solidário</option>
           <option value="anuente">Anuente</option>
           <option value="vendedor">Vendedor (PF)</option>
           <option value="conjuge">Cônjuge / companheiro(a)</option>
         </select>
       </div>
-      <div class="field"><label>Nome da pessoa</label><input type="text" id="a_nome" placeholder="Nome"></div>
-      <div class="field">
+      <div class="field hide" id="a_tipo_wrap">
+        <label>Consorciado</label>
+        <div class="chips" id="a_tipo">
+          <span class="chip on" data-v="pf">Pessoa física</span>
+          <span class="chip" data-v="pj">Pessoa jurídica</span>
+        </div>
+      </div>
+      <div class="field hide" id="a_pj_bloco">
+        <label>Regime tributário</label>
+        <select id="a_pj_regime">
+          <option value="simples">Simples Nacional</option>
+          <option value="simei">MEI / SIMEI</option>
+          <option value="outro">Lucro Presumido / Real (outros)</option>
+        </select>
+        <label style="margin-top:10px">Seguro prestamista</label>
+        <select id="a_pj_seguro">
+          <option value="excluir">Não optar — Termo de exclusão (sócio administrador)</option>
+          <option value="incluir">Optar — Termo de indicação de sócio + DPS do sócio</option>
+        </select>
+        <div class="field hide" id="a_pj_sociodps_wrap" style="margin-top:10px"><label>Sócio indicado para a DPS</label><input type="text" id="a_pj_sociodps" placeholder="Nome do sócio"></div>
+        <label style="margin-top:10px">Sócios (separe por vírgula)</label>
+        <input type="text" id="a_pj_socios" placeholder="Ex.: Fulano de Tal, Ciclana de Tal">
+        <div class="hint">Os documentos pessoais saem para cada sócio. A empresa deve possuir no mínimo 1 ano de abertura.</div>
+      </div>
+      <div class="field hide" id="a_cons_opts">
+        <label class="switch"><input type="checkbox" id="a_bancarios"> Consorciado recebe o valor (construção, reforma, ampliação ou reembolso) — incluir dados bancários</label>
+        <label class="switch" style="margin-top:7px"><input type="checkbox" id="a_semrenda"> Renda comprovada pelo devedor solidário — não incluir renda do consorciado</label>
+      </div>
+      <div class="field" id="a_nome_wrap"><label>Nome da pessoa</label><input type="text" id="a_nome" placeholder="Nome"></div>
+      <div class="field" id="a_ec_wrap">
         <label>Estado civil</label>
         <select id="a_ec">
           <option value="solteiro">Solteiro(a)</option>
@@ -507,7 +535,7 @@
         <label class="switch" style="margin-top:7px"><input type="checkbox" id="a_pre77"> Casamento anterior a Dez/1977</label>
       </div>
       <div class="field" id="a_rendas_wrap">
-        <label>Fontes de renda (devedor solidário / cônjuge que compõe renda)</label>
+        <label id="a_rendas_label">Fontes de renda (devedor solidário / cônjuge que compõe renda)</label>
         <div class="chips renda" id="a_rendas">
           <span class="chip" data-v="clt">CLT / Assalariado</span>
           <span class="chip" data-v="publico">Funcionário público</span>
@@ -833,7 +861,7 @@ function chipsInit(id, single){
   });
 }
 function chipVals(id){ return [...document.querySelectorAll('#'+id+' .chip.on')].map(c=>c.dataset.v); }
-chipsInit('p_utz'); chipsInit('c_tipo', true); chipsInit('c_rendas'); chipsInit('cj_rendas'); chipsInit('i_tipo', true); chipsInit('modo', true); chipsInit('v_cond', true); chipsInit('v_utz', true); chipsInit('emissao', true); chipsInit('a_rendas'); chipsInit('a_cjrendas');
+chipsInit('p_utz'); chipsInit('c_tipo', true); chipsInit('c_rendas'); chipsInit('cj_rendas'); chipsInit('i_tipo', true); chipsInit('modo', true); chipsInit('v_cond', true); chipsInit('v_utz', true); chipsInit('emissao', true); chipsInit('a_rendas'); chipsInit('a_cjrendas'); chipsInit('a_tipo', true);
 
 const ECs = {solteiro:'Solteiro(a)',solteiro_ue:'Solteiro(a) c/ união estável',casado:'Casado(a)',divorciado:'Divorciado(a)',viuvo:'Viúvo(a)'};
 const UTZ_LABEL = {aquisicao:'Aquisição de Imóvel',construcao:'Construção',ampliacao:'Ampliação',reforma:'Reforma',quit_propria:'Quitação de Financiamento',quit_terceiro:'Quitação de Financiamento de Terceiro',reembolso:'Reembolso de Aquisição'};
@@ -876,11 +904,23 @@ function onFormChange(){
   /* campos do avulso */
   const aParte = document.getElementById('a_parte').value;
   const aEc = document.getElementById('a_ec').value;
-  document.getElementById('a_cj_wrap').classList.toggle('hide', !(aEc==='casado'||aEc==='solteiro_ue'));
-  document.getElementById('a_regime_wrap').classList.toggle('hide', !(aEc==='casado' && modo==='imovel'));
-  document.getElementById('a_rendas_wrap').classList.toggle('hide', !(aParte==='devedor'||aParte==='conjuge'));
+  const aCons = aParte==='consorciado';
+  const aPJ = aCons && (chipVals('a_tipo')[0]||'pf')==='pj';
+  const aTemCj = !aPJ && (aEc==='casado'||aEc==='solteiro_ue');
+  const aConsRenda = aCons && !aPJ && !document.getElementById('a_semrenda').checked;   /* consorciado PF que comprova renda */
+  document.getElementById('a_tipo_wrap').classList.toggle('hide', !aCons);
+  document.getElementById('a_pj_bloco').classList.toggle('hide', !aPJ);
+  document.getElementById('a_pj_sociodps_wrap').classList.toggle('hide', document.getElementById('a_pj_seguro').value!=='incluir');
+  document.getElementById('a_cons_opts').classList.toggle('hide', !aCons);
+  document.getElementById('a_nome_wrap').classList.toggle('hide', aCons);
+  document.getElementById('a_ec_wrap').classList.toggle('hide', aPJ);
+  document.getElementById('a_cliente_label').textContent = aCons ? (aPJ ? 'Razão social da empresa consorciada' : 'Nome do consorciado') : 'Nome do cliente (consorciado do processo)';
+  document.getElementById('a_rendas_label').textContent = aCons ? 'Fontes de renda do consorciado' : 'Fontes de renda (devedor solidário / cônjuge que compõe renda)';
+  document.getElementById('a_cj_wrap').classList.toggle('hide', !aTemCj);
+  document.getElementById('a_regime_wrap').classList.toggle('hide', !(aTemCj && aEc==='casado' && modo==='imovel'));
+  document.getElementById('a_rendas_wrap').classList.toggle('hide', !(aParte==='devedor'||aParte==='conjuge'||aConsRenda));
   document.getElementById('a_emp_wrap').classList.toggle('hide', !chipVals('a_rendas').includes('empresario'));
-  document.getElementById('a_cjrenda_bloco').classList.toggle('hide', !(aParte==='devedor' && (aEc==='casado'||aEc==='solteiro_ue')));
+  document.getElementById('a_cjrenda_bloco').classList.toggle('hide', !((aParte==='devedor'||aConsRenda) && aTemCj));
   document.getElementById('a_cjrendas_wrap').classList.toggle('hide', !document.getElementById('a_cjrenda_on').checked);
   document.getElementById('a_cjemp_wrap').classList.toggle('hide', !chipVals('a_cjrendas').includes('empresario'));
   document.getElementById('hint_utz').textContent =
@@ -900,7 +940,7 @@ function onFormChange(){
   document.getElementById('cj_rendas_wrap').classList.toggle('hide', !document.getElementById('cj_renda_on').checked);
   document.getElementById('cj_emp_wrap').classList.toggle('hide', !chipVals('cj_rendas').includes('empresario'));
 }
-['c_ec','cj_renda_on','v_bem','a_parte','a_ec','a_cjrenda_on','pj_seguro'].forEach(id=>document.getElementById(id).addEventListener('change', onFormChange));
+['c_ec','cj_renda_on','v_bem','a_parte','a_ec','a_cjrenda_on','pj_seguro','a_semrenda','a_pj_seguro'].forEach(id=>document.getElementById(id).addEventListener('change', onFormChange));
 document.getElementById('pj_socios').addEventListener('input', e=>{ if(e.target.classList.contains('f_nome')) dpsSociosSync(); });
 document.getElementById('i_cond').addEventListener('change', ()=>{
   document.getElementById('i_condnome_wrap').classList.toggle('hide', document.getElementById('i_cond').value==='nao');
@@ -1381,10 +1421,14 @@ function slideObsResumoAvulso(modo){
     </div>`;
   }
   let rendaHtml='';
-  if(renda){
-    const aDev = document.getElementById('a_parte').value==='devedor';
+  const aParte = document.getElementById('a_parte').value;
+  /* renda mínima só para quem comprova renda: devedor, cônjuge ou consorciado sem devedor solidário (vendedor e anuente não) */
+  const comprovaRenda = aParte==='devedor' || aParte==='conjuge' || (aParte==='consorciado' && !document.getElementById('a_semrenda').checked);
+  if(renda && comprovaRenda){
+    const aDev = aParte==='devedor';
     const aEc = document.getElementById('a_ec').value;
-    rendaHtml = rendaFinbox(renda, aDev ? nomesDevedorAvulso() : '', aDev && (aEc==='casado'||aEc==='solteiro_ue') && document.getElementById('a_cjrenda_on').checked);
+    const aPJ = aParte==='consorciado' && (chipVals('a_tipo')[0]||'pf')==='pj';
+    rendaHtml = rendaFinbox(renda, aDev ? nomesDevedorAvulso() : '', !aPJ && (aParte==='devedor'||aParte==='consorciado') && (aEc==='casado'||aEc==='solteiro_ue') && document.getElementById('a_cjrenda_on').checked);
   }
   if(!obsHtml && !rendaHtml) return '';
   const titulo = obsHtml ? 'Observações e resumo do processo' : 'Resumo do processo';
@@ -1446,7 +1490,7 @@ function gerar(){
   let html = '';
 
   /* ---------- BLOCO CONSORCIADO ---------- */
-  html += '<div id="bl_cons">';
+  html += '<div class="bl" id="bl_cons">';
   html += slideCapa('Orientação para uso de crédito', tituloUtz, nomeCapa, 'Consorciado', creditoLinha);
 
   const cTipo = chipVals('c_tipo')[0]||'pf';
@@ -1509,8 +1553,6 @@ function gerar(){
     }
   }
 
-  /* devedores solidários */
-  [...document.querySelectorAll('#devs .subcard')].forEach(dv=>{ html += devSlides(dv, 'imovel'); });
 
   /* ---------- IMÓVEL (bloco correto) ---------- */
   const iTipo = chipVals('i_tipo')[0]||'urbano';
@@ -1619,13 +1661,16 @@ function gerar(){
   custas.push(['Certificado digital ICP-Brasil de Pessoa Física (caso não tenha)','Obrigatório para todas as partes que assinarão o contrato.']);
   custas.push(['Seguro do imóvel','Após a emissão do laudo de engenharia, será avaliada a necessidade da contratação. Caso o laudo indique a obrigatoriedade, a exigência será incluída no contrato.']);
   html += slideCustas(custas);
-  html += slideResumoFin('imovel');
+  html += slideResumoFin('imovel', false, temDevedorSolidario());
   html += slideFinal();
   html += '</div>';
 
+  /* ---------- BLOCOS DOS DEVEDORES SOLIDÁRIOS (um PDF por devedor) ---------- */
+  [...document.querySelectorAll('#devs .subcard')].forEach((dv,i)=>{ html += devBloco(dv, i, 'imovel', tituloUtz, creditoLinha); });
+
   /* ---------- BLOCO VENDEDORES ---------- */
   if(temVend){
-    html += '<div id="bl_vend">';
+    html += '<div class="bl" id="bl_vend">';
     const vends = [...document.querySelectorAll('#vends .subcard')];
     const nomesV = vends.map(v=>{
         if(v.querySelector('.f_tipo').value==='pf'){
@@ -1732,13 +1777,7 @@ function gerar(){
   /* barra de emissão: PDFs separados quando há vendedores */
   let bar = '<div class="printbar no-print">';
   bar += `<button class="btn btn-light" onclick="selTodas(true)">\u2713 Incluir todas</button><button class="btn btn-light" onclick="selTodas(false)">\u2715 Excluir todas</button>`;
-  if(temVend){
-    bar += `<button class="btn btn-coral" onclick="printBloco('cons','${nomeCapa.replace(/'/g,'')}')">🖨 PDF do consorciado</button>`;
-    bar += `<button class="btn btn-coral" onclick="printBloco('vend','Vendedores')">🖨 PDF dos vendedores</button>`;
-    bar += `<button class="btn btn-light" onclick="printBloco('tudo','${nomeCapa.replace(/'/g,'')}')">Imprimir tudo</button>`;
-  } else {
-    bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeCapa.replace(/'/g,'')}')">🖨 Imprimir / Salvar PDF</button>`;
-  }
+  bar += barraPDFs(nomeCapa, temVend ? ['PDF dos vendedores','Vendedores'] : null);
   bar += `<button class="btn btn-light" onclick="criarProcessoNoAcompanhamento('imovel', this)">🗂️ Criar processo no acompanhamento</button>`;
   if(utz.includes('aquisicao')) bar += `<button class="btn btn-light" onclick="abrirTermoOpcao()">📝 Gerar Termo de Opção</button>`;
   if(dpsDisponivel()) bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
@@ -2027,10 +2066,93 @@ function devSlides(dv, modo){
   if(cardsR.length) h += slideCards('Devedor solidário — Comprovação de renda', cjCompoe?rotComp:rot, cardsR);
   return h;
 }
-const PARTE_LABEL = {devedor:'Devedor solidário', anuente:'Anuente', vendedor:'Vendedor', conjuge:'Cônjuge'};
+const PARTE_LABEL = {consorciado:'Consorciado', devedor:'Devedor solidário', anuente:'Anuente', vendedor:'Vendedor', conjuge:'Cônjuge'};
+/* Avulso do consorciado (PF ou PJ): documentos pessoais / da empresa e renda — sem imóvel, veículo ou vendedor.
+   Mesmas regras do checklist completo: DPS na PF; na PJ depende do seguro prestamista; renda some quando é comprovada pelo devedor. */
+function gerarAvulsoConsorciado(){
+  const g = id => document.getElementById(id);
+  const modo = chipVals('modo')[0]||'imovel';
+  const veic = modo==='veiculo';
+  const pj = (chipVals('a_tipo')[0]||'pf')==='pj';
+  const nome = g('a_cliente').value.trim() || (pj ? '[Empresa]' : '[Consorciado]');
+  const grupo = g('a_grupo').value.trim(), cota = g('a_cota').value.trim();
+  const gc = (grupo||cota) ? `Grupo ${grupo||'—'} — Cota ${cota||'—'}` : '';
+  const recebe = g('a_bancarios').checked;
+  const semRenda = g('a_semrenda').checked;
+  let html = '<div class="bl" id="bl_cons">';
+  let nomeCapa = nome;
+  if(!pj){
+    const ec = g('a_ec').value;
+    const temCj = ec==='casado'||ec==='solteiro_ue';
+    const cjNome = temCj ? (g('a_cjnome').value.trim()||'[Cônjuge]') : '';
+    const pacto = !veic && ec==='casado' && precisaPacto(g('a_regime').value, g('a_pre77').checked);
+    const docs = veic ? docsPessoaisVeic(ec, {dps:true, bancarios:recebe}) : docsPessoais(ec, {dps:true, pacto, bancarios:recebe});
+    const cards = docs.map(d=>({t:d[0], d:d[1], pessoa:nome}));
+    if(temCj){
+      if(ec==='casado') cards.push({t:T.casamento[0], d:T.casamento[1], pessoa:cjNome});
+      else if(!veic){ cards.push({t:T.nasc[0], d:T.nasc[1], pessoa:cjNome}); cards.push({t:T.escUE[0], d:T.escUE[1], pessoa:cjNome}); }
+      cards.push({t:T.cnh[0], d:T.cnh[1], pessoa:cjNome});
+      if(!veic) cards.push({t:T.residencia[0], d:T.residencia[1], pessoa:cjNome});
+      cards.push({t:T.dados[0], d:T.dados[1], pessoa:cjNome});
+    }
+    nomeCapa = temCj ? nome+' e '+cjNome : nome;
+    html += slideCapa('Checklist complementar', 'Consorciado', nomeCapa, '', gc);
+    html += slideCards('Documentos pessoais', nomeCapa, cards);
+    if(!semRenda){
+      const cardsR = docsRenda(chipVals('a_rendas'), g('a_emp_regime').value).map(d=>({t:d[0], d:d[1], pessoa:nome}));
+      const cjOn = temCj && g('a_cjrenda_on').checked;
+      if(cjOn) docsRenda(chipVals('a_cjrendas'), g('a_cjemp_regime').value).forEach(d=>cardsR.push({t:d[0], d:d[1], pessoa:cjNome}));
+      if(cardsR.length) html += slideCards('Comprovação de renda', cjOn ? nomeCapa : nome, cardsR);
+    }
+  } else {
+    const cardsE = [];
+    if(g('a_pj_seguro').value==='incluir'){
+      const sd = g('a_pj_sociodps').value.trim();
+      cardsE.push({t:'Termo de indicação de sócio', d:'Indicação do sócio que assinará a DPS do seguro prestamista.', pessoa:nome});
+      cardsE.push({t:'Declaração de saúde (DPS)', d:'Em nome do sócio indicado'+(sd?' ('+confEsc(sd)+')':'')+'. Será emitida pela Redecon e encaminhada para assinatura.', pessoa:nome});
+    } else cardsE.push({t:'Exclusão do seguro prestamista', d:'Será emitido pela Redecon e enviado para assinatura do sócio administrador.', pessoa:nome});
+    cardsE.push({t:'Certidão simplificada da Junta Comercial', d:'Atualizada — validade de 30 dias.', pessoa:nome});
+    cardsE.push({t:'Contrato Social ou Consolidação', d:'Com as alterações posteriores, se houver. Via eletrônica ou desmaterializada.', pessoa:nome});
+    if(!veic){
+      cardsE.push({t:'Estatuto social e alterações', d:'Se houver.', pessoa:nome});
+      cardsE.push({t:'Certidão do Registro Civil de Pessoas Jurídicas', d:'Atualizada, constando as alterações, caso a empresa tenha registro nesse órgão.', pessoa:nome});
+    }
+    if(recebe) cardsE.push({t:T.bancarios[0], d:'Foto do cartão, print da conta ou talão de cheque constando: nome da empresa, banco, agência e nº da conta.'+(veic?' A conta deve estar em nome da empresa consorciada — o reembolso é pago a ela.':''), pessoa:nome});
+    cardsE.push({t:'Dados da empresa', d:veic ? 'Informar telefone e e-mail da PJ.' : 'Informar telefone e e-mail da PJ (diferente do PF).', pessoa:nome});
+    html += slideCapa('Checklist complementar', 'Consorciado', nome, '', gc);
+    html += slideCards('Documentos da empresa', nome + ' — empresa com no mínimo 1 ano de abertura', cardsE);
+    if(!semRenda) html += slideCards('Comprovação de renda da empresa', nome, PJ_RENDA[g('a_pj_regime').value].map(d=>({t:d[0],d:d[1],pessoa:nome})));
+    const socios = g('a_pj_socios').value.split(',').map(x=>x.trim()).filter(Boolean);
+    if(socios.length){
+      const cardsS = [];
+      socios.forEach(sn=>{
+        const ps = 'Sócio: '+sn;
+        cardsS.push({t:T.cnh[0], d:T.cnh[1], pessoa:ps});
+        cardsS.push({t:'Certidão de estado civil', d:'Certidão de casamento ou nascimento atualizada.', pessoa:ps});
+        cardsS.push({t:T.residencia[0], d:T.residencia[1], pessoa:ps});
+        cardsS.push({t:T.dados[0], d:T.dados[1], pessoa:ps});
+      });
+      html += slideCards('Documentos pessoais dos sócios', socios.length>1 ? 'Sócios: '+socios.join(' e ') : socios[0], cardsS);
+    }
+  }
+  html += slideObsResumoAvulso(modo);
+  html += slideFinal();
+  html += '</div>';
+  let bar = '<div class="printbar no-print">';
+  bar += `<button class="btn btn-light" onclick="selTodas(true)">\u2713 Incluir todas</button><button class="btn btn-light" onclick="selTodas(false)">\u2715 Excluir todas</button>`;
+  bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nomeCapa+' - Consorciado')}')">🖨 Imprimir / Salvar PDF</button>`;
+  bar += '</div>';
+  document.getElementById('vazio').style.display='none';
+  document.getElementById('slides').innerHTML = bar + html;
+  atualizarMensagensEnvio('avulso');
+  ajPosGerar();
+  procAutoSave();
+  try{ document.getElementById('slides').scrollIntoView({behavior:'smooth'}); }catch(e){}
+}
 function gerarAvulso(){
   const modo = chipVals('modo')[0]||'imovel';
   const parte = document.getElementById('a_parte').value;
+  if(parte==='consorciado') return gerarAvulsoConsorciado();
   const cliente = document.getElementById('a_cliente').value.trim()||'[Cliente]';
   const grupo = document.getElementById('a_grupo').value.trim();
   const cota = document.getElementById('a_cota').value.trim();
@@ -2075,7 +2197,7 @@ function gerarAvulso(){
 
   const nomeComposto = [nome, cjNome].filter(Boolean).join(' e ');
   const rotComposto = temCj ? rot+' e '+rotCj : rot;
-  let html = '<div id="bl_cons">';
+  let html = '<div class="bl" id="bl_cons">';
   html += slideCapa('Checklist complementar', tituloCapa, nomeComposto, papel, gc);
   html += slideCards('Documentos pessoais', rotComposto, cardsP);
 
@@ -2097,7 +2219,7 @@ function gerarAvulso(){
 
   let bar = '<div class="printbar no-print">';
   bar += `<button class="btn btn-light" onclick="selTodas(true)">\u2713 Incluir todas</button><button class="btn btn-light" onclick="selTodas(false)">\u2715 Excluir todas</button>`;
-  bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${(nome+' - '+PARTE_LABEL[parte]).replace(/'/g,'')}')">🖨 Imprimir / Salvar PDF</button>`;
+  bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nome+' - '+PARTE_LABEL[parte])}')">🖨 Imprimir / Salvar PDF</button>`;
   bar += '</div>';
   html = bar + html;
 
@@ -2127,7 +2249,7 @@ function gerarVeiculo(){
   let html = '';
 
   /* ---------- BLOCO CONSORCIADO ---------- */
-  html += '<div id="bl_cons">';
+  html += '<div class="bl" id="bl_cons">';
   html += slideCapa('Orientação para uso de crédito', titulo, nomeCapa, 'Consorciado', creditoLinha);
 
   const cTipo = chipVals('c_tipo')[0]||'pf';
@@ -2179,16 +2301,16 @@ function gerarVeiculo(){
     }
   }
 
-  /* devedores solidários (sem DPS) */
-  [...document.querySelectorAll('#devs .subcard')].forEach(dv=>{ html += devSlides(dv, 'veiculo'); });
-
   html += slideCustas(veicCustas(bem, cond));
-  html += slideResumoFin('veiculo');
+  html += slideResumoFin('veiculo', false, temDevedorSolidario());
   html += slideFinal();
   html += '</div>';
 
+  /* ---------- BLOCOS DOS DEVEDORES SOLIDÁRIOS (um PDF por devedor, sem DPS) ---------- */
+  [...document.querySelectorAll('#devs .subcard')].forEach((dv,i)=>{ html += devBloco(dv, i, 'veiculo', titulo, creditoLinha); });
+
   /* ---------- BLOCO VEÍCULO E VENDEDOR ---------- */
-  html += '<div id="bl_vend">';
+  html += '<div class="bl" id="bl_vend">';
   html += slideCapa('Orientação para uso de crédito', titulo, 'Veículo e vendedor', cond==='novo'?'Fornecedor':'', '');
   const vId = document.getElementById('v_id').value.trim();
   let docs = (reemb ? veicDocsReembolso(cond) : VEIC_DOCS[veicKey(bem, cond)]).map(d=>({t:d[0], d:d[1]}));
@@ -2211,9 +2333,7 @@ function gerarVeiculo(){
   /* barra de emissão */
   let bar = '<div class="printbar no-print">';
   bar += `<button class="btn btn-light" onclick="selTodas(true)">\u2713 Incluir todas</button><button class="btn btn-light" onclick="selTodas(false)">\u2715 Excluir todas</button>`;
-  bar += `<button class="btn btn-coral" onclick="printBloco('cons','${nomeCapa.replace(/'/g,'')}')">🖨 PDF do consorciado</button>`;
-  bar += `<button class="btn btn-coral" onclick="printBloco('vend','Veiculo e vendedor')">🖨 PDF do veículo e vendedor</button>`;
-  bar += `<button class="btn btn-light" onclick="printBloco('tudo','${nomeCapa.replace(/'/g,'')}')">Imprimir tudo</button>`;
+  bar += barraPDFs(nomeCapa, ['PDF do veículo e vendedor','Veiculo e vendedor']);
   bar += `<button class="btn btn-light" onclick="criarProcessoNoAcompanhamento('veiculo', this)">🗂️ Criar processo no acompanhamento</button>`;
   bar += `<button class="btn btn-light" onclick="abrirDadosComp()">📋 Dados complementares (HS)</button>`;
   if(dpsDisponivel()) bar += `<button class="btn btn-light" onclick="abrirDPS()">🛡️ Gerar DPS</button>`;
@@ -2901,6 +3021,15 @@ function atualizarMensagensEnvio(modo){
     });
   }
 
+  /* 3b) Junto ao PDF de cada devedor solidário */
+  [...document.querySelectorAll('#devs .subcard')].forEach(dv=>{
+    const nd = nomeCapaDevedor(dv);
+    msgs.push({
+      titulo: '📄 Junto ao PDF do devedor solidário'+(document.querySelectorAll('#devs .subcard').length>1 ? ' — '+confEsc(nd) : ''),
+      texto: 'Segue em anexo o PDF com as orientações e documentos necessários de '+confEsc(nd)+', que participará do processo de '+confEsc(nomeCliente)+' como devedor solidário. Como a renda considerada na análise será a do devedor solidário, os comprovantes de renda estão neste PDF. Pedimos que verifique o arquivo para dar andamento.'
+    });
+  });
+
   /* 4) Junto ao PDF do(s) vendedor(es) / veículo */
   if(modo==='imovel'){
     const utz = chipVals('p_utz');
@@ -3015,20 +3144,62 @@ function finBemRecalc(){
 document.getElementById('f_fundo').addEventListener('input', finBemRecalc);
 document.getElementById('p_valor').addEventListener('input', finBemRecalc);
 /* Renda mínima: com devedor solidário, quem comprova é o devedor (+ cônjuge, quando incluído) */
-function nomesDevedores(){
-  return [...document.querySelectorAll('#devs .subcard')].map(dv=>{
-    const n=(dv.querySelector('.f_nome').value||'').trim()||'Devedor solidário';
-    const ec=dv.querySelector('.f_ec').value;
-    const cjOn=(ec==='casado'||ec==='solteiro_ue') && dv.querySelector('.f_cjrenda_on')?.checked;
-    const cj=(dv.querySelector('.f_cjnome')?.value||'').trim()||'cônjuge';
-    return cjOn ? n+' e '+cj : n;
-  }).join(' e ');
+/* um devedor solidário: cônjuge compõe renda? / nome que comprova a renda (devedor + cônjuge quando compõe) */
+function devCjCompoe(dv){
+  const ec=dv.querySelector('.f_ec').value;
+  return (ec==='casado'||ec==='solteiro_ue') && !!dv.querySelector('.f_cjrenda_on')?.checked;
 }
-function devedoresComCj(){
-  return [...document.querySelectorAll('#devs .subcard')].some(dv=>{
-    const ec=dv.querySelector('.f_ec').value;
-    return (ec==='casado'||ec==='solteiro_ue') && dv.querySelector('.f_cjrenda_on')?.checked;
+function nomeRendaDevedor(dv){
+  const n=(dv.querySelector('.f_nome').value||'').trim()||'Devedor solidário';
+  const cj=(dv.querySelector('.f_cjnome')?.value||'').trim()||'cônjuge';
+  return devCjCompoe(dv) ? n+' e '+cj : n;
+}
+function nomesDevedores(){ return [...document.querySelectorAll('#devs .subcard')].map(nomeRendaDevedor).join(' e '); }
+function devedoresComCj(){ return [...document.querySelectorAll('#devs .subcard')].some(devCjCompoe); }
+/* nome que vai na capa e no botão do PDF do devedor (devedor + cônjuge, quando há) */
+function nomeCapaDevedor(dv){
+  const n=(dv.querySelector('.f_nome').value||'').trim()||'Devedor solidário';
+  const ec=dv.querySelector('.f_ec').value;
+  const cj=(dv.querySelector('.f_cjnome')?.value||'').trim();
+  return ((ec==='casado'||ec==='solteiro_ue') && cj) ? n+' e '+cj : n;
+}
+/* Bloco (PDF) próprio de cada devedor solidário: capa, documentos pessoais, renda, renda mínima e final.
+   A renda mínima sai só aqui — o PDF do consorciado não mostra renda quando há devedor (Fhellype 04/11/2026). */
+function devBloco(dv, i, modo, tituloCapa, creditoLinha){
+  let h = '<div class="bl" id="bl_dev'+i+'">';
+  h += slideCapa('Orientação para uso de crédito', tituloCapa, nomeCapaDevedor(dv), 'Devedor solidário', creditoLinha);
+  h += devSlides(dv, modo);
+  const renda = document.getElementById('f_renda').value.trim();
+  let obsHtml = '';
+  if(modo==='imovel'){
+    obsHtml = `<div class="obsbox">
+      <h4>⚠ Segurança jurídica</h4>
+      <p contenteditable="true">A administradora realizará a consulta de certidões negativas de todas as partes, inclusive do devedor solidário. As certidões precisam estar regulares no momento da análise — eventuais pendências deverão ser regularizadas antes da aprovação do cadastro.</p>
+      <p contenteditable="true">A administradora poderá solicitar documentos ou informações adicionais a qualquer momento do processo.</p>
+    </div>`;
+  }
+  const rendaHtml = renda ? rendaFinbox(renda, nomeRendaDevedor(dv), devCjCompoe(dv)) : '';
+  if(obsHtml || rendaHtml){
+    const t = obsHtml ? (rendaHtml ? 'Observações e resumo do processo' : 'Observações') : 'Resumo do processo';
+    h += `<div class="slide"><h3 class="titulo" contenteditable="true">${t}</h3>${obsHtml}${rendaHtml}</div>`;
+  }
+  if(modo==='imovel') h += slideCustas([['Certificado digital ICP-Brasil de Pessoa Física (caso não tenha)','Obrigatório para todas as partes que assinarão o contrato.']]);
+  h += slideFinal();
+  h += '</div>';
+  return h;
+}
+/* botões de PDF por bloco (consorciado, cada devedor, vendedor) */
+function barraPDFs(nomeCapa, vendBtn){
+  const devs = [...document.querySelectorAll('#devs .subcard')];
+  if(!devs.length && !vendBtn) return `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nomeCapa)}')">🖨 Imprimir / Salvar PDF</button>`;
+  let b = `<button class="btn btn-coral" onclick="printBloco('cons','${nomeArq(nomeCapa)}')">🖨 PDF do consorciado</button>`;
+  devs.forEach((dv,i)=>{
+    const n = nomeCapaDevedor(dv);
+    b += `<button class="btn btn-coral" onclick="printBloco('dev${i}','${nomeArq(n)}')">🖨 PDF do devedor solidário${devs.length>1?' — '+confEsc((dv.querySelector('.f_nome').value||'').trim()||('Devedor '+(i+1))):''}</button>`;
   });
+  if(vendBtn) b += `<button class="btn btn-coral" onclick="printBloco('vend','${nomeArq(vendBtn[1])}')">🖨 ${vendBtn[0]}</button>`;
+  b += `<button class="btn btn-light" onclick="printBloco('tudo','${nomeArq(nomeCapa)}')">Imprimir tudo</button>`;
+  return b;
 }
 function nomesDevedorAvulso(){
   const n=document.getElementById('a_nome').value.trim()||'Devedor solidário';
@@ -3046,12 +3217,14 @@ function rendaFinbox(renda, devedores, comCj){
 }
 function atualizarHintRenda(){
   const el=document.getElementById('f_renda_hint'); if(!el) return;
-  const avulsoDev = (chipVals('emissao')[0]||'completo')==='avulso' && document.getElementById('a_parte').value==='devedor';
+  const aParteH = document.getElementById('a_parte').value;
+  const avulsoDev = (chipVals('emissao')[0]||'completo')==='avulso' && (aParteH==='devedor' || (aParteH==='consorciado' && document.getElementById('a_semrenda').checked));
   const temDev = (chipVals('emissao')[0]||'completo')!=='avulso' && temDevedorSolidario();
   el.innerHTML = (temDev||avulsoDev) ? '👥 Com devedor solidário, essa renda é comprovada pelo devedor (+ cônjuge, quando incluído) — não pelo consorciado.' : '';
 }
-function slideResumoFin(modo, soRenda){
-  const renda=document.getElementById('f_renda').value.trim();
+/* semRenda: com devedor solidário a renda mínima sai no PDF do devedor, não no do consorciado */
+function slideResumoFin(modo, soRenda, semRenda){
+  const renda=semRenda ? '' : document.getElementById('f_renda').value.trim();
   const valbem=soRenda ? '' : document.getElementById('f_valbem').value.trim();
   if(!renda && !valbem) return '';
   const bemLabel = modo==='veiculo' ? 'do veículo' : 'do imóvel';
@@ -3571,7 +3744,9 @@ function coletarForm(){
     emissao: chipVals('emissao')[0]||'completo',
     a:{cliente:g('a_cliente').value, grupo:g('a_grupo').value, cota:g('a_cota').value, parte:g('a_parte').value, nome:g('a_nome').value, ec:g('a_ec').value,
        cjnome:g('a_cjnome').value, regime:g('a_regime').value, rendas:chipVals('a_rendas'), empRegime:g('a_emp_regime').value,
-       cjRendaOn:g('a_cjrenda_on').checked, cjRendas:chipVals('a_cjrendas'), cjEmp:g('a_cjemp_regime').value},
+       cjRendaOn:g('a_cjrenda_on').checked, cjRendas:chipVals('a_cjrendas'), cjEmp:g('a_cjemp_regime').value, pre77:g('a_pre77').checked,
+       tipo:chipVals('a_tipo')[0]||'pf', pjRegime:g('a_pj_regime').value, pjSeguro:g('a_pj_seguro').value, pjSocioDps:g('a_pj_sociodps').value,
+       pjSocios:g('a_pj_socios').value, bancarios:g('a_bancarios').checked, semRenda:g('a_semrenda').checked},
     p:{nome:g('p_nome').value, grupo:g('p_grupo').value, cota:g('p_cota').value, data:g('p_data').value, valor:g('p_valor').value, utz:chipVals('p_utz')},
     c:{tipo:chipVals('c_tipo')[0]||'pf', nome:g('c_nome').value, ec:g('c_ec').value, regime:g('c_regime').value, pre77:g('c_pre77').checked, rendas:chipVals('c_rendas'), empRegime:g('c_emp_regime').value},
     cj:{nome:g('cj_nome').value, rendaOn:g('cj_renda_on').checked, rendas:chipVals('cj_rendas'), empRegime:g('cj_emp_regime').value},
@@ -3607,7 +3782,9 @@ function aplicarForm(o){
   if(o.a){ const a=o.a, sv=(id,v)=>{ if(v!=null && v!=='') g(id).value=v; };   /* checklist avulso */
     g('a_cliente').value=a.cliente||''; g('a_grupo').value=a.grupo||''; g('a_cota').value=a.cota||''; sv('a_parte',a.parte); g('a_nome').value=a.nome||''; sv('a_ec',a.ec);
     g('a_cjnome').value=a.cjnome||''; sv('a_regime',a.regime); setChips('a_rendas',a.rendas||[]); sv('a_emp_regime',a.empRegime);
-    g('a_cjrenda_on').checked=!!a.cjRendaOn; setChips('a_cjrendas',a.cjRendas||[]); sv('a_cjemp_regime',a.cjEmp); } setChips('c_tipo',[o.c.tipo]); setChips('c_rendas',o.c.rendas);
+    g('a_cjrenda_on').checked=!!a.cjRendaOn; setChips('a_cjrendas',a.cjRendas||[]); sv('a_cjemp_regime',a.cjEmp);
+    g('a_pre77').checked=!!a.pre77; setChips('a_tipo',[a.tipo||'pf']); sv('a_pj_regime',a.pjRegime); sv('a_pj_seguro',a.pjSeguro);
+    g('a_pj_sociodps').value=a.pjSocioDps||''; g('a_pj_socios').value=a.pjSocios||''; g('a_bancarios').checked=!!a.bancarios; g('a_semrenda').checked=!!a.semRenda; } setChips('c_tipo',[o.c.tipo]); setChips('c_rendas',o.c.rendas);
   setChips('cj_rendas',o.cj.rendas); setChips('i_tipo',[o.i.tipo]); setChips('v_cond',[o.v.cond]); setChips('v_utz',[(o.v&&o.v.utz)||'aquisicao']);
   g('p_nome').value=o.p.nome; g('p_grupo').value=o.p.grupo||''; g('p_cota').value=o.p.cota||''; g('p_data').value=o.p.data; g('p_valor').value=MoedaBR.normalizar(o.p.valor);
   g('c_nome').value=o.c.nome; g('c_ec').value=o.c.ec; g('c_regime').value=o.c.regime; g('c_pre77').checked=o.c.pre77; g('c_emp_regime').value=o.c.empRegime;
@@ -3670,16 +3847,22 @@ function carregarProcesso(input){
   r.readAsText(f);
 }
 
+/* qual = 'tudo' ou o sufixo do bloco: 'cons', 'vend', 'dev0', 'dev1'... (div#bl_<qual>.bl) */
 function printBloco(qual, nome){
   const tituloOrig = document.title;
-  document.body.classList.remove('only-cons','only-vend');
-  if(qual==='cons'){ document.body.classList.add('only-cons'); document.title = 'Checklist - '+nome+' - Consorciado'; }
-  else if(qual==='vend'){ document.body.classList.add('only-vend'); document.title = 'Checklist - '+nome; }
-  else { document.title = 'Checklist - '+nome; }
+  const alvo = qual==='tudo' ? null : document.getElementById('bl_'+qual);
+  document.querySelectorAll('#slides .bl.print-alvo').forEach(b=>b.classList.remove('print-alvo'));
+  if(alvo){ alvo.classList.add('print-alvo'); document.body.classList.add('print-one'); }
+  if(qual==='cons') document.title = 'Checklist - '+nome+' - Consorciado';
+  else if(/^dev/.test(qual)) document.title = 'Checklist - '+nome+' - Devedor solidario';
+  else document.title = 'Checklist - '+nome;
   window.print();
-  document.body.classList.remove('only-cons','only-vend');
+  document.body.classList.remove('print-one');
+  if(alvo) alvo.classList.remove('print-alvo');
   document.title = tituloOrig;
 }
+/* nome seguro para usar dentro do onclick dos botões de PDF */
+function nomeArq(s){ return String(s||'').replace(/['"\\<>`$]/g,'').trim(); }
 
 function limparTudo(){
   if(!confirm('Limpar formulário e resultado?')) return;
