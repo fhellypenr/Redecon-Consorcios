@@ -319,6 +319,22 @@
   #tipoModal .tipo-btn .ic{font-size:24px;display:block;margin-bottom:6px}
   #tipoModal .tipo-btn:hover{border-color:var(--coral2);background:#fff7f5}
   #tipoModal .tipo-cancelar{margin-top:16px;text-align:center;font-size:12px;color:#9a9aa4;cursor:pointer;text-decoration:underline}
+  /* PDF por partes: janela de escolha das telas */
+  #partesFundo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto}
+  #partesFundo.open{display:flex}
+  #partesCx{background:#fff;border-radius:14px;max-width:620px;width:100%;padding:18px 20px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  #partesCx h3{font-size:17px;margin-bottom:4px}
+  #partesCx .pt-desc{font-size:12.5px;color:var(--muted);line-height:1.45;margin-bottom:12px}
+  #partesCx .pt-atalhos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  #partesCx .pt-atalhos button{border:1px solid var(--line);background:#fff;border-radius:18px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+  #partesCx .pt-atalhos button:hover,#partesCx .pt-atalhos button.on{border-color:var(--coral);color:var(--coral)}
+  #partesCx .pt-bloco{font-size:11px;font-weight:800;color:var(--coral);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 4px}
+  #partesCx label.pt-item{display:flex;align-items:flex-start;gap:9px;padding:6px 8px;border-radius:8px;font-size:13.5px;cursor:pointer;line-height:1.35}
+  #partesCx label.pt-item:hover{background:#f6f6f8}
+  #partesCx label.pt-item input{width:16px;height:16px;margin-top:2px;accent-color:var(--coral);flex:0 0 auto}
+  #partesCx label.pt-item small{display:block;color:var(--muted);font-size:11.5px}
+  #partesCx .pt-pe{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  @media print{#partesFundo{display:none !important}body.print-partes #slides .slide.pp-ultima{page-break-after:auto !important}}
 </style>
 <script src="moeda-br.js"></script>
 </head>
@@ -2149,7 +2165,7 @@ function gerarAvulsoConsorciado(){
   html += '</div>';
   let bar = '<div class="printbar no-print">';
   bar += `<button class="btn btn-light" onclick="selTodas(true)">\u2713 Incluir todas</button><button class="btn btn-light" onclick="selTodas(false)">\u2715 Excluir todas</button>`;
-  bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nomeCapa+' - Consorciado')}')">🖨 Imprimir / Salvar PDF</button>`;
+  bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nomeCapa+' - Consorciado')}')">🖨 Imprimir / Salvar PDF</button><button class="btn btn-light" onclick="partesAbrir('${nomeArq(nomeCapa)}')">📑 PDF por partes</button>`;
   bar += '</div>';
   document.getElementById('vazio').style.display='none';
   document.getElementById('slides').innerHTML = bar + html;
@@ -2228,7 +2244,7 @@ function gerarAvulso(){
 
   let bar = '<div class="printbar no-print">';
   bar += `<button class="btn btn-light" onclick="selTodas(true)">\u2713 Incluir todas</button><button class="btn btn-light" onclick="selTodas(false)">\u2715 Excluir todas</button>`;
-  bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nome+' - '+PARTE_LABEL[parte])}')">🖨 Imprimir / Salvar PDF</button>`;
+  bar += `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nome+' - '+PARTE_LABEL[parte])}')">🖨 Imprimir / Salvar PDF</button><button class="btn btn-light" onclick="partesAbrir('${nomeArq(nome)}')">📑 PDF por partes</button>`;
   bar += '</div>';
   html = bar + html;
 
@@ -3200,14 +3216,14 @@ function devBloco(dv, i, modo, tituloCapa, creditoLinha){
 /* botões de PDF por bloco (consorciado, cada devedor, vendedor) */
 function barraPDFs(nomeCapa, vendBtn){
   const devs = [...document.querySelectorAll('#devs .subcard')];
-  if(!devs.length && !vendBtn) return `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nomeCapa)}')">🖨 Imprimir / Salvar PDF</button>`;
+  if(!devs.length && !vendBtn) return `<button class="btn btn-coral" onclick="printBloco('tudo','${nomeArq(nomeCapa)}')">🖨 Imprimir / Salvar PDF</button><button class="btn btn-light" onclick="partesAbrir('${nomeArq(nomeCapa)}')">📑 PDF por partes</button>`;
   let b = `<button class="btn btn-coral" onclick="printBloco('cons','${nomeArq(nomeCapa)}')">🖨 PDF do consorciado</button>`;
   devs.forEach((dv,i)=>{
     const n = nomeCapaDevedor(dv);
     b += `<button class="btn btn-coral" onclick="printBloco('dev${i}','${nomeArq(n)}')">🖨 PDF do devedor solidário${devs.length>1?' — '+confEsc((dv.querySelector('.f_nome').value||'').trim()||('Devedor '+(i+1))):''}</button>`;
   });
   if(vendBtn) b += `<button class="btn btn-coral" onclick="printBloco('vend','${nomeArq(vendBtn[1])}')">🖨 ${vendBtn[0]}</button>`;
-  b += `<button class="btn btn-light" onclick="printBloco('tudo','${nomeArq(nomeCapa)}')">Imprimir tudo</button>`;
+  b += `<button class="btn btn-light" onclick="printBloco('tudo','${nomeArq(nomeCapa)}')">Imprimir tudo</button><button class="btn btn-light" onclick="partesAbrir('${nomeArq(nomeCapa)}')">📑 PDF por partes</button>`;
   return b;
 }
 function nomesDevedorAvulso(){
@@ -3898,6 +3914,111 @@ function printBloco(qual, nome){
   document.body.classList.remove('print-one');
   if(alvo) alvo.classList.remove('print-alvo');
   document.title = tituloOrig;
+}
+/* ===================== PDF POR PARTES =====================
+   Escolhe quais telas vão para um PDF avulso (ex.: só pessoais + renda, ou só os documentos da obra).
+   Vale só para aquele PDF: não mexe no Incluir/Excluída de cada tela nem fica salvo no processo.
+   Capa e tela final entram nos atalhos. Documentos já recebidos (✅ OK) continuam fora do PDF. */
+const PT_ROT_BLOCO = { cons:'Consorciado', vend:'Vendedores' };
+let PT_NOME = '', PT_ROTULO = '';
+function ptSlides(){
+  const out = [];
+  const blocos = [...document.querySelectorAll('#slides .bl')];
+  const grupos = blocos.length ? blocos.map(b=>({id:b.id.replace(/^bl_/, ''), el:b})) : [{id:'cons', el:document.getElementById('slides')}];
+  grupos.forEach(g=>{
+    const rotB = PT_ROT_BLOCO[g.id] || (/^dev/.test(g.id) ? 'Devedor solidário' : '');
+    g.el.querySelectorAll('.slide').forEach(sl=>{
+      const tipo = sl.classList.contains('fimslide') ? 'fim' : (sl.classList.contains('dark') ? 'capa' : 'tela');
+      let tit = '', sub = '';
+      if(tipo==='capa'){ tit = 'Capa — ' + ((sl.querySelector('.capa-content h2')||{}).textContent||'').trim(); sub = ((sl.querySelector('.capa-content .nome')||{}).textContent||'').trim(); }
+      else if(tipo==='fim') tit = 'Tela final (Especialista em Consórcio)';
+      else { tit = ((sl.querySelector('h3.titulo')||{}).textContent||'').trim(); sub = ((sl.querySelector('.sub')||{}).textContent||'').trim(); }
+      out.push({el:sl, bloco:g.id, rotB, tipo, tit, sub, n:confNorm(tit)});
+    });
+  });
+  return out;
+}
+const PT_PESSOAL = /documentos pessoais|renda|documentos da empresa|socios|dps|declaracao de saude/;
+const PT_OBRA = /reforma|construcao|ampliacao|documentos do imovel|condominio|financiamento|reembolso|observac|custas|resumo/;
+function ptAtalhos(lista){
+  const cons = lista.filter(x=>x.bloco==='cons');
+  const base = x => x.tipo==='capa' || x.tipo==='fim';
+  const at = [];
+  const pes = cons.filter(x=>x.tipo==='tela' && PT_PESSOAL.test(x.n));
+  if(pes.length) at.push({rot:'Pessoais + renda', sel:cons.filter(x=>base(x) || pes.includes(x))});
+  const obra = cons.filter(x=>x.tipo==='tela' && PT_OBRA.test(x.n));
+  if(obra.some(x=>!/observac|custas|resumo/.test(x.n))){
+    const o = obra.find(x=>/reforma|construcao|ampliacao/.test(x.n));
+    const rot = o ? 'Documentos da ' + (/reforma/.test(o.n) ? 'reforma' : /ampliacao/.test(o.n) ? 'ampliação' : 'construção') : 'Documentos do imóvel';
+    at.push({rot, sel:cons.filter(x=>base(x) || obra.includes(x))});
+  }
+  return at;
+}
+function partesAbrir(nome){
+  PT_NOME = nome; PT_ROTULO = '';
+  const lista = ptSlides();
+  if(!lista.length){ alert('Gere o checklist primeiro.'); return; }
+  let fundo = document.getElementById('partesFundo');
+  if(!fundo){
+    fundo = document.createElement('div'); fundo.id = 'partesFundo'; fundo.className = 'no-print';
+    fundo.addEventListener('click', e=>{ if(e.target===fundo) partesFechar(); });
+    document.body.appendChild(fundo);
+  }
+  const at = ptAtalhos(lista);
+  const ocultaRec = document.getElementById('slides').classList.contains('oculta-rec');
+  let blocoAtual = null, h = '';
+  lista.forEach((x,i)=>{
+    if(lista.some(y=>y.bloco!==lista[0].bloco) && x.bloco!==blocoAtual){ blocoAtual = x.bloco; h += '<div class="pt-bloco">'+confEsc(x.rotB || 'Checklist')+'</div>'; }
+    const rec = ocultaRec && x.el.classList.contains('sl-okp') ? ' · tudo já recebido, não sai no PDF' : '';
+    h += '<label class="pt-item"><input type="checkbox" value="'+i+'"><span>'+confEsc(x.tit||'(tela sem título)')+'<small>'+confEsc(x.sub)+confEsc(rec)+(x.el.classList.contains('excl') ? ' · hoje está como Excluída' : '')+'</small></span></label>';
+  });
+  fundo.innerHTML = '<div id="partesCx" role="dialog" aria-modal="true" aria-label="PDF por partes">'
+    + '<h3>📑 PDF por partes</h3>'
+    + '<div class="pt-desc">Marque as telas deste PDF. Vale só para este arquivo: o checklist completo continua igual.</div>'
+    + (at.length ? '<div class="pt-atalhos">' + at.map((a,k)=>'<button type="button" data-k="'+k+'">'+confEsc(a.rot)+'</button>').join('') + '<button type="button" data-k="todas">Todas</button><button type="button" data-k="nenhuma">Nenhuma</button></div>' : '')
+    + '<div class="pt-lista">' + h + '</div>'
+    + '<div class="pt-pe"><button class="btn btn-light" type="button" onclick="partesFechar()">Cancelar</button><button class="btn btn-coral" type="button" onclick="partesImprimir()">🖨 Gerar PDF</button></div></div>';
+  fundo._lista = lista;
+  const caixas = [...fundo.querySelectorAll('.pt-lista input')];
+  const aplicar = (sel, rot, btn) => {
+    caixas.forEach(cb=>{ cb.checked = sel.includes(lista[+cb.value]); });
+    PT_ROTULO = rot;
+    fundo.querySelectorAll('.pt-atalhos button').forEach(b=>b.classList.toggle('on', b===btn));
+  };
+  fundo.querySelectorAll('.pt-atalhos button').forEach(b=>b.addEventListener('click', ()=>{
+    const k = b.dataset.k;
+    if(k==='todas') aplicar(lista.filter(x=>!x.el.classList.contains('excl')), '', b);
+    else if(k==='nenhuma') aplicar([], '', b);
+    else aplicar(at[+k].sel, at[+k].rot, b);
+  }));
+  caixas.forEach(cb=>cb.addEventListener('change', ()=>{ PT_ROTULO = ''; fundo.querySelectorAll('.pt-atalhos button').forEach(b=>b.classList.remove('on')); }));
+  /* abre já com o primeiro atalho; sem atalho, com as telas que hoje estão incluídas */
+  if(at.length) aplicar(at[0].sel, at[0].rot, fundo.querySelector('.pt-atalhos button'));
+  else aplicar(lista.filter(x=>!x.el.classList.contains('excl')), '', null);
+  fundo.classList.add('open');
+}
+function partesFechar(){ const f = document.getElementById('partesFundo'); if(f) f.classList.remove('open'); }
+function partesImprimir(){
+  const fundo = document.getElementById('partesFundo'), lista = fundo._lista || [];
+  const marc = [...fundo.querySelectorAll('.pt-lista input:checked')].map(cb=>lista[+cb.value].el);
+  if(!marc.length){ alert('Marque ao menos uma tela.'); return; }
+  const todas = [...document.querySelectorAll('#slides .slide')];
+  const exclAntes = todas.filter(s=>s.classList.contains('excl'));
+  todas.forEach(s=>s.classList.toggle('excl', !marc.includes(s)));
+  const vis = marc.filter(s=>!s.classList.contains('sl-okp') || !document.getElementById('slides').classList.contains('oculta-rec'));
+  const ult = vis[vis.length-1] || marc[marc.length-1];
+  ult.classList.add('pp-ultima');
+  document.body.classList.add('print-partes');
+  partesFechar();
+  const tituloOrig = document.title;
+  document.title = 'Checklist - ' + PT_NOME + ' - ' + (PT_ROTULO || 'Selecao');
+  try{ window.print(); }
+  finally{
+    todas.forEach(s=>s.classList.toggle('excl', exclAntes.includes(s)));
+    ult.classList.remove('pp-ultima');
+    document.body.classList.remove('print-partes');
+    document.title = tituloOrig;
+  }
 }
 /* nome seguro para usar dentro do onclick dos botões de PDF */
 function nomeArq(s){ return String(s||'').replace(/['"\\<>`$]/g,'').trim(); }
