@@ -211,6 +211,15 @@
   .confbar .cb-barra span{display:block;height:100%;background:#1f9d55;transition:width .3s}
   .confbar.completa{border-color:#bfe3cb;background:#eef8f1}
   .confbar .cb-aviso{font-size:11.5px;color:var(--warn);margin-top:4px}
+  .confbar .cb-rec{font-size:11.5px;color:#1d5e33;margin-top:4px}
+  .confbar .cb-rec button{border:1px solid #bfe3cb;background:#fff;color:#1d5e33;border-radius:12px;padding:1px 9px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;margin-left:4px}
+  .confbar .cb-rec button:hover{background:#eef8f1}
+  /* documentos já recebidos (OK) quando o checklist foi gerado: saem da tela e do PDF; o botão "Mostrar" traz de volta */
+  #slides.oculta-rec .doc.recebido,#slides.oculta-rec .slide.sl-rec{display:none !important}
+  .doc.recebido{outline:2px dashed #9fd3b2;outline-offset:2px}
+  @media print{.doc.recebido{outline:0}
+    /* no PDF sai todo documento já OK (verde), mesmo os marcados depois de gerar — a não ser que "Mostrar" esteja ativo */
+    #slides.oculta-rec .doc.conf-ok,#slides.oculta-rec .slide.sl-okp{display:none !important}}
   #pendModalBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto}
   #pendModalBackdrop.open{display:flex}
   #pendModal{background:#fff;border-radius:14px;max-width:640px;width:100%;padding:18px 20px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
@@ -3482,6 +3491,7 @@ function ajPosGerar(){
   ajMarcar();
   ajAplicar();
   decorateSlides();
+  confRecMarcar();
   confAtualizar();
 }
 document.getElementById('slides').addEventListener('input', e=>{ if(e.target.closest && e.target.closest('[contenteditable]')) procAutoSave(); });
@@ -3618,7 +3628,31 @@ function confPintar(card){
   const rot = st==='ok' ? 'Conferido' : st==='erro' ? 'Marcado com problema' : st==='parcial' ? 'Conferido em parte' : 'Atualizado';
   box.querySelector('.conf-em').textContent = r.em ? (rot + ' em ' + r.em) : '';
   card.classList.toggle('conf-ok', st==='ok'); card.classList.toggle('conf-erro', st==='erro'); card.classList.toggle('conf-parcial', st==='parcial');
+  if(st!=='ok') card.classList.remove('recebido');   /* desmarcou o OK: volta para o checklist */
 }
+/* Documentos já recebidos (✅ OK em todas as pessoas): ficam fora do PDF, para o checklist pedir só o que falta.
+   Os que já estavam OK quando o checklist foi gerado também saem da tela; os marcados depois continuam visíveis
+   na tela (para não sumirem no meio da conferência), mas não vão para o PDF.
+   Tela de documentos em que tudo está OK também sai. "Mostrar" traz tudo de volta (só nesta sessão). */
+let CONF_MOSTRAR_REC = false;
+function confRecMarcar(){
+  CONF_MOSTRAR_REC = false;
+  document.querySelectorAll('#slides .doc').forEach(c=>c.classList.toggle('recebido', !!(c.dataset.ck && c.querySelector('.conf')) && confStatusCard(c)==='ok'));
+  confRecSlides();
+}
+function confRecSlides(){
+  const sl = document.getElementById('slides'); if(!sl) return 0;
+  if(!sl.querySelector('.doc')) return 0;
+  sl.classList.toggle('oculta-rec', !CONF_MOSTRAR_REC);
+  sl.querySelectorAll('.slide').forEach(s=>{
+    const docs = [...s.querySelectorAll('.doc')].filter(c=>!c.classList.contains('off'));
+    const soDocs = docs.length > 0 && !s.querySelector('.custa,.obsbox,.finbox');
+    s.classList.toggle('sl-rec', soDocs && docs.every(c=>c.classList.contains('recebido')));
+    s.classList.toggle('sl-okp', soDocs && docs.every(c=>c.classList.contains('conf-ok')));   /* tela toda OK: sai do PDF */
+  });
+  return sl.querySelectorAll('.doc.conf-ok:not(.off)').length;
+}
+function confRecAlternar(){ CONF_MOSTRAR_REC = !CONF_MOSTRAR_REC; confAtualizar(); }
 const confTemDados = d => !!d && Object.values(d).some(v=>String(v||'').trim());
 function confLimpo(r){ return !r.s && !r.m && !r.obs && !r.off && !confTemDados(r.d) && !(r.p && Object.keys(r.p).length); }
 function confDado(card, campo, v, nome){
@@ -3679,6 +3713,7 @@ function confAtualizar(){
     const pb = slides.querySelector('.printbar');
     if(pb) pb.insertAdjacentElement('afterend', bar); else slides.prepend(bar);
   }
+  const nRec = confRecSlides();
   let tot=0, ok=0, erro=0, semMotivo=0;
   docs.forEach(c=>confUnidades(c).forEach(u=>{ tot++; if(u.s==='ok') ok++; else if(u.s==='erro'){ erro++; if(!u.m.trim()) semMotivo++; } }));
   const pend = tot - ok - erro, pct = Math.round(ok*100/tot);
@@ -3688,6 +3723,9 @@ function confAtualizar(){
     + '<br>✅ '+ok+' recebidos OK · ⚠️ '+erro+' com problema · ⏳ '+pend+' pendentes'
     + '<div class="cb-barra"><span style="width:'+pct+'%"></span></div>'
     + (semMotivo ? '<div class="cb-aviso">'+semMotivo+' documento(s) com problema sem o motivo preenchido.</div>' : '')
+    + (nRec ? '<div class="cb-rec">' + (CONF_MOSTRAR_REC
+        ? '👁 Mostrando os ' + nRec + ' documento(s) já recebido(s) — assim eles também vão para o PDF.<button type="button" onclick="confRecAlternar()">Ocultar recebidos</button>'
+        : '🙈 ' + nRec + ' documento(s) já recebido(s) (✅ OK) não vão para o PDF.<button type="button" onclick="confRecAlternar()">Mostrar</button>') + '</div>' : '')
     + (!PROC_ATUAL ? '<div class="cb-aviso">⚠️ Nenhum processo aberto: a conferência não fica salva. Crie ou abra o processo na aba 🗂 Processos.</div>'
                    : '<div class="cb-salvo">💾 Salva automaticamente no processo “' + confEsc(PROC_ATUAL) + '”' + (window._procSalvoEm ? ' — última gravação às ' + window._procSalvoEm : '') + '. Não precisa clicar em nada.</div>')
     + '</div>'
