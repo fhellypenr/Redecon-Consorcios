@@ -379,6 +379,73 @@ svg{display:block}
 .base-aviso .linha{display:flex;gap:8px;flex-wrap:wrap}
 .base-aviso input{flex:1 1 260px;min-width:0;padding:10px 12px;border:1px solid var(--border-strong);border-radius:9px;font-family:Consolas,monospace;font-size:13px}
 .base-aviso small{display:block;margin-top:8px;color:var(--accent-dark);font-size:12.5px;min-height:16px}
+
+/* ===== Visual v2 (13/11/2026): letra maior, menos texto, cartões e filtros ===== */
+body{font-size:14px}
+.hero h1{font-size:26px}
+.hero p{font-size:14.5px}
+.draft{display:none}
+.search{padding:4px 16px;border-radius:14px}
+.search input{font-size:15.5px;padding:13px 0}
+.search-kbd{display:none}
+.sugest{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sugest button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;color:#444852;cursor:pointer}
+.sugest button:hover{border-color:#1e3460;color:#1e3460}
+.sugest span{font-size:12px;color:var(--muted-2);align-self:center;margin-right:2px}
+.result-group{padding:9px 14px 6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#1e3460;background:#f6f8fb;border-top:1px solid var(--border)}
+.result-item{padding:11px 14px}
+.result-title{font-size:14px}
+.result-meta{font-size:12px}
+.result-snip{font-size:12.5px;color:#55585f;line-height:1.45;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+.result-snip mark,.result-title mark,.msg-card mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
+.search-results{max-height:70vh;overflow:auto}
+.section-title h2{font-size:17px}
+.section-title p{font-size:13px}
+.module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.module.primary{grid-column:auto}
+.module h3{font-size:15.5px}
+.module p{font-size:13px}
+.module-foot{display:none}
+.quick strong{font-size:13.5px}
+.quick span{font-size:12px}
+.workspace{grid-template-columns:1fr}
+.workspace > aside.panel{display:none}
+.topic-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.topic strong{font-size:13.5px}
+.topic p{font-size:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.acc-btn strong{font-size:14.5px}
+.acc-btn span{font-size:12.5px}
+.ficha-item strong{font-size:14px}
+.ficha-item span{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.ficha-item .upd{display:none}
+.drawer-title p{font-size:13px}
+.detail-section h3{font-size:11.5px}
+.detail-section p,.detail-section li{font-size:14px;line-height:1.6}
+.message-content strong{font-size:14px}
+.message-content p{font-size:13.5px;line-height:1.6;color:#3f4249}
+.copy-btn{font-size:12.5px;padding:8px 12px;background:#e63329;border-color:#e63329;color:#fff}
+.copy-btn:hover{background:#c92a21}
+.msg-chips{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 16px}
+.msg-chips button{border:1px solid var(--border-strong);background:#fff;border-radius:999px;padding:7px 13px;font-size:13px;cursor:pointer;color:#3f4249}
+.msg-chips button b{font-weight:600;color:var(--muted-2);margin-left:4px}
+.msg-chips button.on{background:#1e3460;border-color:#1e3460;color:#fff}
+.msg-chips button.on b{color:#c9d3e6}
+.msg-card{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.msg-card:hover{border-color:#b9c3d6}
+.msg-card.open{border:2px solid #1e3460;padding:11px 13px;cursor:default}
+.msg-card .mc-main{flex:1;min-width:0}
+.msg-card .mc-title{font-size:14.5px;font-weight:700}
+.msg-card .mc-cat{font-size:11.5px;color:var(--muted-2);margin-left:6px;font-weight:500}
+.msg-card .mc-prev{font-size:13px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-card .mc-full{display:none;font-size:14px;line-height:1.65;color:#2f3238;background:#f7f8fa;border-radius:10px;padding:12px 14px;margin-top:10px;white-space:pre-wrap}
+.msg-card.open .mc-prev{display:none}
+.msg-card.open .mc-full{display:block}
+.msg-card .mc-dica{font-size:12px;color:var(--muted-2);margin-top:8px;display:none}
+.msg-card.open .mc-dica{display:block}
+.msg-panel{background:transparent;border:0}
+.msg-panel .panel-body{padding:0}
+@media(max-width:960px){.module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.topic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.module-grid,.topic-grid{grid-template-columns:1fr}}
 </style>
 <script src="moeda-br.js"></script>
 </head>
@@ -435,7 +502,7 @@ svg{display:block}
     <div>
       <div class="eyebrow">Redecon Consórcios</div>
       <h1>O que você precisa fazer agora?</h1>
-      <p>Processos, checklist, simulações, utilização do crédito e rotinas administrativas no mesmo caminho.</p>
+      <p>Pesquise qualquer assunto ou escolha uma ferramenta abaixo.</p>
     </div>
     <div class="draft">BASE OPERACIONAL • uso interno</div>
   </div>
@@ -443,17 +510,17 @@ svg{display:block}
   <div class="search-wrap">
     <div class="search">
       <span id="searchIcon"></span>
-      <input id="globalSearch" type="search" autocomplete="off" placeholder="Pesquisar: quitação, lance, boleto, transferência, DPS, construção...">
+      <input id="globalSearch" type="search" autocomplete="off" placeholder="Pesquisar procedimento ou mensagem: boleto, lance, gravame, DPS...">
       <span class="search-kbd">pesquisa global</span>
     </div>
     <div id="searchResults" class="search-results"></div>
+    <div class="sugest"><span>Mais buscados:</span><button data-q="boleto">Boleto</button><button data-q="transferência">Transferência</button><button data-q="contemplação">Contemplação</button><button data-q="gravame">Gravame</button><button data-q="boas-vindas">Boas-vindas</button><button data-q="cancelamento">Cancelamento</button><button data-q="DPS">DPS</button></div>
   </div>
 
   <div id="hojeBox" class="hoje" hidden></div>
 
   <div class="section-title">
-    <div><h2>Ferramentas principais</h2><p>Uma única porta de entrada para tudo que o escritório usa.</p></div>
-    <div class="small">clique para abrir</div>
+    <div><h2>Ferramentas</h2></div>
   </div>
 
   <div class="module-grid">
@@ -461,7 +528,7 @@ svg{display:block}
       <span class="arrow">→</span>
       <div class="module-icon" data-icon="book"></div>
       <h3>Central Operacional</h3>
-      <p>Procedimentos, regras, mensagens, cobrança, contemplação, transferências, seguros e dúvidas do dia a dia.</p>
+      <p>Como fazer cada coisa no escritório.</p>
       <div class="module-foot"><span class="pill live">BASE ATIVA</span><span class="pill">pesquisa global</span></div>
     </button>
 
@@ -469,7 +536,7 @@ svg{display:block}
       <span class="arrow">→</span>
       <div class="module-icon" data-icon="folder"></div>
       <h3>Processos</h3>
-      <p>Acompanhamento de processos de imóveis e veículos, da abertura ao pagamento.</p>
+      <p>Etapas de cada processo de imóvel e veículo.</p>
       <div class="module-foot"><span class="pill live">INTEGRADO</span></div>
     </a>
 
@@ -477,7 +544,7 @@ svg{display:block}
       <span class="arrow">→</span>
       <div class="module-icon" data-icon="clipboard"></div>
       <h3>Checklist</h3>
-      <p>Pré-análise, negativas, perguntas, documentos e emissão dos checklists.</p>
+      <p>Documentos e pré-análise do cliente.</p>
       <div class="module-foot"><span class="pill live">INTEGRADO</span></div>
     </a>
 
@@ -485,7 +552,7 @@ svg{display:block}
       <span class="arrow">→</span>
       <div class="module-icon" data-icon="calculator"></div>
       <h3>Simulações</h3>
-      <p>Simulação automática conforme o grupo, modalidades de lance, crédito e parcelas.</p>
+      <p>Lances, crédito e parcelas por grupo.</p>
       <div class="module-foot"><span class="pill live">INTEGRADO</span></div>
     </a>
 
@@ -493,7 +560,7 @@ svg{display:block}
       <span class="arrow">→</span>
       <div class="module-icon" data-icon="wallet"></div>
       <h3>Uso do Crédito</h3>
-      <p>Site público que enviamos aos clientes: imóveis, veículos, construção, quitação e reembolso.</p>
+      <p>Site que enviamos aos clientes.</p>
       <div class="module-foot"><span class="pill">SITE PÚBLICO ↗</span></div>
     </a>
 
@@ -501,13 +568,13 @@ svg{display:block}
       <span class="arrow">→</span>
       <div class="module-icon" data-icon="pen"></div>
       <h3>Proposta direcionada</h3>
-      <p>Proposta comercial para imóvel e veículo. Abre em página separada.</p>
+      <p>Proposta comercial de imóvel e veículo.</p>
       <div class="module-foot"><span class="pill live">NOVA ABA ↗</span></div>
     </a>
   </div>
 
   <div class="section-title">
-    <div><h2>Atalhos do dia a dia</h2><p>Operações que não deveriam exigir procurar e-mail, pasta ou manual.</p></div>
+    <div><h2>Atalhos do dia a dia</h2></div>
   </div>
   <div class="quick-grid">
     <button class="quick" data-detail="boleto"><div class="qicon" data-icon="receipt"></div><strong>Emitir boleto</strong><span>NewCon • dois caminhos</span></button>
@@ -520,7 +587,7 @@ svg{display:block}
 
   <div class="workspace">
     <section class="panel">
-      <div class="panel-head"><h3>Conhecimento operacional</h3><span>conteúdo consolidado até agora</span></div>
+      <div class="panel-head"><h3>Assuntos</h3><span>abre a Central Operacional no tema</span></div>
       <div class="panel-body">
         <div class="topic-grid">
           <button class="topic" data-view="operacional" data-focus="venda"><div class="topic-top"><span class="topic-dot red"></span><strong>Venda e pós-venda</strong></div><p>Cadastro PF/PJ, aceite, primeira parcela, boas-vindas, app e pós-venda.</p></button>
@@ -575,9 +642,10 @@ svg{display:block}
 </section>
 
 <section id="view-mensagens" class="view module-view">
-  <div class="hero"><div><div class="eyebrow">Biblioteca de comunicação</div><h1>Mensagens Prontas</h1><p>Textos de WhatsApp separados das regras técnicas, com pesquisa e cópia rápida.</p></div><button class="btn" data-view="home">← Voltar ao início</button></div>
+  <div class="hero"><div><div class="eyebrow">Biblioteca de comunicação</div><h1>Mensagens prontas</h1><p>Clique na mensagem para ver o texto inteiro. Troque o que estiver entre [colchetes] antes de enviar.</p></div><button class="btn" data-view="home">← Voltar ao início</button></div>
   <div class="search-wrap"><div class="search"><span data-icon="search"></span><input id="msgSearch" type="search" placeholder="Pesquisar mensagem: triagem, gravame, pix, DPS..."></div></div>
-  <div class="panel"><div class="panel-body" id="messageList"></div></div>
+  <div class="msg-chips" id="msgChips"></div>
+  <div class="panel msg-panel"><div class="panel-body" id="messageList"></div></div>
 </section>
 
 <section id="view-links" class="view module-view">
@@ -683,7 +751,7 @@ window._iniciarCentral = function(B){
     return '<a class="btn primary" style="text-decoration:none" href="' + esc(l[1]) + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>' + esc(l[0]) + (ext ? ' ↗' : ' →') + '</a>';
   }
   function msgRow(m){
-    return '<div class="message-row"><div class="message-content"><strong>' + esc(m.titulo) + '</strong>' + dataTag(m.atualizado) + '<p>' + esc(m.texto).replace(/\n/g, '<br>') + '</p></div><button class="copy-btn" data-copy-id="' + esc(m.id) + '">Copiar</button></div>';
+    return '<div class="message-row"><div class="message-content"><strong>' + esc(m.titulo) + '</strong><p>' + esc(m.texto).replace(/\n/g, '<br>') + '</p></div><button class="copy-btn" data-copy-id="' + esc(m.id) + '">Copiar</button></div>';
   }
 
   const drawer = document.getElementById('drawer'), overlay = document.getElementById('overlay');
@@ -888,18 +956,48 @@ window._iniciarCentral = function(B){
     });
   });
 
-  /* ----- Mensagens prontas ----- */
+  /* ----- Mensagens prontas (cartões + filtro por assunto) ----- */
   const messageList = document.getElementById('messageList');
-  function renderMensagens(q){
-    let h = '';
-    B.categorias.forEach(c => {
-      const ms = B.mensagens.filter(m => m.cat === c.id && (!q || bate(textoMsg(m), q)));
-      if(ms.length) h += '<div class="msg-grupo"><h4>' + esc(c.nome) + ' <span>' + ms.length + '</span></h4>' + ms.map(msgRow).join('') + '</div>';
-    });
-    messageList.innerHTML = h || '<p class="vazio">Nenhuma mensagem encontrada.</p>';
+  const msgChips = document.getElementById('msgChips');
+  let msgCat = '';
+  function marcar(texto, q){
+    const t = esc(texto); const ps = norm(q).split(/\s+/).filter(w => w.length > 1);
+    if(!ps.length) return t;
+    const base = Array.from(t).map(c => norm(c)).join('');
+    if(base.length !== t.length) return t;
+    const marcas = new Array(t.length).fill(false);
+    ps.forEach(w => { let i = base.indexOf(w); while(i >= 0){ for(let k = i; k < i + w.length; k++) marcas[k] = true; i = base.indexOf(w, i + w.length); } });
+    let out = '', dentro = false;
+    for(let i = 0; i < t.length; i++){ if(marcas[i] && !dentro){ out += '<mark>'; dentro = true; } if(!marcas[i] && dentro){ out += '</mark>'; dentro = false; } out += t[i]; }
+    return out + (dentro ? '</mark>' : '');
   }
-  renderMensagens('');
+  function msgCard(m, q){
+    const prev = String(m.texto).replace(/\s*\n+\s*/g, ' · ');
+    return '<div class="msg-card" data-msg="' + esc(m.id) + '"><div class="mc-main"><div class="mc-title">' + marcar(m.titulo, q) + (msgCat ? '' : '<span class="mc-cat">' + esc(catNome(m.cat)) + '</span>') + '</div>'
+      + '<div class="mc-prev">' + marcar(prev, q) + '</div><div class="mc-full">' + marcar(m.texto, q) + '</div>'
+      + '<div class="mc-dica">Revise os campos entre [colchetes] antes de enviar.</div></div>'
+      + '<button class="copy-btn" data-copy-id="' + esc(m.id) + '">Copiar</button></div>';
+  }
+  function renderChips(q){
+    const conta = id => B.mensagens.filter(m => (!id || m.cat === id) && (!q || bate(textoMsg(m), q))).length;
+    const cats = B.categorias.filter(c => B.mensagens.some(m => m.cat === c.id));
+    msgChips.innerHTML = '<button data-cat="" class="' + (msgCat ? '' : 'on') + '">Todas<b>' + conta('') + '</b></button>'
+      + cats.map(c => '<button data-cat="' + esc(c.id) + '" class="' + (msgCat === c.id ? 'on' : '') + '">' + esc(c.nome) + '<b>' + conta(c.id) + '</b></button>').join('');
+    msgChips.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { msgCat = b.dataset.cat; renderMensagens(msgSearch ? msgSearch.value.trim() : ''); }));
+  }
+  function renderMensagens(q){
+    renderChips(q);
+    const ms = B.mensagens.filter(m => (!msgCat || m.cat === msgCat) && (!q || bate(textoMsg(m), q)));
+    messageList.innerHTML = ms.length ? ms.map(m => msgCard(m, q)).join('') : '<p class="vazio">Nenhuma mensagem encontrada. Tente outra palavra ou escolha "Todas".</p>';
+    messageList.querySelectorAll('.msg-card').forEach(card => card.addEventListener('click', e => {
+      if(e.target.closest('[data-copy-id]')) return;
+      const abrir = !card.classList.contains('open');
+      messageList.querySelectorAll('.msg-card.open').forEach(c => c.classList.remove('open'));
+      if(abrir) card.classList.add('open');
+    }));
+  }
   const msgSearch = document.getElementById('msgSearch');
+  renderMensagens('');
   if(msgSearch) msgSearch.addEventListener('input', () => renderMensagens(msgSearch.value.trim()));
 
   function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1500); }
@@ -925,24 +1023,47 @@ window._iniciarCentral = function(B){
     {title:'Como Usar Seu Crédito (site dos clientes)', meta:'Site público · abre em nova aba', hay:'como usar credito uso do credito site cliente', action:() => window.open(USO_URL, '_blank', 'noopener')}
   ];
   const searchData = modulos.map(m => Object.assign({tipo:'mod'}, m, {hay:norm(m.title + ' ' + m.hay), tnorm:norm(m.title), tg:norm(m.hay)}))
-    .concat(B.fichas.map(f => ({tipo:'ficha', title:f.titulo, meta:catNome(f.cat) + ' · ' + f.resumo, hay:textoFicha(f), tnorm:norm(f.titulo), tg:norm(f.tags), action:() => openDetail(f.id)})))
-    .concat(B.mensagens.map(m => ({tipo:'msg', title:m.titulo, meta:'Mensagem pronta · ' + catNome(m.cat), hay:textoMsg(m), tnorm:norm(m.titulo), action:() => openMsg(m.id)})));
+    .concat(B.fichas.map(f => ({tipo:'ficha', title:f.titulo, meta:catNome(f.cat), raw:[f.resumo].concat(f.secoes.map(x => x.itens.join(' '))).join(' '), hay:textoFicha(f), tnorm:norm(f.titulo), tg:norm(f.tags), action:() => openDetail(f.id)})))
+    .concat(B.mensagens.map(m => ({tipo:'msg', title:m.titulo, meta:'Mensagem pronta · ' + catNome(m.cat), raw:m.texto, hay:textoMsg(m), tnorm:norm(m.titulo), action:() => openMsg(m.id)})));
   const input = document.getElementById('globalSearch'), results = document.getElementById('searchResults');
   function closeSearch(){ results.classList.remove('show'); }
+  function trecho(raw, q){
+    const txt = String(raw || '').replace(/\s+/g, ' ').trim();
+    const ps = norm(q).split(/\s+/).filter(Boolean);
+    const base = Array.from(txt).map(c => norm(c)).join('');
+    let i = -1; for(const w of ps){ i = base.indexOf(w); if(i >= 0) break; }
+    if(i < 0) return '';
+    const ini = Math.max(0, i - 50), fim = Math.min(txt.length, i + 110);
+    return (ini > 0 ? '…' : '') + txt.slice(ini, fim) + (fim < txt.length ? '…' : '');
+  }
   function renderSearch(q){
     q = q.trim();
     if(!q){ closeSearch(); results.innerHTML = ''; return; }
     const palavras = norm(q).split(/\s+/).filter(Boolean);
     const arr = searchData.filter(x => palavras.every(w => x.hay.includes(w)))
       .map(x => ({x, s:(x.tipo === 'mod' ? 3 : 0) + palavras.filter(w => (x.tnorm || x.hay).includes(w)).length * 3 + palavras.filter(w => (x.tg || '').includes(w)).length + (x.tipo === 'ficha' ? 1 : 0)}))
-      .sort((a, b) => b.s - a.s).slice(0, 12).map(o => o.x);
+      .sort((a, b) => b.s - a.s).map(o => o.x);
     const ic = {mod:icons.folder, ficha:icons.book, msg:icons.receipt};
-    results.innerHTML = '<div class="result-header">' + (arr.length ? arr.length + ' resultado(s)' : 'Nenhum resultado') + '</div>'
-      + arr.map((x, i) => '<button class="result-item" data-result="' + i + '"><div class="result-icon">' + (ic[x.tipo] || icons.search) + '</div><div class="result-text"><div class="result-title">' + esc(x.title) + '</div><div class="result-meta">' + esc(x.meta) + '</div></div></button>').join('');
+    const grupos = [['mod', 'Ferramentas e sistemas', 4], ['ficha', 'Como fazer', 8], ['msg', 'Mensagens prontas', 6]];
+    const lista = [];
+    let h = '<div class="result-header">' + (arr.length ? arr.length + ' resultado(s) para “' + esc(q) + '”' : 'Nenhum resultado para “' + esc(q) + '”. Tente uma palavra só, como “boleto” ou “lance”.') + '</div>';
+    grupos.forEach(([tipo, nome, max]) => {
+      const itens = arr.filter(x => x.tipo === tipo); if(!itens.length) return;
+      h += '<div class="result-group">' + nome + (itens.length > max ? ' · ' + max + ' de ' + itens.length : '') + '</div>';
+      itens.slice(0, max).forEach(x => {
+        const i = lista.push(x) - 1; const sn = x.raw ? trecho(x.raw, q) : '';
+        h += '<button class="result-item" data-result="' + i + '"><div class="result-icon">' + (ic[x.tipo] || icons.search) + '</div><div class="result-text"><div class="result-title">' + marcar(x.title, q) + '</div><div class="result-meta">' + esc(x.meta) + '</div>' + (sn ? '<div class="result-snip">' + marcar(sn, q) + '</div>' : '') + '</div></button>';
+      });
+      if(tipo === 'msg' && itens.length > max) h += '<button class="result-item" data-ver-msgs="1"><div class="result-text"><div class="result-title" style="color:#1e3460">Ver todas as ' + itens.length + ' mensagens com “' + esc(q) + '” →</div></div></button>';
+    });
+    results.innerHTML = h;
     results.classList.add('show');
-    results.querySelectorAll('[data-result]').forEach((b, i) => b.addEventListener('click', () => { arr[i].action(); input.value = ''; closeSearch(); }));
+    results.querySelectorAll('[data-result]').forEach(b => b.addEventListener('click', () => { lista[+b.dataset.result].action(); input.value = ''; closeSearch(); }));
+    const ver = results.querySelector('[data-ver-msgs]');
+    if(ver) ver.addEventListener('click', () => { msgCat = ''; showView('mensagens'); if(msgSearch){ msgSearch.value = q; renderMensagens(q); } input.value = ''; closeSearch(); });
   }
   input.addEventListener('input', () => renderSearch(input.value));
+  document.querySelectorAll('.sugest [data-q]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); input.value = b.dataset.q; renderSearch(b.dataset.q); input.focus(); }));
   input.addEventListener('keydown', e => { if(e.key === 'Enter'){ const b = results.querySelector('[data-result]'); if(b) b.click(); } });
   document.addEventListener('click', e => { if(!e.target.closest('.search-wrap')) closeSearch(); });
 
