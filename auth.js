@@ -16,6 +16,12 @@ const firebaseConfig = {
 };
 
 export const fbApp = initializeApp(firebaseConfig);
+
+// Nível de acesso: o master pode tudo; os outros logins (escritório) mexem só no dia a dia
+// (processos e checklists). A trava de verdade fica nas regras do Firestore; aqui só
+// escondemos os botões de modelos/padrões para quem não é master.
+export const MASTER_EMAIL = 'fhellypenr@gmail.com';
+export function ehMaster(user){ return !!user && String(user.email || '').toLowerCase() === MASTER_EMAIL; }
 export const auth = getAuth(fbApp);
 
 // Sessão vinculada à aba: fechar a aba/navegador já desloga sozinho
@@ -59,6 +65,8 @@ function injectOverlay(){
     .topbar-user{display:flex;align-items:center;gap:10px;font-size:12.5px;color:#c9c9d2}
     .topbar-user button{background:none;border:1px solid #3a3a46;color:#c9c9d2;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
     .topbar-user button:hover{border-color:#f0806c;color:#f0806c}
+    .topbar-user .nivel{font-size:11px;border:1px solid #3a3a46;border-radius:999px;padding:2px 8px;color:#c9c9d2}
+    html.nao-master .so-master{display:none !important}
   `;
   const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
   const div = document.createElement('div');
@@ -89,6 +97,8 @@ export function requireAuth(){
     let resolved = false;
     onAuthStateChanged(auth, (user)=>{
       if(user){
+        window._redeconMaster = ehMaster(user);
+        document.documentElement.classList.toggle('nao-master', !window._redeconMaster);
         overlay.remove();
         _iniciarMonitorInatividade();
         if(!resolved){ resolved = true; resolve(user); }
@@ -115,6 +125,7 @@ export function logout(){ signOut(auth).then(()=>location.reload()); }
 
 /** Cria o bloquinho "email + Sair" para colocar na topbar de cada página. */
 export function userBadgeHTML(user){
-  return `<div class="topbar-user"><span>${user.email}</span><button onclick="window._redeconLogout()">Sair</button></div>`;
+  const nivel = ehMaster(user) ? '' : '<span class="nivel" title="Pode atualizar processos e checklists. Modelos e padrões ficam com o Fhellype.">Escritório</span>';
+  return `<div class="topbar-user">${nivel}<span>${user.email}</span><button onclick="window._redeconLogout()">Sair</button></div>`;
 }
 window._redeconLogout = logout;

@@ -1304,7 +1304,7 @@ function cardHTML(pessoa, t, dsc){
     <div class="strip"></div>
     <div class="ctrl no-print">
       <button title="Alargar/estreitar este card" onclick="toggleLargura('cd${CARDSEQ}')">⇔</button>
-      <button title="Salvar este texto como padrão para todos os processos com este documento" onclick="salvarCardComoPadrao('cd${CARDSEQ}')">💾</button>
+      <button class="so-master" title="Salvar este texto como padrão para todos os processos com este documento" onclick="salvarCardComoPadrao('cd${CARDSEQ}')">💾</button>
       <button title="Ativar/desativar" onclick="tgl('cd${CARDSEQ}')">👁</button>
       <button title="Excluir" onclick="del('cd${CARDSEQ}')">✕</button>
     </div>
@@ -1316,6 +1316,7 @@ function cardHTML(pessoa, t, dsc){
   </div>`;
 }
 async function salvarCardComoPadrao(id){
+  if(window._redeconMaster===false){alert('Os textos padrão dos documentos só podem ser alterados pelo Fhellype.');return;}
   const el = document.getElementById(id);
   if(!el) return;
   const titulo = el.querySelector('h4 span[contenteditable]').textContent.trim();

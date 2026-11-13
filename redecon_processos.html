@@ -900,12 +900,14 @@ function mstMarcarTodos(tipo){
 }
 
 function salvarEtapaComoModelo(idx){
+  if(window._redeconMaster===false){alert('Os modelos padrão de etapas só podem ser alterados pelo Fhellype.');return;}
   if(!pSel) return;
   const et = pSel.etapas[idx];
   abrirModalMst({nome:et.nome, tipo:et.tipo, msg:et.msg, msgVariantes:et.msgVariantes}, 'salvar');
 }
 
 function removerEtapaDoModelo(idx){
+  if(window._redeconMaster===false){alert('Os modelos padrão de etapas só podem ser alterados pelo Fhellype.');return;}
   if(!pSel) return;
   const et = pSel.etapas[idx];
   abrirModalMst({nome:et.nome, tipo:et.tipo, msg:et.msg, msgVariantes:et.msgVariantes}, 'remover');
@@ -937,6 +939,7 @@ function fecharModalSalvarTemplate(){
 }
 
 async function confirmarSalvarTemplate(){
+  if(window._redeconMaster===false){alert('Os modelos padrão de etapas só podem ser alterados pelo Fhellype.');return;}
   const marcados = [...document.querySelectorAll('#mst-lista input:checked')].map(el=>el.dataset.chave); // "Tipo::Subtipo"
   if(!marcados.length){ alert('Selecione ao menos um tipo de utilização.'); return; }
   if(!_mstEtapaSnap) return;
@@ -1689,8 +1692,8 @@ function renderDetalhe(){
     return`<div class="etapa-block ${st.cls}${et.custom?' custom':''}"><div class="etapa-top"><div class="etapa-nome">${et.nome} ${customTag}<span class="status-pill ${st.pill}">${st.label}</span></div>${removeBtn}</div>${renderCampos(et,i)}<div class="resp-row"><label>Responsável:</label><select ${p.concluido?'disabled':''} onchange="pSel.etapas[${i}].responsavel=this.value;salvar()">${['Redecon','Cliente','Administradora','Cartório','Banco/Financeira','Prefeitura','Outro'].map(r=>`<option ${et.responsavel===r?'selected':''}>${r}</option>`).join('')}</select></div>${et.comentarios.length?'<div class="comment-list">'+comsHtml+'</div>':''} ${!p.concluido?`<div class="etapa-acoes">
         <button class="add-comment-btn" onclick="abrirComentario(${i})"><i class="ti ti-message-plus" style="font-size:13px"></i> adicionar comentário</button>
         ${'<button class="msg-btn" onclick="abrirMsgEtapa('+i+')"><i class="ti ti-brand-whatsapp" style="font-size:12px"></i> '+(et.msg?'mensagem':'+ criar mensagem')+'</button>'}
-        ${!p.concluido?'<button class="add-comment-btn" onclick="salvarEtapaComoModelo('+i+')" title="Salvar esta etapa (nome + mensagem) como padrão para novos processos"><i class="ti ti-star" style="font-size:12px"></i> salvar como padrão</button>':''}
-        ${!p.concluido?'<button class="add-comment-btn" style="color:var(--red)" onclick="removerEtapaDoModelo('+i+')" title="Fazer com que novos processos não nasçam mais com esta etapa"><i class="ti ti-trash" style="font-size:12px"></i> remover dos modelos</button>':''}
+        ${!p.concluido?'<button class="add-comment-btn so-master" onclick="salvarEtapaComoModelo('+i+')" title="Salvar esta etapa (nome + mensagem) como padrão para novos processos"><i class="ti ti-star" style="font-size:12px"></i> salvar como padrão</button>':''}
+        ${!p.concluido?'<button class="add-comment-btn so-master" style="color:var(--red)" onclick="removerEtapaDoModelo('+i+')" title="Fazer com que novos processos não nasçam mais com esta etapa"><i class="ti ti-trash" style="font-size:12px"></i> remover dos modelos</button>':''}
         ${et.alerta?'<button class="btn-alerta-rem" onclick="removerAlerta('+i+')" title="Remover alerta">✕ alerta</button>':'<button class="btn-alerta-neg" onclick="abrirModalAlerta('+i+')">⚠ alerta</button>'}
       </div>`:''}
       ${et.alerta?'<div class="'+(et.alerta.tipo==='neg'?'alerta-neg':'alerta-pos')+'"><span class="alerta-icon">'+(et.alerta.tipo==='neg'?'⚠️':'✅')+'</span><span>'+et.alerta.texto+'</span></div>':''}</div>`;
@@ -2249,7 +2252,7 @@ function removerEtapaQualquer(idx){
   _etapasAbertas = new Set(); // índices mudaram, evita abrir a etapa errada
   salvar();
   renderDetalhe();
-  if(confirm('Excluída deste processo.\n\nDeseja também remover "'+nome+'" do modelo padrão de algum tipo de processo? (ex: essa etapa não deveria nascer em Construção, só em Aquisição)')){
+  if(window._redeconMaster!==false && confirm('Excluída deste processo.\n\nDeseja também remover "'+nome+'" do modelo padrão de algum tipo de processo? (ex: essa etapa não deveria nascer em Construção, só em Aquisição)')){
     abrirModalMst(snap, 'remover');
   }
 }

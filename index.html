@@ -964,6 +964,12 @@ window._iniciarCentral = function(B){
   const escH = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
   function pedirChave(msg){
+    if(window._redeconMaster === false){
+      aviso.className = 'base-aviso erro';
+      aviso.innerHTML = '<strong>A base operacional não abriu</strong><p>Avise o Fhellype: a chave da base precisa ser configurada por ele.</p>';
+      aviso.hidden = false;
+      return;
+    }
     aviso.className = 'base-aviso' + (msg ? ' erro' : '');
     aviso.innerHTML = '<strong>Configuração de segurança da base</strong>'
       + '<p>' + (msg ? escH(msg) + ' ' : '') + 'A base operacional fica cifrada no site. Cole aqui a chave da base (enviada pelo Claude) para liberar o conteúdo. É feito uma única vez: a chave fica guardada no Firebase, protegida pelo login.</p>'
