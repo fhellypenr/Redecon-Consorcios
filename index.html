@@ -532,6 +532,7 @@ body{font-size:14px}
     <a class="nav-btn" href="painel-checklist-redecon.html#dps"><span class="nav-icon">✚</span>DPS (seguro)<span class="nav-spacer"></span><span class="nav-count">abrir</span></a>
     <a class="nav-btn" href="simulacao.html"><span class="nav-icon">∑</span>Simulações</a>
     <a class="nav-btn oculto-temp" href="https://fhellypenr.github.io/Proposta-Redecon/" target="_blank" rel="noopener"><span class="nav-icon">▤</span>Proposta direcionada<span class="nav-spacer"></span><span class="nav-count">nova aba</span></a>
+    <a class="nav-btn" href="https://fhellypenr.github.io/Apresentacao-Redecon/#capa" target="_blank" rel="noopener"><span class="nav-icon">▷</span>Apresentação</a>
     <a class="nav-btn" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener"><span class="nav-icon">◇</span>Uso do Crédito</a>
     <button class="nav-btn" data-view="operacional"><span class="nav-icon">☷</span>Central Operacional</button>
     <button class="nav-btn" data-view="rotina"><span class="nav-icon">▦</span>Rotina do mês</button>
@@ -555,7 +556,7 @@ body{font-size:14px}
 
 <div class="mobile-nav">
   <button data-view="home">Início</button><a href="redecon_processos.html">Processos</a><a href="painel-checklist-redecon.html">Checklist</a><a href="painel-checklist-redecon.html#termo">Termo de Opção</a><a href="painel-checklist-redecon.html#dps">DPS</a>
-  <a href="simulacao.html">Simulações</a><a href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener">Uso do crédito</a><button data-view="rotina">Rotina</button><button data-view="operacional">Operacional</button><button data-view="mensagens">Mensagens</button><button data-view="links">Links</button>
+  <a href="simulacao.html">Simulações</a><a href="https://fhellypenr.github.io/Apresentacao-Redecon/#capa" target="_blank" rel="noopener">Apresentação</a><a href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/" target="_blank" rel="noopener">Uso do crédito</a><button data-view="rotina">Rotina</button><button data-view="operacional">Operacional</button><button data-view="mensagens">Mensagens</button><button data-view="links">Links</button>
 </div>
 
 <section id="view-home" class="view active">
@@ -728,6 +729,7 @@ body{font-size:14px}
       <div class="link-item"><div class="l-icon" data-icon="calculator"></div><div><strong>Simulador de contemplação</strong><span>Simulação por grupo</span></div><a class="right" href="simulacao.html">→</a></div>
       <div class="link-item"><div class="l-icon" data-icon="book"></div><div><strong>Planilha de grupos</strong><span>Google Drive · grupos, lances e fidelidades que alimentam o Simulador</span></div><a class="right" target="_blank" rel="noopener" href="https://docs.google.com/spreadsheets/d/1i_NGrjlf7k3KWeXjtgSYAtjFx0l2sQue/edit?gid=1974855914#gid=1974855914">↗</a></div>
       <div class="link-item"><div class="l-icon" data-icon="wallet"></div><div><strong>Como Usar Seu Crédito</strong><span>Site público enviado aos clientes</span></div><a class="right" target="_blank" rel="noopener" href="https://fhellypenr.github.io/Como-Usar-Seu-Credito-Redecon-HS/">↗</a></div>
+      <div class="link-item"><div class="l-icon" data-icon="book"></div><div><strong>Apresentação Redecon</strong><span>Apresentação comercial para reunião com cliente · abre em nova aba</span></div><a class="right" target="_blank" rel="noopener" href="https://fhellypenr.github.io/Apresentacao-Redecon/#capa">↗</a></div>
       <div class="link-item oculto-temp"><div class="l-icon" data-icon="pen"></div><div><strong>Proposta direcionada</strong><span>Proposta de imóvel e veículo · abre em página separada</span></div><a class="right" target="_blank" rel="noopener" href="https://fhellypenr.github.io/Proposta-Redecon/">↗</a></div>
       <div class="link-group">Assinatura</div>
       <div class="link-item"><div class="l-icon" data-icon="pen"></div><div><strong>Portal WHZ Corp</strong><span>Registro de Imóveis e certificado digital</span></div><a class="right" target="_blank" rel="noopener" href="https://portal.whzcorp.com.br/Account/Login?ReturnUrl=%2fTicket">↗</a></div>
@@ -1145,6 +1147,7 @@ window._iniciarCentral = function(B){
     {title:'Portal de Corretores HS', meta:'Sistema HS · processos de contemplação e assinatura', hay:'portal corretores contemplacao processo assinatura encaminhar', action:() => window.open('https://corretores.hsconsorcios.com.br/', '_blank', 'noopener')},
     {title:'GDI HS', meta:'Sistema HS · documentos, simulação de créditos, termos D4Sign', hay:'gdi termos d4sign reativacao aditivo rateio documentos simulacao', action:() => window.open('https://gdi.hsconsorcios.com.br/', '_blank', 'noopener')},
     {title:'Simulador de contemplação', meta:'Ferramenta · sorteio, limitado, fidelidades, lance livre', hay:'simulador simulacao contemplacao lance grupo cota parcela', action:() => location.href = 'simulacao.html'},
+    {title:'Apresentação Redecon', meta:'Apresentação comercial para reunião com cliente · abre em nova aba', hay:'apresentacao apresentação comercial reuniao reunião cliente slides metodo api venda', action:() => window.open('https://fhellypenr.github.io/Apresentacao-Redecon/#capa', '_blank', 'noopener')},
     {oculto:true, title:'Proposta direcionada', meta:'Proposta de imóvel e veículo · abre em nova aba', hay:'gerador apresentacao proposta imovel veiculo cliente comercial pdf', action:() => window.open('https://fhellypenr.github.io/Proposta-Redecon/', '_blank', 'noopener')},
     {title:'Como Usar Seu Crédito (site dos clientes)', meta:'Site público · abre em nova aba', hay:'como usar credito uso do credito site cliente', action:() => window.open(USO_URL, '_blank', 'noopener')}
   ];
