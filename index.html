@@ -446,6 +446,63 @@ body{font-size:14px}
 .msg-panel .panel-body{padding:0}
 @media(max-width:960px){.module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.topic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.module-grid,.topic-grid{grid-template-columns:1fr}}
+/* ===== Ficha v3 (15/11/2026): seções em cartões, títulos destacados, passos numerados, caminhos em etapas ===== */
+.drawer{width:min(680px,96vw)}
+.drawer-head{padding:18px 22px}
+.drawer-title .kind{font-size:11px;color:#1e3460}
+.drawer-title h2{font-size:21px;line-height:1.25;margin:5px 0}
+.drawer-body{padding:16px 22px 32px;background:#f5f6f8;min-height:calc(100% - 90px)}
+.faixa{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.faixa .source-tag{font-size:10.5px;padding:4px 8px}
+.faixa-data{font-size:13px;color:var(--text)}
+.faixa-dica{font-size:12px;color:var(--muted);flex-basis:100%;line-height:1.45}
+.faixa.velho{background:var(--amber-soft);border-color:#f0d49a}
+.faixa.velho .faixa-dica{color:#6d4a00;font-weight:600}
+.atalhos{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.atalhos .btn{font-size:13px;padding:9px 13px;border-radius:10px}
+.indice{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px}
+.indice > span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-2);margin-right:2px}
+.indice button{border:1px solid var(--border-strong);background:#fff;border-radius:999px;padding:5px 11px;font-size:12.5px;color:#1e3460;cursor:pointer}
+.indice button:hover{background:#1e3460;color:#fff;border-color:#1e3460}
+.sec{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px 10px;margin-bottom:12px;scroll-margin-top:120px}
+.sec h3{display:flex;align-items:center;gap:9px;margin:0 0 6px;padding-bottom:10px;border-bottom:1px solid var(--border);font-size:15.5px;font-weight:800;color:#1e3460;letter-spacing:-.01em;line-height:1.3}
+.sec h3::before{content:"";width:4px;height:18px;border-radius:2px;background:#e63329;flex:0 0 auto}
+.sec.numerada h3::before{display:none}
+.sec-n{width:24px;height:24px;border-radius:50%;background:#1e3460;color:#fff;font-size:12.5px;display:grid;place-items:center;flex:0 0 auto}
+.sec.alerta{background:#fff9ee;border-color:#f0d49a}
+.sec.alerta h3{color:#8a5a00;border-color:#f0d49a}
+.sec.alerta h3::before{background:#c98a00}
+.sec.exemplo{background:#f8fafd}
+.itens{list-style:none;margin:0;padding:0}
+.it{display:flex;gap:10px;padding:9px 0;border-top:1px dashed #e3e6eb;font-size:14.5px;line-height:1.6;color:#30333a}
+.it:first-child{border-top:0}
+.it::before{content:"";width:6px;height:6px;border-radius:50%;background:#1e3460;opacity:.5;margin-top:9px;flex:0 0 auto}
+.it.num::before{display:none}
+.it .n{width:24px;height:24px;border-radius:50%;background:#eef2f8;color:#1e3460;font-weight:800;font-size:12.5px;display:grid;place-items:center;flex:0 0 auto}
+.it-c{min-width:0;flex:1}
+.lbl{display:block;font-weight:750;color:var(--text)}
+.enf{font-weight:800;color:var(--text)}
+.enf-neg{font-weight:800;color:#c0261d}
+.seta{color:#e63329;font-weight:800}
+.ponto{color:var(--muted-2);margin:0 2px}
+.trilha{display:flex;flex-wrap:wrap;align-items:center;gap:6px 5px;margin-top:3px}
+.trilha span{background:#f1f4f9;border:1px solid #dbe2ee;border-radius:7px;padding:3px 9px;font-size:13.5px;line-height:1.4;color:#1e3460}
+.trilha i{font-style:normal;color:#e63329;font-weight:800}
+.pilulas{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.pilulas span{background:#f4f5f7;border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:13px;line-height:1.4}
+.sec-msgs .itens{display:none}
+.msg-bloco{border:1px solid var(--border);border-radius:12px;margin:8px 0;overflow:hidden;background:#fff}
+.msg-bloco summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:11px 14px;font-weight:700;font-size:14px;line-height:1.35}
+.msg-bloco summary::-webkit-details-marker{display:none}
+.msg-bloco summary::after{content:"+";margin-left:auto;font-size:18px;font-weight:600;color:#1e3460;flex:0 0 auto}
+.msg-bloco[open] summary::after{content:"−"}
+.msg-bloco[open] summary{background:#f6f8fb;border-bottom:1px solid var(--border)}
+.mb-corpo{padding:12px 14px}
+.mb-txt{white-space:pre-wrap;font-size:14px;line-height:1.65;color:#2f3238;background:#f7f8fa;border-radius:10px;padding:12px 14px}
+.mb-acoes{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--muted-2)}
+.rodape-ficha{font-size:12px;color:var(--muted-2);padding:4px 2px 0;line-height:1.5}
+.drawer-body .detail-section{margin-bottom:12px}
+@media(max-width:560px){.drawer-head{padding:14px 14px}.drawer-title h2{font-size:19px}.drawer-body{padding:12px 10px 28px}.sec{padding:12px 12px 8px}.it{font-size:14px}.trilha span{font-size:13px}}
 /* ===== Proposta direcionada OCULTA (15/11/2026) — para reexibir: tirar a classe oculto-temp dos 3 itens, o oculto:true da pesquisa e apagar as 3 linhas abaixo ===== */
 .oculto-temp{display:none!important}
 .module.primary{grid-column:span 2}
@@ -764,21 +821,86 @@ window._iniciarCentral = function(B){
     document.getElementById('drawerTitle').textContent = title;
     document.getElementById('drawerSubtitle').textContent = subtitle;
     document.getElementById('drawerBody').innerHTML = body;
-    document.getElementById('drawerBody').scrollTop = 0;
+    document.getElementById('drawerBody').scrollTop = 0; drawer.scrollTop = 0;
     drawer.classList.add('open'); overlay.classList.add('open'); drawer.setAttribute('aria-hidden', 'false');
   }
+  /* ----- Ficha v3: formatação das seções e itens ----- */
+  function fmtTexto(t){
+    return esc(t)
+      .replace(/(^|[^\wÀ-ú])(NÃO|NUNCA)(?=$|[^\wÀ-ú])/g, '$1<b class="enf-neg">$2</b>')
+      .replace(/(^|[^\wÀ-ú])(ANTES|DEPOIS|SEMPRE|OBRIGATÓRIA|OBRIGATÓRIO|CONSECUTIVAS|ATUAL|REAJUSTADO|MAIOR|IGUAL|SIM|UM A UM|AUTENTICIDADE|RECEBER VALORES|ANO MODELO|AQUISIÇÃO|COM|SEM)(?=$|[^\wÀ-ú])/g, '$1<b class="enf">$2</b>')
+      .replace(/ → /g, ' <span class="seta">→</span> ');
+  }
+  /* divide só fora de parênteses: "GDI (A → B)" não vira etapas */
+  function foraParenteses(t, sep){
+    const out = []; let nivel = 0, ini = 0;
+    for(let i = 0; i < t.length; i++){
+      const c = t[i];
+      if(c === '(') nivel++; else if(c === ')') nivel = Math.max(0, nivel - 1);
+      else if(nivel === 0 && t.startsWith(sep, i)){ out.push(t.slice(ini, i)); ini = i + sep.length; i += sep.length - 1; }
+    }
+    out.push(t.slice(ini)); return out;
+  }
+  /* "Rótulo: texto" ou "Rótulo — texto" vira título em negrito do item */
+  function rotulo(t){
+    let nivel = 0;
+    for(let i = 0; i < Math.min(t.length, 82); i++){
+      const c = t[i];
+      if(c === '(') nivel++; else if(c === ')') nivel = Math.max(0, nivel - 1);
+      else if(c === '→') break;
+      else if(nivel === 0 && c === ':' && t[i + 1] === ' ' && i >= 2){
+        const l = t.slice(0, i).trim();
+        if(/https?$/i.test(l) || /^(ex|obs)\.?$/i.test(l)) break;
+        return [l, t.slice(i + 2)];
+      }
+    }
+    const d = foraParenteses(t, ' — ');
+    if(d.length > 1 && d[0].length >= 2 && d[0].length <= 40 && !/[:→]/.test(d[0])) return [d[0], d.slice(1).join(' — ')];
+    return ['', t];
+  }
+  function itemHTML(raw){
+    let t = String(raw), num = '', lbl = '';
+    const mN = t.match(/^(\d+)\.\s+([\s\S]+)$/); if(mN){ num = mN[1]; t = mN[2]; }
+    const r = rotulo(t); lbl = r[0]; t = r[1];
+    let corpo;
+    const setas = foraParenteses(t, ' → '), pontos = foraParenteses(t, ' · ');
+    if(setas.length >= 3) corpo = '<div class="trilha">' + setas.map(p => '<span>' + fmtTexto(p) + '</span>').join('<i>›</i>') + '</div>';
+    else if(pontos.length >= 4) corpo = '<div class="pilulas">' + pontos.map(p => '<span>' + fmtTexto(p) + '</span>').join('') + '</div>';
+    else corpo = '<span>' + fmtTexto(t).replace(/ · /g, ' <span class="ponto">·</span> ') + '</span>';
+    return '<li class="it' + (num ? ' num' : '') + '">' + (num ? '<span class="n">' + num + '</span>' : '') + '<div class="it-c">' + (lbl ? '<b class="lbl">' + fmtTexto(lbl) + '</b>' : '') + corpo + '</div></li>';
+  }
+  function secaoHTML(s, i){
+    const titulo = String(s.t), mNum = titulo.match(/^(\d+)\s*·\s*([\s\S]+)$/);
+    const tipo = /^(aten[cç][aã]o|importante|cuidado)/i.test(titulo) ? ' alerta' : /^exemplo/i.test(titulo) ? ' exemplo' : '';
+    return '<section class="sec' + tipo + (mNum ? ' numerada' : '') + '" id="fsec-' + i + '"><h3>' + (mNum ? '<span class="sec-n">' + mNum[1] + '</span>' + esc(mNum[2]) : (tipo === ' alerta' ? '⚠️ ' : '') + esc(titulo)) + '</h3>'
+      + '<ul class="itens">' + s.itens.map(itemHTML).join('') + '</ul></section>';
+  }
+  function faixaStatus(st, d){
+    const v = ehVelho(d);
+    return '<div class="faixa' + (v ? ' velho' : '') + '">' + (st ? statusTag(st) : '') + (d ? '<span class="faixa-data">Atualizado em <b>' + esc(d) + '</b></span>' : '')
+      + '<span class="faixa-dica">' + (v ? 'Mais de 6 meses sem revisão: confira com a HS antes de usar.' : 'Antes de passar ao cliente, confira se nada mudou na regra, nos valores, nos prazos ou nos sistemas da HS.') + '</span></div>';
+  }
+  function msgBloco(m, aberta){
+    return '<details class="msg-bloco"' + (aberta ? ' open' : '') + '><summary>' + esc(m.titulo) + '</summary><div class="mb-corpo"><div class="mb-txt">' + esc(m.texto) + '</div>'
+      + '<div class="mb-acoes"><span>Revise os campos entre [colchetes] antes de enviar.</span><button class="copy-btn" data-copy-id="' + esc(m.id) + '">Copiar</button></div></div></details>';
+  }
+  document.getElementById('drawerBody').addEventListener('click', e => {
+    const b = e.target.closest('[data-ir]'); if(!b) return;
+    const alvo = document.getElementById(b.dataset.ir); if(alvo) alvo.scrollIntoView({behavior:'smooth', block:'start'});
+  });
   function openDetail(id){
     const f = fichaById(id); if(!f) return;
-    let h = '<div class="detail-section">' + statusTag(f.status) + avisoRevisao(f.atualizado) + '</div>';
-    if(f.calc === 'devolucao') h += calcDevolucaoHTML();
-    f.secoes.forEach(s => {
-      h += '<div class="detail-section"><h3>' + esc(s.t) + '</h3><ul>' + s.itens.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>';
-    });
-    if(f.status === 'validar') h += '<div class="detail-section"><div class="detail-callout">Ponto ainda não confirmado com a HS. Confirmar antes de passar ao cliente como regra.</div></div>';
-    if(f.links.length) h += '<div class="detail-section"><h3>Abrir</h3><div class="ficha-links">' + f.links.map(linkHTML).join('') + '</div></div>';
     const ms = f.msgs.map(msgById).filter(Boolean);
-    if(ms.length) h += '<div class="detail-section"><h3>Mensagens prontas</h3>' + ms.map(msgRow).join('') + '</div>';
-    h += '<div class="detail-meta"><div class="meta-box"><span>Fonte</span><strong>' + esc(f.fonte) + '</strong></div><div class="meta-box"><span>Última atualização</span><strong>' + esc(f.atualizado || B.atualizado) + '</strong></div></div>';
+    let h = faixaStatus(f.status, f.atualizado || B.atualizado);
+    if(f.links.length) h += '<div class="atalhos">' + f.links.map(linkHTML).join('') + '</div>';
+    const nomes = f.secoes.map(s => String(s.t).replace(/^\d+\s*·\s*/, ''));
+    if(ms.length) nomes.push('Mensagens prontas');
+    if(nomes.length >= 4) h += '<nav class="indice"><span>Ir para</span>' + nomes.map((n, i) => '<button type="button" data-ir="fsec-' + (i < f.secoes.length ? i : 'msgs') + '">' + esc(n) + '</button>').join('') + '</nav>';
+    if(f.calc === 'devolucao') h += calcDevolucaoHTML();
+    h += f.secoes.map(secaoHTML).join('');
+    if(f.status === 'validar') h += '<div class="detail-section"><div class="detail-callout">Ponto ainda não confirmado com a HS. Confirmar antes de passar ao cliente como regra.</div></div>';
+    if(ms.length) h += '<section class="sec sec-msgs" id="fsec-msgs"><h3>Mensagens prontas <span style="font-weight:600;color:var(--muted-2);font-size:13px">' + ms.length + '</span></h3>' + ms.map(m => msgBloco(m, ms.length <= 2)).join('') + '</section>';
+    h += '<div class="rodape-ficha">Fonte: ' + esc(f.fonte) + '</div>';
     abrirDrawer(catNome(f.cat), f.titulo, f.resumo, h);
     if(f.calc === 'devolucao') ligarCalcDevolucao();
   }
@@ -919,7 +1041,7 @@ window._iniciarCentral = function(B){
   }
   function openMsg(id){
     const m = msgById(id); if(!m) return;
-    abrirDrawer('Mensagem pronta · ' + catNome(m.cat), m.titulo, 'Revise os campos entre [colchetes] antes de enviar.', avisoRevisao(m.atualizado) + '<div style="height:10px"></div>' + msgRow(m));
+    abrirDrawer('Mensagem pronta · ' + catNome(m.cat), m.titulo, 'Revise os campos entre [colchetes] antes de enviar.', faixaStatus('', m.atualizado) + msgBloco(m, true));
   }
   function closeDrawer(){ drawer.classList.remove('open'); overlay.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); }
   document.querySelectorAll('[data-detail]').forEach(el => el.addEventListener('click', () => openDetail(el.dataset.detail)));
