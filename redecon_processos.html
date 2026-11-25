@@ -14,10 +14,17 @@
 
   const db = getFirestore(fbApp);
 
+  // Devolve {ok:true} quando o Firebase CONFIRMA a gravação, ou {ok:false, erro} quando recusa.
+  // Aceita o texto JSON já pronto (string) ou a lista de processos.
   window._fbSalvar = async function(dados) {
+    const json = (typeof dados === 'string') ? dados : JSON.stringify(dados);
     try {
-      await setDoc(doc(db, "dados", "processos"), { lista: JSON.stringify(dados) });
-    } catch(e) { console.error("Erro ao salvar:", e); }
+      await setDoc(doc(db, "dados", "processos"), { lista: json });
+      return { ok: true };
+    } catch(e) {
+      console.error("Erro ao salvar:", e);
+      return { ok: false, erro: e };
+    }
   };
 
   window._fbCarregar = async function() {
@@ -437,6 +444,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
   body{background:#fff}
   .rel-card{box-shadow:none;border:none}
 }
+/* ===== Status da gravação (melhoria 1) ===== */
+#save-status{position:fixed;right:16px;bottom:16px;z-index:260;max-width:min(420px,calc(100vw - 32px));font-size:12px;line-height:1.45;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);padding:7px 11px;display:none}
+#save-status.show{display:block}
+#save-status .ss-linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#save-status.ok{color:var(--green);border-color:var(--green-border);background:var(--green-light)}
+#save-status.salvando{color:var(--text2)}
+#save-status.erro{color:var(--red);border-color:var(--red-border);background:var(--red-light);font-weight:600;font-size:13px;padding:10px 13px}
+#save-status.aviso{border-color:var(--amber-border)}
+#save-status .ss-tam{font-weight:400;color:var(--text2)}
+#save-status .ss-alerta{margin-top:6px;padding:6px 8px;border-radius:6px;background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border);font-weight:500}
+#save-status .ss-alerta.grave{background:var(--red-light);color:var(--red);border-color:var(--red-border);font-weight:600}
+#save-status button{font-family:inherit;font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid var(--red);background:#fff;color:var(--red);cursor:pointer}
+@media print{#save-status{display:none!important}}
+/* Marca de devolução (melhoria 2) */
+.tag-devol{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--red);background:var(--red-light);border:1px solid var(--red-border);border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:1px}
+.devol-dica{font-size:11.5px;color:var(--text2);margin-top:5px}
+.devol-linha{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px}
+.devol-nome{font-size:13px;font-weight:600;color:var(--text);min-width:0;overflow-wrap:anywhere}
+.devol-qtd{font-size:14px;font-weight:700;color:var(--text);flex-shrink:0}
+.devol-sub{font-size:11px;color:var(--text3);margin:-2px 0 6px}
+.devol-barra{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:12px}
+.devol-barra>div{height:100%;background:var(--red);border-radius:0 4px 4px 0;opacity:.75}
+.devol-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}
+.devol-tit{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
 </style>
 <script src="moeda-br.js"></script>
 </head>
@@ -540,7 +571,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
     </div>
     <div class="field"><label>Data</label><input type="text" id="mc-data" placeholder="DD/MM/AAAA"></div>
     <div class="field"><label>Horário</label><input type="text" id="mc-hora" placeholder="HH:MM" maxlength="5"></div>
-    <div class="field"><label>Comentário</label><textarea id="mc-texto" rows="3" placeholder="O que ocorreu? Houve atraso? Por quê?"></textarea></div>
+    <div class="field"><label>Comentário</label><textarea id="mc-texto" rows="3" placeholder="O que ocorreu? Houve atraso? Por quê?"></textarea><div class="devol-dica">Se a HS devolveu o processo, comece com <b>DEVOLUÇÃO:</b> e o motivo curto (sem nome de cliente). Ex.: DEVOLUÇÃO: cronograma como ampliação numa reforma</div></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="fecharModalComentario()">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarComentario()">Salvar</button>
@@ -548,6 +579,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
   </div>
 </div>
 
+<div id="save-status" role="status" aria-live="polite"></div>
 <div id="msg-popup" class="msg-popup">
   <div class="msg-box">
     <div class="msg-box-title" id="msg-popup-title">Mensagem pronta</div>
@@ -555,10 +587,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
     <textarea class="msg-textarea" id="msg-popup-text" rows="8"></textarea>
     <div class="msg-actions">
       <span class="copied-tag" id="msg-copied">Copiado!</span>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn btn-secondary btn-sm" onclick="fecharMsgPopup()">Fechar</button>
         <button class="btn btn-secondary btn-sm" onclick="salvarMsgEtapa()"><i class="ti ti-device-floppy"></i> Salvar nesta etapa</button>
         <button class="btn btn-primary btn-sm" onclick="copiarMsg()"><i class="ti ti-copy"></i> Copiar</button>
+        <button class="btn btn-success btn-sm" id="btn-abrir-whatsapp" onclick="abrirWhatsApp()" title="Abre o WhatsApp com o texto pronto; você escolhe o contato"><i class="ti ti-brand-whatsapp"></i> Abrir no WhatsApp</button>
       </div>
     </div>
   </div>
@@ -765,13 +798,89 @@ function atualizarDataFim(idx, valor) {
   renderLista();
   renderDetalhe();
 }
+/* ===================== GRAVAÇÃO SEGURA (melhoria 1) =====================
+   salvar() grava no navegador e na nuvem, ESPERA o Firebase confirmar e mostra o resultado
+   na caixa no canto da tela. Estrutura dos dados: inalterada (dados/processos, campo "lista"). */
+const SS_AVISO_KB=800, SS_GRAVE_KB=950, SS_LIMITE_KB=1024, SS_TIMEOUT_MS=10000;
+const _ss={seq:0,estado:'',hora:'',bytes:0,msgErro:'',localOk:true};
+window._ultimaGravacao=null;
+function ssHora(){const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())}
+function ssBytes(txt){try{return new TextEncoder().encode(txt).length}catch(e){return txt.length}}
+function ssKB(b){return Math.floor(b/1024)}
+function ssRender(){
+  const el=document.getElementById('save-status');
+  if(!el) return;
+  const kb=ssKB(_ss.bytes);
+  const tam=_ss.bytes?'<span class="ss-tam">Dados: '+kb+' KB de '+SS_LIMITE_KB+' KB</span>':'';
+  let cls='',linha='';
+  if(_ss.estado==='salvando'){cls='salvando';linha='<span>Salvando na nuvem…</span>'+tam}
+  else if(_ss.estado==='ok'){cls='ok';linha='<span><i class="ti ti-cloud-check"></i> Salvo na nuvem às '+_ss.hora+'</span>'+tam}
+  else if(_ss.estado==='erro'){cls='erro';linha='<span><i class="ti ti-cloud-off"></i> NÃO salvou na nuvem. '+kbEsc(_ss.msgErro)+'</span><button type="button" onclick="tentarSalvarDeNovo()">Tentar de novo</button>'}
+  else if(_ss.estado==='medido'){cls='';linha=tam}
+  else {el.className='';el.innerHTML='';return}
+  let alerta='';
+  if(_ss.bytes>=SS_GRAVE_KB*1024) alerta='<div class="ss-alerta grave" role="alert">Quase no limite do Firebase ('+kb+' KB de '+SS_LIMITE_KB+' KB). A próxima gravação pode ser recusada. Avise o Claude agora para dividir os dados.</div>';
+  else if(_ss.bytes>=SS_AVISO_KB*1024) alerta='<div class="ss-alerta" role="alert">Os dados chegaram a '+kb+' KB (o Firebase aceita até '+SS_LIMITE_KB+' KB neste documento). Avise o Claude para dividir os dados antes de chegar ao limite.</div>';
+  if(!_ss.localOk) alerta+='<div class="ss-alerta grave" role="alert">Também não gravou neste navegador (armazenamento cheio ou bloqueado).</div>';
+  el.className='show '+cls+((alerta&&cls!=='erro')?' aviso':'');
+  el.innerHTML='<div class="ss-linha">'+linha+'</div>'+alerta;
+}
+function ssDefinir(seq,estado,msgErro){
+  if(seq!==_ss.seq) return;           // resposta de uma gravação antiga: ignora
+  _ss.estado=estado;_ss.msgErro=msgErro||'';
+  if(estado==='ok') _ss.hora=ssHora();
+  ssRender();
+}
+function medirDados(){
+  try{_ss.bytes=ssBytes(JSON.stringify(processos))}catch(e){}
+  if(!_ss.estado) _ss.estado='medido';
+  ssRender();
+}
+/* Envia o texto JSON para a nuvem e espera a confirmação. Sempre devolve uma promessa que termina (no máximo em SS_TIMEOUT_MS). */
+function salvarNuvem(json){
+  const seq=++_ss.seq;
+  _ss.bytes=ssBytes(json);
+  if(!window._fbSalvar){
+    ssDefinir(seq,'erro','A conexão com a nuvem ainda não carregou.');
+    return Promise.resolve({ok:false});
+  }
+  ssDefinir(seq,'salvando');
+  const real=Promise.resolve(window._fbSalvar(json)).catch(e=>({ok:false,erro:e}));
+  real.then(r=>{
+    if(r&&r.ok) ssDefinir(seq,'ok');
+    else{
+      const cod=r&&r.erro&&r.erro.code?String(r.erro.code):'';
+      const grande=/invalid-argument|resource-exhausted/.test(cod)||_ss.bytes>1024*1024;
+      ssDefinir(seq,'erro',grande?'O documento passou do limite de tamanho do Firebase.':(cod==='permission-denied'?'Sem permissão (entre de novo no sistema).':'O Firebase recusou a gravação.'));
+    }
+  });
+  if(navigator.onLine===false) ssDefinir(seq,'erro','Sem internet neste momento.');
+  const limite=new Promise(res=>setTimeout(()=>res({ok:false,timeout:true}),SS_TIMEOUT_MS));
+  const corrida=Promise.race([real,limite]).then(r=>{
+    if(r&&r.timeout) ssDefinir(seq,'erro','O Firebase não confirmou em '+(SS_TIMEOUT_MS/1000)+' segundos (internet?).');
+    return r;
+  });
+  window._ultimaGravacao=corrida;
+  return corrida;
+}
+function tentarSalvarDeNovo(){
+  let json;
+  try{json=JSON.stringify(processos)}catch(e){return}
+  salvarNuvem(json);
+}
+window.addEventListener('online',()=>{ if(_ss.estado==='erro') tentarSalvarDeNovo(); });
+window.addEventListener('beforeunload',e=>{
+  if(_ss.estado==='salvando'||_ss.estado==='erro'){ e.preventDefault(); e.returnValue=''; }
+});
 function salvar(){
   if(pSel){
     const idx=processos.findIndex(p=>p.id===pSel.id);
     if(idx>=0) processos[idx].ultimaAtualizacao=today();
   }
-  localStorage.setItem('redecon_v1',JSON.stringify(processos));
-  if(window._fbSalvar) window._fbSalvar(processos);
+  const json=JSON.stringify(processos);
+  _ss.localOk=true;
+  try{ localStorage.setItem('redecon_v1',json); }catch(e){ _ss.localOk=false; console.error('Erro ao gravar no navegador:',e); }
+  salvarNuvem(json);
 }
 function abrirMsgEtapa(idx){
   const et=pSel.etapas[idx];
@@ -830,6 +939,12 @@ function abrirMsg(nome, etapa, msg){
   document.getElementById('msg-popup').classList.add('open');
 }
 function fecharMsgPopup(){document.getElementById('msg-popup').classList.remove('open')}
+function abrirWhatsApp(){
+  const texto=document.getElementById('msg-popup-text').value;
+  if(!texto.trim()){alert('A mensagem está vazia.');return}
+  // wa.me sem número: o WhatsApp abre com o texto pronto e você escolhe o contato
+  window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank','noopener');
+}
 function copiarMsg(){
   navigator.clipboard.writeText(document.getElementById('msg-popup-text').value).then(()=>{
     const el=document.getElementById('msg-copied');
@@ -1174,7 +1289,7 @@ async function processarNovoDaQuery(){
   salvar();
   renderLista();
   history.replaceState({},'',location.pathname);
-  if(window._fbSalvar){ try{ await window._fbSalvar(processos); }catch(e){} }  // espera a nuvem confirmar antes de avisar
+  if(window._ultimaGravacao){ try{ await window._ultimaGravacao; }catch(e){} }  // espera a nuvem confirmar (ou o prazo acabar) antes de avisar
   avisarPai({tipo:'criado', nome: proc.nome, id: proc.id});
   if(!emIframe) abrirDetalhe(proc.id);
 }
@@ -1683,7 +1798,7 @@ function renderDetalhe(){
     if(!aberta){
       return `<div class="etapa-block etapa-collapsed ${st.cls}" onclick="toggleEtapa(${i})"><div class="etapa-collapsed-row"><div class="etapa-nome">${et.nome} ${customTagMini}<span class="status-pill ${st.pill}">${st.label}</span></div><div style="display:flex;align-items:center;gap:10px;flex-shrink:0"><span style="font-size:11.5px;color:var(--text3)">${resumoData}</span><i class="ti ti-chevron-down" style="font-size:15px;color:var(--text3)"></i></div></div></div>`;
     }
-    const comsHtml=et.comentarios.map((c,ci)=>`<div class="comment"><div class="comment-meta">${c.data}${c.hora?' · '+c.hora:''} · ${c.resp}</div><div class="comment-text">${c.texto}</div>${!p.concluido?`<div class="comment-acoes"><button class="link-btn" onclick="editarComentario(${i},${ci})"><i class="ti ti-edit" style="font-size:11px"></i> editar</button><button class="link-btn link-btn-red" onclick="removerComentario(${i},${ci})"><i class="ti ti-x" style="font-size:11px"></i> remover</button></div>`:''}</div>`).join('');
+    const comsHtml=et.comentarios.map((c,ci)=>`<div class="comment"><div class="comment-meta">${c.data}${c.hora?' · '+c.hora:''} · ${c.resp}</div><div class="comment-text">${ehDevolucao(c)?'<span class="tag-devol">Devolução</span>':''}${c.texto}</div>${!p.concluido?`<div class="comment-acoes"><button class="link-btn" onclick="editarComentario(${i},${ci})"><i class="ti ti-edit" style="font-size:11px"></i> editar</button><button class="link-btn link-btn-red" onclick="removerComentario(${i},${ci})"><i class="ti ti-x" style="font-size:11px"></i> remover</button></div>`:''}</div>`).join('');
     const customTag=customTagMini;
     const btnCima=i>0?'<button class="link-btn" onclick="moverEtapa('+i+',-1)" title="Mover para cima"><i class="ti ti-arrow-up" style="font-size:12px"></i></button>':'<span style="width:20px"></span>';
     const btnBaixo=i<p.etapas.length-1?'<button class="link-btn" onclick="moverEtapa('+i+',1)" title="Mover para baixo"><i class="ti ti-arrow-down" style="font-size:12px"></i></button>':'<span style="width:20px"></span>';
@@ -1989,6 +2104,51 @@ function estTile(rot,valor,sub,op){
     +(sub?'<div class="est-tile-sub">'+sub+'</div>':'')+'</div>';
 }
 
+/* ===================== DEVOLUÇÕES DA HS (melhoria 2) =====================
+   Um comentário que começa com "DEVOLUÇÃO:" (qualquer caixa, com ou sem acento) conta como devolução. */
+const RE_DEVOLUCAO=/^\s*devolu[cç][aã]o\s*:\s*/i;
+function ehDevolucao(c){return !!(c&&typeof c.texto==='string'&&RE_DEVOLUCAO.test(c.texto))}
+function motivoDevolucao(c){
+  const m=String(c.texto).replace(RE_DEVOLUCAO,'').split(/\r?\n/)[0].trim().replace(/[.;,\s]+$/,'');
+  return m;
+}
+function chaveMotivo(m){return m.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim()}
+/* Conta devoluções de uma lista de processos. Não devolve nome de cliente. */
+function contarDevolucoes(procs,nomeEtapa){
+  const porEtapa={},porMotivo={};let total=0;const procsComDev=new Set();
+  procs.forEach(p=>{
+    (p.etapas||[]).forEach(et=>{
+      (et.comentarios||[]).forEach(c=>{
+        if(!ehDevolucao(c)) return;
+        total++;procsComDev.add(p.id);
+        const nomeE=nomeEtapa?nomeEtapa(et.nome):et.nome;
+        porEtapa[nomeE]=(porEtapa[nomeE]||0)+1;
+        const mot=motivoDevolucao(c)||'(sem motivo informado)';
+        const k=chaveMotivo(mot);
+        if(!porMotivo[k]) porMotivo[k]={motivo:mot,n:0,etapas:{}};
+        porMotivo[k].n++;
+        porMotivo[k].etapas[nomeE]=(porMotivo[k].etapas[nomeE]||0)+1;
+      });
+    });
+  });
+  return{total,processos:procsComDev.size,
+    etapas:Object.entries(porEtapa).map(([nome,n])=>({nome,n})).sort((a,b)=>b.n-a.n||a.nome.localeCompare(b.nome)),
+    motivos:Object.values(porMotivo).sort((a,b)=>b.n-a.n||a.motivo.localeCompare(b.motivo))};
+}
+function htmlDevolucoes(procs,nomeEtapa,anoLabel){
+  const d=contarDevolucoes(procs,nomeEtapa);
+  const cab='<div class="estat-section"><div class="estat-section-head"><i class="ti ti-arrow-back-up"></i> Devoluções da HS — '+kbEsc(anoLabel)+(d.total?' · '+d.total:'')+'</div><div class="estat-body">';
+  if(!d.total) return cab+'<div class="estat-note" style="text-align:left;margin:0">Nenhuma devolução registrada no período. Quando a HS devolver um processo, escreva na etapa um comentário começando com <b>DEVOLUÇÃO:</b> e o motivo curto.</div></div></div>';
+  const max=d.etapas[0].n,maxM=d.motivos[0].n;
+  const pl=(n,s,p)=>n+' '+(n===1?s:p);
+  const blocoEtapas=d.etapas.map(e=>'<div class="devol-linha"><span class="devol-nome">'+kbEsc(e.nome)+'</span><span class="devol-qtd">'+e.n+'</span></div><div class="devol-barra"><div style="width:'+Math.max(4,Math.round(e.n/max*100))+'%"></div></div>').join('');
+  const blocoMotivos=d.motivos.map(m=>{
+    const ets=Object.entries(m.etapas).sort((a,b)=>b[1]-a[1]).map(([n,q])=>kbEsc(n)+(q>1?' ('+q+')':'')).join(' · ');
+    return '<div class="devol-linha"><span class="devol-nome">'+kbEsc(m.motivo)+'</span><span class="devol-qtd">'+m.n+'</span></div><div class="devol-sub">em: '+ets+'</div><div class="devol-barra"><div style="width:'+Math.max(4,Math.round(m.n/maxM*100))+'%"></div></div>';
+  }).join('');
+  return cab+'<div class="devol-grid"><div><div class="devol-tit">Por etapa</div>'+blocoEtapas+'</div><div><div class="devol-tit">Por motivo</div>'+blocoMotivos+'</div></div>'
+    +'<div class="estat-note" style="text-align:left">'+pl(d.total,'devolução','devoluções')+' em '+pl(d.processos,'processo','processos')+' (de '+procs.length+' no período, incluindo cancelados). Motivos iguais são agrupados ignorando maiúsculas, acentos e ponto final. Sem nome de cliente: escreva só o motivo.</div></div></div>';
+}
 function renderEstatisticas(){
   const anosDisponiveis=[...new Set(processos.map(p=>{const d=p.dataCriacao;return d&&d.includes('/')?d.split('/')[2]:null}).filter(Boolean))].sort().reverse();
   const anoSel=window._estatAnoSel||(anosDisponiveis[0]||'todos');
@@ -2116,7 +2276,7 @@ function renderEstatisticas(){
       +'<div class="estat-card" style="text-align:left;border-color:var(--green-border);background:var(--green-light)"><div class="estat-card-label" style="color:var(--green)">Total geral</div><div class="estat-card-val green" style="font-size:18px">'+estFmtR(totalGeral)+'</div><div class="estat-card-sub" style="margin:4px 0 0">'+plural(nCred,'processo','processos')+' · média '+ticket(totalGeral,nCred)+'</div></div></div>'
       +'<div class="estat-note">Apenas processos concluídos, abertos no período, com crédito liberado preenchido</div>'
       +'<div class="estat-note" style="margin-top:2px">Construção/Reforma/Ampliação com liberação parcial só entram quando forem concluídos</div></div></div>'
-    +gargHtml+alertasHtml+canceladosHtml;
+    +htmlDevolucoes(doPeriodo,nomeCanonico,anoLabel)+gargHtml+alertasHtml+canceladosHtml;
   estTipInit();
 }
 function abrirEtapas(){_etapasAbertas=new Set();showView('view-detalhe');renderDetalhe()}
@@ -2578,6 +2738,7 @@ document.getElementById('modal-alerta').addEventListener('click',function(e){if(
 window._bootAposAuth = async function(){
   if(window._fbPronto){
     await Promise.all([carregar(), carregarTemplates()]);  // dados + modelos de etapas atualizados
+    medirDados();
     processarNovoDaQuery();    // só então cria o processo novo, se houver
   } else {
     // Firebase ainda carregando - usar localStorage enquanto isso
@@ -2585,6 +2746,7 @@ window._bootAposAuth = async function(){
     renderLista();
     window._fbProntoCallback = async function(){
       await Promise.all([carregar(), carregarTemplates()]);
+      medirDados();
       processarNovoDaQuery();
     };
   }
